@@ -31,27 +31,23 @@ O **OfertaPronta** é uma plataforma web mobile-first voltada para pequenos come
 |---|---|---|
 | **Framework Full-Stack** | **TanStack Start** | React 19 + TanStack Router + Vite / Vinxi / Nitro (SSR, File-based Routing, RPC via Server Functions). |
 | **Frontend & UI** | **Tailwind CSS v4 + shadcn/ui** | Design system mobile-first, primitivos Radix UI, Lucide Icons, tipografia moderna (Inter + Space Grotesk). |
-| **Client State & Cache** | **TanStack Query v5** | Cache de dados assíncronos, polling de status de pagamento e mutations tipadas. |
-| **Backend / Server Layer** | **Server Functions + API Routes** | `createServerFn` para RPC tipado end-to-end com Zod; `createAPIFileRoute` para Webhooks (Pix) e streaming binário de downloads. |
-| **Arquitetura de Backend** | **Clean Architecture / Hexagonal** | Domínio e casos de uso isolados de transporte (HTTP) e persistência (ORM/APIs externas). |
-| **Banco de Dados & ORM** | **PostgreSQL + Drizzle ORM** | Schemas tipados em TypeScript, migrações seguras, transações atômicas e consultas de alta performance. |
-| **Renderização Gráfica** | **SVG + @resvg/resvg-js + Sharp** | Templates baseados em SVG vetorial determinístico renderizados no servidor em PNGs de alta resolução com e sem marca d'água. |
-| **Gateway de Pagamento** | **Woovi / OpenPix (Pix Dinâmico)** | Cobranças Pix instantâneas com webhook idempotente assinado via HMAC. |
-| **Storage de Mídia** | **Cloudinary ou S3-Compatible** | Armazenamento de fotos/logos de entrada e arquivos PNG finais exportados com URLs temporárias/assinadas. |
-| **Testes & Qualidade** | **Vitest + Testing Library** | TDD (Red-Green-Refactor) com suítes unitárias, integração de rotas e testes visuais de templates. |
+| **Client State & Cache** | **TanStack Query v5** | Cache de dados assíncronos, polling de status de pagamento e mutations tipadas via Server Functions. |
+| **Fronteira RPC & HTTP** | **Server Functions + API Routes** | `createServerFn` para RPC tipado end-to-end com Zod; `createAPIFileRoute` exclusivamente para o webhook Pix da OpenPix. |
+| **Arquitetura de Código** | **Deep Modules & Codebase Design** | Módulos profundos com interfaces concisas e alta localidade; zero portas hipotéticas com único adaptador. |
+| **Banco de Dados & ORM** | **PostgreSQL + Drizzle ORM** | Schemas tipados em TypeScript, transações atômicas e snapshots congelados imutáveis. |
+| **Motor Gráfico (Isomórfico)**| **SVG Isomórfico + @resvg/resvg-js**| `TemplateEngine` puro compartilhado entre prévia no browser e renderização em PNG no servidor (zero drift visual). |
+| **Gateway de Pagamento** | **Woovi / OpenPix (Pix Dinâmico)** | Módulo profundo `PixCheckout` com máquina de estados, assinatura HMAC e idempotência estrita. |
+| **Storage & Exportação** | **S3 / Cloudinary** | Persistência dos PNGs finais de alta resolução (Feed 1080×1350 e Story 1080×1920) com URLs privadas de 7 dias. |
+| **Testes & Qualidade** | **Vitest + Testing Library** | TDD nos limites da interface pública dos módulos profundos (replace-don't-layer com fakes in-memory). |
 
 ---
 
-## 3. Arquitetura de Pastas e Estrutura de Código
+## 3. Arquitetura de Pastas e Estrutura de Código (Deep Modules)
 
-A estrutura do projeto combina a **modularidade orientada a features** (inspirada no `dorama/web`) com um **backend full-stack robusto e isolado**:
+A estrutura do projeto combina a **modularidade orientada a features** com **módulos profundos** (eliminando cascas de passagem, wrappers do Axios e portas rasas de único adaptador):
 
 ```
 src/
-├── api/                             # Clientes HTTP auxiliares e tratamento de erros do frontend
-│   ├── client.ts                    # Utilitários de fetch/axios e interceptores de erro
-│   └── handle-api-error.ts          # Mapeamento e normalização de erros de API
-│
 ├── components/                      # Componentes visuais transversais
 │   ├── ui/                          # Primitivos shadcn/ui estilizados (button, dialog, input, etc.)
 │   └── shared/                      # Componentes compartilhados (Header, MobileLayout, PixModal)
@@ -73,8 +69,7 @@ src/
 │   ├── checkout.$orderId.tsx        # Tela de pagamento Pix (QR Code + Copia e Cola)
 │   ├── pedido.$orderId.tsx          # Tela de entrega com download dos PNGs finais
 │   └── api/                         # [HTTP REST Endpoints via createAPIFileRoute]
-│       ├── webhooks.pix.ts          # Webhook de confirmação Pix com validação de assinatura HMAC
-│       └── downloads.$token.ts      # Endpoint seguro para streaming ou redirecionamento de download do PNG
+│       └── webhooks.pix.ts          # Adaptador HTTP para o webhook Pix (valida HMAC e delega ao PixCheckout)
 │
 ├── styles/                          # Estilização global e tokens Tailwind CSS v4
 │   ├── theme.css                    # Variáveis de tema CSS, cores e tokens visuais
@@ -89,15 +84,15 @@ src/
 │   │   ├── data/                    # Schemas Zod de validação de formulário e DTOs
 │   │   └── server/                  # [SERVER-ONLY] Lógica backend da feature
 │   │       ├── promotion.schema.ts  # Definição Drizzle das tabelas `drafts` e `campaigns`
-│   │       ├── promotion.service.ts # Casos de uso de validação e persistência do rascunho
 │   │       └── server-functions.ts  # TanStack Start createServerFn (saveDraftFn, getDraftFn)
 │   │
-│   ├── templates/                   # Feature: Catálogo de Templates & Motores SVG
-│   │   ├── components/              # TemplateSelector, SvgPreviewCanvas
+│   ├── templates/                   # Feature: Catálogo de Templates & Motor SVG Isomórfico
+│   │   ├── components/              # TemplateSelector, SvgPreviewCanvas (renderiza via TemplateEngine)
 │   │   ├── data/                    # Metadados e definições dos 3 templates (Hamburgueria, Pizzaria, Delivery)
-│   │   └── server/                  # [SERVER-ONLY]
-│   │       ├── svg-generator.ts     # Gerador determinístico de marcação SVG com textos e imagens embutidas
-│   │       └── watermark.ts         # Aplicador de marca d'água vetorial para visualizações gratuitas
+│   │   └── engine/                  # [ISOMÓRFICO: BROWSER + SERVER] Motor puro de SVG
+│   │       ├── template-engine.ts   # Função pura renderTemplateSvg(id, data, options) -> string SVG
+│   │       ├── watermark.ts         # Injeção determinística de marca d'água vetorial para prévias
+│   │       └── catalog.ts           # Definições vetoriais dos templates Feed (1080x1350) e Story (1080x1920)
 │   │
 │   ├── checkout/                    # Feature: Criação de Pedidos & Checkout Pix
 │   │   ├── components/              # PixQRCodeCard, PixCopiaECola, PaymentPollingIndicator
@@ -106,37 +101,26 @@ src/
 │   │   ├── data/                    # Schemas de checkout, DTOs de pagamento e estados
 │   │   └── server/                  # [SERVER-ONLY]
 │   │       ├── order.schema.ts      # Definição Drizzle das tabelas `orders` e `payment_charges`
-│   │       ├── order.service.ts     # Criação de pedidos com preço congelado no backend (R$ 9,90)
-│   │       ├── webhook.service.ts   # Processamento idempotente de notificações de pagamento Pix
+│   │       ├── pix-checkout.ts      # [MÓDULO PROFUNDO] Máquina de estados: createCharge e confirmPayment
 │   │       └── server-functions.ts  # TanStack Start createServerFn (createOrderFn, getOrderStatusFn)
 │   │
-│   └── delivery/                    # Feature: Geração de PNGs & Entrega Segura
+│   └── delivery/                    # Feature: Entrega Segura & Downloads
 │       ├── components/              # DownloadCard, ShareButtons, CorrectionNotice
 │       ├── hooks/                   # use-delivery-status
 │       ├── views/                   # OrderDeliveryView
 │       ├── data/                    # Tipos de exportação e schemas de download
 │       └── server/                  # [SERVER-ONLY]
 │           ├── delivery.schema.ts   # Definição Drizzle da tabela `exports`
-│           ├── render.worker.ts     # Orquestrador de renderização (SVG -> Sharp/Resvg -> Storage)
-│           ├── token.service.ts     # Emissão e validação de tokens privados com retenção de 7 dias
-│           └── server-functions.ts  # TanStack Start createServerFn (getDeliveryStatusFn)
+│           └── server-functions.ts  # TanStack Start createServerFn (getDeliveryDetailsFn)
 │
-└── server/                          # [SERVER-ONLY] Infraestrutura Central & Portas/Adaptadores (Clean Arch)
+└── server/                          # [SERVER-ONLY] Infraestrutura Central & Módulos Profundos
     ├── db/                          # Conexão Drizzle ORM + PostgreSQL
-    │   ├── index.ts                 # Conexão de banco e pooling do PostgreSQL
+    │   ├── index.ts                 # Conexão singleton e pooling do PostgreSQL
     │   └── schema.ts                # Export consolidado de todos os schemas Drizzle
-    ├── storage/                     # Adaptadores de Armazenamento de Arquivos
-    │   ├── storage.port.ts          # Contrato StoragePort (upload, getSignedUrl)
-    │   └── s3-storage.adapter.ts    # Implementação S3 / Cloudinary
-    ├── payment/                     # Adaptadores de Gateway Pix
-    │   ├── payment.port.ts          # Contrato PaymentGatewayPort (createCharge, verifyWebhookSignature)
-    │   └── openpix.adapter.ts       # Implementação Woovi / OpenPix
-    ├── renderer/                    # Adaptadores de Renderização Gráfica
-    │   ├── renderer.port.ts         # Contrato ImageRendererPort (renderSvgToPng)
-    │   └── resvg-sharp.adapter.ts   # Implementação @resvg/resvg-js e sharp
-    └── queue/                       # Fila de Processamento em Segundo Plano
-        ├── queue.port.ts            # Contrato JobQueuePort (enqueueRenderJob)
-        └── pg-boss.adapter.ts       # Implementação de fila com retry automático (Postgres / pg-boss)
+    └── export-engine/               # [MÓDULO PROFUNDO: RENDER & STORAGE]
+        ├── index.ts                 # Interface pública única: renderAndStore(snapshot, options)
+        ├── resvg-rasterizer.ts      # Rasterização interna de alta resolução via @resvg/resvg-js e Sharp
+        └── s3-storage.ts            # Upload para S3/Cloudinary e emissão de URLs privadas com validade de 7 dias
 ```
 
 ---
@@ -165,10 +149,12 @@ src/
    - O processamento de pagamentos deve ser estritamente idempotente: registrar o identificador da transação e ignorar notificações duplicadas sem gerar novas cobranças ou novos jobs redundantes.
    - Liberação de downloads é restrita a pedidos cujo status de pagamento foi confirmado com sucesso. Arquivos são protegidos por tokens assinados com validade mínima de 7 dias.
 
-5. **Clean Architecture & TDD**:
-   - Lógica de negócio, cálculos e transformações de templates residem em serviços puros de domínio, desacoplados de bibliotecas HTTP ou ORM específicos.
-   - Aplique TDD (Red → Green → Refactor): escreva testes falhando antes de implementar a lógica de domínio ou endpoints de webhook.
-   - Princípios SOLID com **YAGNI radical (Ponytail)**: prefira funções puras e a biblioteca padrão antes de adicionar pacotes pesados; não crie abstrações prematuras ou classes genéricas desnecessárias.
+5. **Codebase Design & Módulos Profundos (TDD)**:
+   - **Módulos Profundos**: Projete **módulos profundos** (uma interface pequena e concisa ocultando uma implementação substancial), proporcionando *leverage* para quem chama e *locality* para quem mantém. Evite módulos rasos que apenas repassam chamadas.
+   - **A Interface é a Superfície de Teste**: Chamadores e testes cruzam a mesma costura (*seam*). Não teste além da interface nem crie abstrações apenas para injetar mocks.
+   - **Disciplina de Costuras (*Seams*)**: "Um adaptador significa uma costura hipotética; dois adaptadores significam uma costura real." Não introduza interfaces/portas para dependências externas que possuem apenas uma implementação real (como S3 ou Sharp); prefira *replace-don't-layer* com *fakes in-memory* simples nos testes.
+   - **O Teste de Deleção**: Se deletar um módulo faz a complexidade desaparecer, ele era uma casca rasa desnecessária e deve ser eliminado; se a complexidade reaparecer espalhada por N chamadores, o módulo ganhou seu lugar.
+   - **TDD (Red → Green → Refactor)**: Escreva testes nos limites da interface pública do módulo antes de implementar a lógica interna.
 
 6. **Gerenciamento de Dependências**:
    - Nunca edite manifestos manualmente (`package.json`).
