@@ -100,10 +100,10 @@ flowchart TD
 ### Fase 0: Inicialização de Contexto & Ativação de Skills do Chat Canvas
 Antes de qualquer interação:
 1. Localize e leia o arquivo `AGENTS.md` na raiz do projeto.
-2. **Ativação Obrigatória (Passo 0)**: O Chat Canvas DEVE carregar suas skills executando `view_file` em:
-   - `file:///home/luis/repositories/systentandobr/.agents/skills/feature-factory/SKILL.md`
-   - `file:///home/luis/.gemini/config/skills/plan/SKILL.md`
-   - `file:///home/luis/.gemini/config/skills/domain-modeling/SKILL.md`
+2. **Ativação Obrigatória (Passo 0)**: O Chat Canvas DEVE carregar suas skills executando `view_file` nos caminhos resolvidos a partir da lista de `Available skills` do prompt (ou `<workspace_root>/.agents/skills/...`):
+   - `<workspace_root>/.agents/skills/feature-factory/SKILL.md` (ou via `Available skills`)
+   - `plan` (resolvido via `Available skills`)
+   - `domain-modeling` (resolvido via `Available skills` ou `<workspace_root>/.agents/skills/domain-modeling/SKILL.md`)
 
 ---
 
@@ -163,9 +163,9 @@ Todo subagente DEVE receber um prompt estruturado contendo:
 **Task**: [Instrução do usuário verbatim]
 
 **Passo 0: Ativação Obrigatória de Skills (MANDATÓRIO)**:
-Antes de executar qualquer comando ou criar/modificar arquivos, você DEVE carregar seus playbooks invocando `view_file` nos caminhos canônicos:
-- file:///home/luis/.../SKILL.md
-- file:///home/luis/.../SKILL.md
+Antes de executar qualquer comando ou criar/modificar arquivos, você DEVE carregar seus playbooks invocando `view_file` nos caminhos resolvidos a partir da lista de `Available skills` do prompt (ou `<workspace_root>/.agents/skills/<skill>/SKILL.md`):
+- `<workspace_root>/.agents/skills/<skill_1>/SKILL.md` (ou via `Available skills`)
+- `<workspace_root>/.agents/skills/<skill_2>/SKILL.md` (ou via `Available skills`)
 
 **Additional Context**:
 - Repositório: <caminho> | Branch: <branch>
@@ -181,10 +181,10 @@ Antes de executar qualquer comando ou criar/modificar arquivos, você DEVE carre
 #### 3.1. `backend-builder` (Modelo: `flash` com High Effort / `inherit`)
 - **TypeName**: `"backend-builder"`
 - **Role**: `"Backend Builder"`
-- **Passo 0 Obrigatório**: Executar `view_file` em:
-  - `file:///home/luis/.gemini/config/skills/tdd/SKILL.md`
-  - `file:///home/luis/repositories/systentandobr/.agents/skills/solid/SKILL.md`
-  - `file:///home/luis/.gemini/config/plugins/ponytail/skills/ponytail/SKILL.md`
+- **Passo 0 Obrigatório**: Executar `view_file` nos caminhos resolvidos via `Available skills` do prompt ou `<workspace_root>/.agents/skills/...`:
+  - `tdd` (resolvido via `Available skills`)
+  - `solid` (`<workspace_root>/.agents/skills/solid/SKILL.md` ou via `Available skills`)
+  - `ponytail` (resolvido via `Available skills`)
 - **Diretrizes**:
   - **Context Discovery**: Inspecione o `AGENTS.md` ou arquivos do projeto alvo para identificar linguagem (Go, Python, Node.js/NestJS, etc.), convenções de pastas e dependências.
   - **`tdd`**: Escreva testes apenas nas costuras pré-acordadas. Siga o ciclo *Red → Green*: um teste que falha por vez, seguido da menor implementação que passa.
@@ -195,10 +195,10 @@ Antes de executar qualquer comando ou criar/modificar arquivos, você DEVE carre
 #### 3.2. `frontend-builder` (Modelo: `flash` com High Effort / `inherit`)
 - **TypeName**: `"frontend-builder"`
 - **Role**: `"Frontend Builder"`
-- **Passo 0 Obrigatório**: Executar `view_file` em:
-  - `file:///home/luis/.gemini/config/skills/shadcn/SKILL.md`
-  - `file:///home/luis/.gemini/config/skills/frontend-design/SKILL.md`
-  - `file:///home/luis/.gemini/config/plugins/modern-web-guidance-plugin/skills/modern-web-guidance/SKILL.md`
+- **Passo 0 Obrigatório**: Executar `view_file` nos caminhos resolvidos via `Available skills` do prompt ou `<workspace_root>/.agents/skills/...`:
+  - `shadcn` (resolvido via `Available skills`)
+  - `frontend-design` (resolvido via `Available skills`)
+  - `modern-web-guidance` (resolvido via `Available skills`)
 - **Diretrizes**:
   - **Frameworks Mandatórios**: Construa exclusivamente utilizando **React, Next.js ou TanStack** (Router/Query/Start), alinhado ao setup do projeto ativo.
   - **`shadcn`**: Reutilize primitivos acessíveis e componentes existentes da base (Radix/Shadcn).
@@ -214,9 +214,9 @@ Concluída a construção, ambos os subagentes são disparados **simultaneamente
 #### 4.1. `test-verifier` (Modelo: `flash` com High Effort / `inherit`)
 - **TypeName**: `"test-verifier"`
 - **Role**: `"Quality & Test Verifier"`
-- **Passo 0 Obrigatório**: Executar `view_file` em:
-  - `file:///home/luis/.gemini/config/skills/tdd/SKILL.md`
-  - `file:///home/luis/.gemini/config/plugins/chrome-devtools-plugin/skills/a11y-debugging/SKILL.md`
+- **Passo 0 Obrigatório**: Executar `view_file` nos caminhos resolvidos via `Available skills` do prompt ou `<workspace_root>/.agents/skills/...`:
+  - `tdd` (resolvido via `Available skills`)
+  - `a11y-debugging` (resolvido via `Available skills`)
 - **Diretrizes**:
   - Execute a suíte de testes oficial do projeto alvo (`go test ./...`, `pytest`, `pnpm test`, `./scripts/verify.sh` se existir).
   - Verifique typecheck, linter, thresholds de cobertura e testes de regressão.
@@ -225,11 +225,11 @@ Concluída a construção, ambos os subagentes são disparados **simultaneamente
 #### 4.2. `implementation-validator` (Modelo: `flash` com High Effort / `inherit`)
 - **TypeName**: `"implementation-validator"`
 - **Role**: `"Implementation Validator"`
-- **Passo 0 Obrigatório**: Executar `view_file` em:
-  - `file:///home/luis/.gemini/config/skills/code-review/SKILL.md`
-  - `file:///home/luis/repositories/systentandobr/.agents/skills/solid/SKILL.md`
-  - `file:///home/luis/.gemini/config/plugins/ponytail/skills/ponytail-review/SKILL.md`
-  - `file:///home/luis/.gemini/config/skills/efficient-swe-workflow/SKILL.md`
+- **Passo 0 Obrigatório**: Executar `view_file` nos caminhos resolvidos via `Available skills` do prompt ou `<workspace_root>/.agents/skills/...`:
+  - `code-review` (resolvido via `Available skills`)
+  - `solid` (`<workspace_root>/.agents/skills/solid/SKILL.md` ou via `Available skills`)
+  - `ponytail-review` (resolvido via `Available skills`)
+  - `efficient-swe-workflow` (resolvido via `Available skills`)
 - **Diretrizes (Leitura Pura)**:
   - **Eixo 1 (Spec)**: Avalia se os critérios de aceite foram cumpridos à risca e se houve *scope creep*.
   - **Eixo 2 (Standards & SOLID)**: Avalia se o código respeita o `AGENTS.md` local, tipagem estrita, princípios SOLID e o catálogo de code smells (Bloaters, Couplers, Primitive Obsession).

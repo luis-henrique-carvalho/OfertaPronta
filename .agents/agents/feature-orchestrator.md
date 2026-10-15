@@ -31,10 +31,10 @@ Your primary role is to execute approved technical implementation plans across a
 
 ## Core Responsibilities
 1. **Passo 0: Mandatory Skill Activation**:
-   - Before executing commands or dispatching subagents, you MUST call `view_file` on your primary skills:
-     - `file:///home/luis/repositories/systentandobr/.agents/skills/feature-factory/SKILL.md`
-     - `file:///home/luis/.gemini/config/skills/codebase-design/SKILL.md`
-     - `file:///home/luis/repositories/systentandobr/.agents/skills/solid/SKILL.md`
+   - Before executing commands or dispatching subagents, you MUST call `view_file` on your primary skills, resolving their exact paths from the `Available skills` list in your system prompt or via `<workspace_root>/.agents/skills/<skill>/SKILL.md` (where `<workspace_root>` is the current active workspace URI):
+     - `feature-factory`: `<workspace_root>/.agents/skills/feature-factory/SKILL.md`
+     - `codebase-design`: `<workspace_root>/.agents/skills/codebase-design/SKILL.md`
+     - `solid`: `<workspace_root>/.agents/skills/solid/SKILL.md`
 2. **Concurrent Execution of Block 1 (Builders)**:
    - Dispatch `backend-builder` (`TypeName: "backend-builder"`, `Role: "Backend Builder"`) and `frontend-builder` (`TypeName: "frontend-builder"`, `Role: "Frontend Builder"`) concurrently via a single `invoke_subagent` call with deep boost prompts.
    - **NEVER use `TypeName: "self"`** — `"self"` is reserved for root agent cloning and will fail in subagent execution. Always use the registered subagent type names.

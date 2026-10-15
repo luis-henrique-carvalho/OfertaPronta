@@ -23,18 +23,19 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
      - Reporta o resultado consolidado ao Chat Canvas.
 
 2. **Passo 0 Mandatório de Ativação de Skills (Progressive Disclosure)**:
-   - Todo agente e subagente DEVE iniciar sua execução lendo os arquivos `SKILL.md` de seus respectivos playbooks através da ferramenta `view_file`. Sem isso, o Antigravity não ativa as skills e os badges de telemetria não são registrados na UI.
+   - Todo agente e subagente DEVE iniciar sua execução lendo os arquivos `SKILL.md` de seus respectivos playbooks através da ferramenta `view_file`.
+   - **Resolução Dinâmica**: O caminho absoluto deve ser obtido dinamicamente da seção `Available skills` do prompt do sistema ou resolvido a partir da raiz do workspace ativo: `<workspace_root>/.agents/skills/<skill>/SKILL.md` (onde `<workspace_root>` é a URI do workspace atual). Nunca utilize caminhos absolutos fixos nos playbooks.
 
 3. **Paralelismo Duplo Inteligente (Construção e Validação)**:
-   - **Bloco 1 — Construção Concorrente**: Devido ao desacoplamento estrito (*Zero Shared Backend Package*), `backend-builder` e `frontend-builder` (React/Next.js/TanStack) **PODEM e DEVEM ser despachados em paralelo** dentro de uma única chamada de `invoke_subagent` sempre que atuarem em diretórios ou módulos desacoplados.
-   - **Bloco 2 — Validação & Auditoria Concorrentes**: Concluída a construção, `test-verifier` (execução da suíte de testes do projeto e testes de aceitação) e `implementation-validator` (leitura e auditoria do diff contra Spec/SOLID) **PODEM e DEVEM ser despachados simultaneamente** em uma única chamada de `invoke_subagent`. Como o validador é estritamente read-only e o verificador executa testes em processo isolado, não há concorrência de arquivos nem disputa de git lock.
-   - Apenas arquivos compartilhados da raiz (ex.: `docker-compose.yml`, configurações compartilhadas) operam em sequência.
+   - **Bloco 1 — Construção Concorrente**: Devido ao desacoplamento arquitetural (Isolamento Client/Server e Server Functions type-safe), `backend-builder` (serviços, Drizzle, rotas de API, adapters) e `frontend-builder` (rotas TanStack Router, componentes de UI, preview canvas, mobile-first) **PODEM e DEVEM ser despachados em paralelo** dentro de uma única chamada de `invoke_subagent` sempre que atuarem em diretórios desacoplados.
+   - **Bloco 2 — Validação & Auditoria Concorrentes**: Concluída a construção, `test-verifier` (execução da suíte Vitest `pnpm test`, typecheck e linting) e `implementation-validator` (leitura e auditoria do diff contra Spec/SOLID/Ponytail) **PODEM e DEVEM ser despachados simultaneamente** em uma única chamada de `invoke_subagent`. Como o validador é estritamente read-only e o verificador executa testes em processo isolado, não há concorrência de arquivos nem disputa de git lock.
+   - Apenas arquivos compartilhados da raiz (ex.: `package.json`, configurações de bundler) operam em sequência.
    - **Identificadores Canônicos (`TypeName`)**:
      Ao invocar workers via `invoke_subagent`, utilize SEMPRE os identificadores únicos definidos em `.agents/agents/<name>.md`:
-     - `backend-builder` para o backend (Go, Python, Node.js/NestJS, TypeScript).
-     - `frontend-builder` para o frontend (React, Next.js ou TanStack com Tailwind / Shadcn UI).
-     - `test-verifier` para a suíte de testes e qualidade.
-     - `implementation-validator` para a auditoria de código e anti-bloat.
+     - `backend-builder` para o backend (TypeScript, TanStack Start Server Functions, Drizzle ORM, Sharp/Resvg, Pix Webhooks).
+     - `frontend-builder` para o frontend (TanStack Start, React 19, Tailwind CSS v4, shadcn/ui, SVG preview).
+     - `test-verifier` para a suíte de testes (Vitest) e qualidade (typecheck, lint).
+     - `implementation-validator` para a auditoria de código, spec e anti-bloat.
      **NUNCA use `TypeName: "self"`** em despachos a partir do orquestrador (`self` é restrito ao agente raiz e sua invocação a partir de um subagente é bloqueada pelo runtime com erro fatal).
 
 4. **Template Canônico de Prompt para Subagentes (Padrão Boost)**:
@@ -43,9 +44,9 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
    **Task**: [Instrução do usuário verbatim]
 
    **Passo 0: Ativação Obrigatória de Skills (MANDATÓRIO)**:
-   Antes de executar qualquer comando ou criar/modificar arquivos, você DEVE carregar seus playbooks invocando `view_file` nos caminhos canônicos:
-   - file:///home/luis/.../SKILL.md
-   - file:///home/luis/.../SKILL.md
+   Antes de executar qualquer comando ou criar/modificar arquivos, você DEVE carregar seus playbooks invocando `view_file` nos caminhos resolvidos a partir da lista de `Available skills` do prompt do sistema (ou `<workspace_root>/.agents/skills/<skill>/SKILL.md`):
+   - `<workspace_root>/.agents/skills/<skill_1>/SKILL.md` (ou via `Available skills`)
+   - `<workspace_root>/.agents/skills/<skill_2>/SKILL.md` (ou via `Available skills`)
 
    **Additional Context**:
    - Repositório/Subprojeto: <caminho> | Branch: <branch>

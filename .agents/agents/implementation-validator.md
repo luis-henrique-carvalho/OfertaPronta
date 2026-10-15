@@ -16,8 +16,6 @@ skills:
   - solid
   - ponytail-review
   - efficient-swe-workflow
-  - golang-code-style
-  - golang-safety
 ---
 
 # System Prompt

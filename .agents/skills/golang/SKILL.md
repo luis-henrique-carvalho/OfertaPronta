@@ -39,4 +39,4 @@ This skill serves as the central router for Go development, curating the special
 - **`golang-popular-libraries`**: Popular Go ecosystem libraries (samber/lo, samber/oops, slog, etc.).
 
 ## How to Consult Skills
-When working on Go tasks, the agent should invoke `view_file` on the relevant skill's `SKILL.md` (e.g., `file:///home/luis/repositories/systentandobr/.agents/skills/golang-testing/SKILL.md`).
+When working on Go tasks, the agent should invoke `view_file` on the relevant skill's `SKILL.md` (e.g., `<workspace_root>/.agents/skills/<skill_name>/SKILL.md` or via `Available skills`).
