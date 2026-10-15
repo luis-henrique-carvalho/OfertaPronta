@@ -130,7 +130,7 @@ src/
 1. **Padrão Obrigatório de Frontend (Mobile-First)**:
    - Todo layout DEVE ser desenvolvido prioritariamente para telas móveis (viewport 360px a 430px), garantindo toque fluido, campos de formulário acessíveis e sem estouro horizontal.
    - Componentes visuais utilizam exclusivamente **Tailwind CSS v4** e primitivos do **shadcn/ui** (Radix UI).
-   - Proibido usar elementos HTML nativos sem estilização acessível (`<button>`, `<input>`, etc.).
+   - Proibido usar elementos HTML nativos sem estilização acessível (`<button>`, `<input>`, etc.). Esta regra é auditada e garantida automaticamente pelo linter `./.agents/scripts/check_shadcn_usage.py`.
    - Convenção de nomenclatura kebab-case estrita para arquivos (`pix-qrcode-card.tsx`, `use-order-polling.ts`).
 
 2. **Isolamento Estrito entre Client e Server (Zero Server Code Leaks)**:
@@ -183,7 +183,7 @@ Para novas fases, funcionalidades ou refatorações:
    - Despache `backend-builder` para serviços de backend (Server Functions, Drizzle schemas, Webhooks Pix, renderizador SVG/Sharp, portas e adaptadores).
    - Despache `frontend-builder` para rotas TanStack Start, componentes de formulário, preview canvas e telas mobile-first.
 5. **Validação & Auditoria Paralelas**:
-   - Despache `test-verifier` para rodar a suíte de testes do projeto (`pnpm test`), checagem de tipos (`pnpm typecheck`) e regressões.
+   - Despache `test-verifier` para rodar o pipeline completo de qualidade do projeto via `./.agents/scripts/verify.sh` (ou `./scripts/verify.sh`), checagem estrita de tipos (`pnpm typecheck`), conformidade Shadcn UI, Vitest (`pnpm test`) e regressões.
    - Despache `implementation-validator` para auditar o diff contra a Spec, SOLID e anti-bloat (`ponytail-review`).
 6. **Fechamento**: Apresente o resultado no Gate 3 e registre aprendizados relevantes no ritual `/learn`.
 
@@ -192,13 +192,18 @@ Para novas fases, funcionalidades ou refatorações:
 ## 6. Comandos de Referência do Projeto
 
 ```bash
+# Validação e Qualidade Completa (Pipeline Oficial)
+./.agents/scripts/verify.sh          # Executa todo o pipeline (Shadcn UI + Typecheck + ESLint + Vitest + Build)
+./.agents/scripts/verify.sh --quick  # Executa sem build (feedback rápido para TDD)
+./.agents/scripts/verify.sh --shadcn # Validação isolada de conformidade Shadcn UI / Typography
+
 # Instalação e Desenvolvimento
 pnpm install            # Instala dependências do monorepo / app
 pnpm dev                # Inicia o servidor full-stack TanStack Start em modo desenvolvimento
 pnpm build              # Compila o bundle de produção (client + server Nitro)
 pnpm preview            # Executa a prévia local do build de produção
 
-# Qualidade e Testes
+# Qualidade e Testes Isolados
 pnpm test               # Executa os testes unitários e de integração com Vitest
 pnpm test:watch         # Executa Vitest em modo interativo
 pnpm typecheck          # Validação estrita de tipos TypeScript (tsc --noEmit)

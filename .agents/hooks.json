@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ./scripts/guard_protected_files.py 2>/dev/null || python3 ../scripts/guard_protected_files.py",
+            "command": "python3 ./.agents/scripts/guard_protected_files.py 2>/dev/null || python3 ./scripts/guard_protected_files.py",
             "timeout": 10
           }
         ]
@@ -19,7 +19,7 @@
     "PreInvocation": [
       {
         "type": "command",
-        "command": "python3 ./scripts/graphify_reminder.py 2>/dev/null || python3 ../scripts/graphify_reminder.py"
+        "command": "python3 ./.agents/scripts/graphify_reminder.py 2>/dev/null || python3 ./scripts/graphify_reminder.py"
       }
     ]
   },
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ./scripts/pre-commit.sh 2>/dev/null || bash ../scripts/pre-commit.sh",
+            "command": "bash ./.agents/scripts/pre-commit.sh 2>/dev/null || bash ./scripts/pre-commit.sh",
             "timeout": 15
           }
         ]
