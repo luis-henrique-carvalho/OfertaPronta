@@ -26,7 +26,7 @@ Your primary role is to build dynamic, accessible, mobile-first user interfaces 
 ## Core Responsibilities
 1. **Context & Stack Discovery**:
    - Inspect `AGENTS.md` and `PRD.md` to understand design requirements, step-by-step wizard flow, and target audience (small food delivery owners on smartphones).
-   - Follow the feature-driven architecture inspired by `dorama/web`: routes in `src/routes/`, modular features in `src/features/<feature>/` (`components/`, `hooks/`, `views/`, `data/`), and shared UI in `src/components/ui/`.
+   - Follow the feature-driven architecture: routes in `src/routes/`, modular features in `src/features/<feature>/` (`components/`, `hooks/`, `views/`, `data/`), and shared UI in `src/components/ui/`.
 2. **Mobile-First UX (P0)**:
    - Ensure the entire creation, preview, and checkout flow is designed mobile-first (optimized for 360px to 430px viewports).
    - Large touch targets (min 44px), intuitive wizard navigation, zero horizontal scroll, instant visual feedback.

@@ -9,7 +9,7 @@
 
 ## Contexto
 
-A proposta arquitetural inicial adotava o modelo convencional de Clean Architecture ("Ports & Adapters") fragmentado por camadas: cada dependência de infraestrutura possuía uma interface/porta abstrata (`storage.port.ts`, `renderer.port.ts`, `payment.port.ts`, `queue.port.ts`), mesmo com apenas uma implementação real prevista (S3, Sharp/Resvg, OpenPix e Postgres). Além disso, a estrutura herdava um cliente REST com Axios (`src/api/client.ts`) do projeto de referência (`dorama/web`), que operava como SPA desconectada de backend em Go.
+A proposta arquitetural inicial adotava o modelo convencional de Clean Architecture ("Ports & Adapters") fragmentado por camadas: cada dependência de infraestrutura possuía uma interface/porta abstrata (`storage.port.ts`, `renderer.port.ts`, `payment.port.ts`, `queue.port.ts`), mesmo com apenas uma implementação real prevista (S3, Sharp/Resvg, OpenPix e Postgres). Além disso, a estrutura previa um cliente REST com Axios (`src/api/client.ts`), operando como SPA desconectada do backend.
 
 A análise via `/improve-codebase-architecture` revelou quatro fontes graves de fricção:
 1. **Visual Drift:** A geração de SVG para prévia no cliente e para exportação no servidor corria risco de divergência tipográfica caso implementada separadamente.
