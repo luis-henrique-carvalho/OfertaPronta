@@ -1,53 +1,59 @@
-# GLOSSARY — OfertaPronta
+# OfertaPronta — Glossário Canônico de Domínio
 
-Glossário canônico de termos de domínio e arquitetura do OfertaPronta. Utilize estes termos com exatidão em especificações, discussões e no código (nomes de funções, módulos e tabelas).
+O OfertaPronta é uma plataforma web mobile-first para pequenos estabelecimentos de alimentação criarem e adquirirem artes promocionais profissionais prontas para o Instagram em até 90 segundos sem cadastro prévio.
 
 ---
 
 ## 1. Termos de Domínio do Negócio
 
-### Campaign (Campanha)
-A unidade de entrega contratada pelo comerciante. Uma campanha engloba as informações da oferta (nome do negócio, produto, preço promocional, foto/logo e chamada para ação) associadas a um template visual renderizado em dois formatos de imagem para o Instagram:
-- **Feed Format**: 1080 × 1350 (proporção 4:5).
-- **Story Format**: 1080 × 1920 (proporção 9:16).
+**Campaign (Campanha)**:
+A unidade de entrega comercial contratada pelo comerciante, composta pela arte promocional formatada simultaneamente para Instagram Feed (1080×1350) e Story (1080×1920).
+_Avoid_: Post, banner, flyer, anúncio, arte avulsa
 
-### Draft (Rascunho)
-Os dados transitórios preenchidos pelo usuário durante o fluxo de criação rápida sem login. Pode ser modificado e salvo livremente antes da compra.
+**Draft (Rascunho)**:
+Os dados da oferta preenchidos e editados pelo comerciante na sessão antes de realizar o pagamento.
+_Avoid_: Formulário, sessão, carrinho, proposta
 
-### Frozen Snapshot (Snapshot Congelado)
-A cópia imutável e autoritativa de todos os textos, referências de imagem, layout escolhido e valor comercial (R$ 9,90) gravada no momento exato em que o pedido é criado. Garante que alterações posteriores no formulário não afetem um pedido já emitido ou pago.
+**Dual Image Mode (Modo Dual de Imagem)**:
+A capacidade da oferta de utilizar uma fotografia enviada diretamente pelo comerciante ou uma imagem gastronômica foto-realista gerada sob demanda por IA.
+_Avoid_: Foto fake, gerador genérico, prompt livre
 
-### Order (Pedido)
-Registro financeiro da compra avulsa de uma campanha por R$ 9,90. Possui ciclo de vida estrito: `PENDING` &rarr; `PAID` &rarr; `FAILED` / `EXPIRED`.
+**Frozen Snapshot (Snapshot Congelado)**:
+O registro imutável de textos, referências de imagem, template e valor financeiro (R$ 9,90) gravado no momento em que a cobrança do pedido é gerada.
+_Avoid_: Payload, estado do pedido, cópia do formulário
 
-### Payment Charge (Cobrança Pix)
-A cobrança Pix dinâmica emitida junto ao provedor de pagamento (OpenPix / Woovi). Contém o QR Code em imagem, o código Pix Copia e Cola, identificador único da transação e expiração.
+**Order (Pedido)**:
+O registro transacional da compra de uma campanha promocional avulsa por R$ 9,90 via Pix.
+_Avoid_: Compra, transação, checkout, fatura
 
-### Watermark (Marca d'Água)
-Camada vetorial semitransparente ("OfertaPronta — Prévia") inserida diagonalmente sobre as imagens geradas para visualização gratuita antes do pagamento.
+**Payment Charge (Cobrança Pix)**:
+A cobrança Pix dinâmica emitida junto ao provedor com QR Code, linha digitável Pix Copia e Cola, identificador único e tempo de expiração.
+_Avoid_: Boleto, fatura, Pix avulso
 
-### Export (Arquivo Final)
-Os dois arquivos PNG em alta resolução gerados sem marca d'água após a confirmação do pagamento, disponibilizados por meio de URLs privadas com validade mínima de 7 dias.
+**Watermark (Marca d'Água)**:
+A sobreposição visual semitransparente aplicada diagonalmente sobre a arte durante a visualização prévia gratuita para proteger o trabalho antes do pagamento.
+_Avoid_: Logo de prévia, overlay, trava visual
+
+**Export (Arquivo Final)**:
+Os dois arquivos de imagem PNG em alta resolução (1080×1350 e 1080×1920) gerados sem marca d'água após confirmação do Pix, protegidos por links temporários assinados.
+_Avoid_: Download, entrega, anexo, render
 
 ---
 
 ## 2. Termos de Arquitetura e Módulos Profundos (`/codebase-design`)
 
-### TemplateEngine
-**Módulo profundo e puro** (`src/features/templates/engine/`) que recebe os dados da oferta e gera o markup SVG vetorial determinístico para Feed e Story.
-- **Interface**: Função pura `renderTemplateSvg(templateId, data, options: { format, watermark })`.
-- **Isomorfismo**: Executado identicamente no navegador (prévia visual em tempo real sem chamadas de rede) e no servidor (entrada para o Resvg).
-- **Seam**: Puramente computacional; zero dependências de I/O ou banco.
+**AiImageGenerator**:
+Módulo profundo do backend (`src/features/promotions/server/ai-image.ts`) responsável por formular prompts fotográficos gastronômicos, consultar a Gemini Imagen API e aplicar a política de cotas de geração.
+_Avoid_: Serviço de IA, wrapper Gemini, helper de imagem
 
-### ExportEngine (`CampaignArtisan`)
-**Módulo profundo de infraestrutura** (`src/server/export-engine/`) responsável por transformar o SVG em PNGs de alta fidelidade e armazená-los.
-- **Interface**: `renderAndStore(snapshot: FrozenSnapshot): Promise<ExportResult>`.
-- **Implementação**: Oculta internamente a rasterização via `@resvg/resvg-js` + `sharp`, o upload para S3/Cloudinary e a emissão de URLs assinadas/privadas.
-- **Superfície de Teste**: Testável de ponta a ponta substituindo apenas o storage por um *in-memory fake* (*replace-don't-layer*).
+**TemplateEngine**:
+Módulo puro e isomórfico (`src/features/templates/engine/`) que renderiza os dados da oferta em strings SVG vetoriais idênticas tanto no navegador quanto no servidor.
+_Avoid_: Gerador de tela, componente de preview, renderizador HTML
 
-### PixCheckout
-**Módulo profundo de ciclo de vida financeiro** (`src/features/checkout/server/pix-checkout.ts`) que gerencia a emissão de cobranças e a confirmação de pagamento.
-- **Interface**:
-  - `createCharge(draftSnapshot): Promise<PixChargeResult>`
-  - `confirmPayment(payload, signature): Promise<PaymentConfirmationResult>`
-- **Implementação**: Oculta o congelamento do snapshot, a chamada à API Pix, a validação de assinatura HMAC e a transação idempotente no banco.
+**ExportEngine (`CampaignArtisan`)**:
+Módulo profundo de infraestrutura (`src/server/export-engine/`) que rasteriza o SVG vetorial em PNGs de alta fidelidade via Resvg/Sharp e realiza a persistência segura no storage.
+_Avoid_: Conversor PNG, serviço de upload, exportador
+
+**PixCheckout**:
+Módulo profundo financeiro (`src/features/checkout/server/pix-checkout.ts`) que gerencia a máquina de estados de cobrança Pix, validação HMAC de webhooks e garantia de idempotência.
+_Avoid_: Gateway Pix, webhook handler, controller de pagamento

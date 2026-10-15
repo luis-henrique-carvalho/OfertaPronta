@@ -9,6 +9,7 @@ export const serverEnvSchema = z.object({
     .enum(['development', 'test', 'production'])
     .default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
+  GEMINI_API_KEY: z.string().optional(),
 })
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>

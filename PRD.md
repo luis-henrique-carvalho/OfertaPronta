@@ -42,7 +42,7 @@ O comerciante informa:
 - Nome do produto ou promoção.
 - Preço promocional.
 - Preço original (opcional).
-- Foto do produto (opcional).
+- Imagem do produto: upload de foto própria OU geração sob demanda com IA via Gemini Imagen API (opcional).
 - Logotipo (opcional).
 - Chamada para ação.
 - WhatsApp comercial (opcional).
@@ -51,11 +51,11 @@ O comerciante informa:
 
 O sistema apresenta três templates adaptados às informações fornecidas.
 
-O usuário pode alterar textos e escolher seu modelo preferido gratuitamente.
+O usuário pode alterar textos, escolher seu modelo preferido e gerar/ajustar a imagem por IA gratuitamente.
 
 **Etapa 3 — Visualizar prévia**
 
-Cada template possui uma prévia com marca d'água nos formatos Feed e Story.
+Cada template possui uma prévia com marca d'água nos formatos Feed e Story com a foto posicionada no layout.
 
 **Etapa 4 — Comprar**
 
@@ -63,7 +63,7 @@ O usuário seleciona a opção de compra, visualiza QR Code e Pix Copia e Cola e
 
 **Etapa 5 — Receber**
 
-Após confirmação do provedor, os arquivos são gerados sem marca d'água e liberados para download.
+Após confirmação do provedor, os arquivos são gerados sem marca d'água e liberados para download em alta resolução (com direito a até 3 regenerações por IA).
 
 ## 4. Monetização
 
@@ -90,13 +90,14 @@ Os preços são hipóteses comerciais e precisam ser validados com compras reais
 |---|---|
 | Criar campanha sem login | P0 |
 | Formulário com validação | P0 |
-| Upload de foto e logo | P0 |
-| Três templates | P0 |
+| Modo Dual de Imagem (Upload ou Gemini Imagen) | P0 |
+| Prompt gastronômico automatizado para IA | P0 |
+| Três templates profissionais | P0 |
 | Prévia com marca d'água | P0 |
 | Checkout Pix | P0 |
 | Confirmação via webhook | P0 |
-| Exportação PNG | P0 |
-| Download protegido | P0 |
+| Exportação PNG (Feed + Story) | P0 |
+| Download protegido (7 dias) | P0 |
 | Analytics de conversão | P0 |
 | Recuperação de pedidos | P1 |
 | Histórico de campanhas | P2 |
@@ -104,30 +105,31 @@ Os preços são hipóteses comerciais e precisam ser validados com compras reais
 
 ## 6. Regras de negócio
 
-- O pagamento libera um design em dois formatos.
-- Os preços são definidos exclusivamente no backend.
+- O pagamento libera um design em dois formatos (Feed e Story).
+- Os preços são definidos exclusivamente no backend (R$ 9,90).
 - O usuário pode alterar informações livremente antes da compra.
-- Após a compra, a proposta é permitir até três correções simples em 30 minutos.
-- O arquivo final só é liberado após confirmação segura do pagamento.
-- Nenhuma informação promocional deve ser inventada pelo sistema.
-- Os downloads devem ficar disponíveis por pelo menos sete dias, com mecanismo de acesso privado.
-- A ausência de foto deve resultar em um layout tipográfico, e não em um produto fictício.
+- **Geração de Imagens com IA (Gemini Imagen)**:
+  - Na prévia gratuita: o usuário pode gerar **1 imagem por IA** sem custo para visualizar o resultado com marca d'água.
+  - Pós-pagamento: o comerciante tem direito a até **3 regenerações por pedido**, com controle estrito de custos de API.
+  - Proporção: a IA gera 1 imagem em proporção 1:1 de alta resolução com prompt de fotografia gastronômica comercial, adaptada pelo template para Feed (1080×1350) e Story (1080×1920).
+- Caso o usuário não envie foto e não queira usar IA, o layout adota modo tipográfico elegante de destaque.
+- Após a compra, permite até três correções simples em 30 minutos.
+- O arquivo final em alta resolução só é liberado após confirmação segura do pagamento Pix.
+- Os downloads ficam disponíveis por pelo menos sete dias, com URLs assinadas.
 
 ## 7. Arquitetura técnica
 
-**Frontend e backend:** Next.js App Router, TypeScript, Tailwind CSS e shadcn/ui.
+**Frontend e backend:** TanStack Start (React 19 + TanStack Router + Vite/Nitro), TypeScript, Tailwind CSS v4 e shadcn/ui.
 
 **Persistência:** PostgreSQL e Drizzle ORM.
 
-**Imagens:** Cloudinary ou armazenamento compatível com S3.
+**Geração de Imagens por IA:** Google Gemini Imagen API (modelo `imagen-3.0-generate-002`) integrada via Server Functions.
 
-**Renderização:** SVG com Sharp/Resvg para gerar arquivos PNG preservando a fidelidade dos textos e valores.
+**Armazenamento de Imagens:** Cloudinary ou S3 compatível.
 
-**Pagamentos:** integração Pix com Woovi/OpenPix ou provedor equivalente, utilizando cobranças dinâmicas e webhooks.
+**Renderização Isomórfica:** SVG com Sharp/Resvg para montagem dos PNGs com tipografia vetorial nítida sobre a foto do produto.
 
-**Processamento:** fila de tarefas para gerar arquivos após a confirmação da compra, com tentativas automáticas em caso de falha.
-
-**Inteligência artificial:** opcional para sugerir chamadas promocionais; fora do caminho crítico do MVP.
+**Pagamentos:** integração Pix com Woovi/OpenPix via cobranças dinâmicas e webhooks com assinatura HMAC e idempotência.
 
 ## 8. Modelo de dados
 

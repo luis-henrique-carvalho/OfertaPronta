@@ -13,8 +13,10 @@ Inicializar a fundação técnica completa do **OfertaPronta**, configurando o f
 
 ### Decisões do Gate 0 (/grill-me):
 1. **Inicialização do TanStack Start:** Gerado via CLI oficial (`@tanstack/create-start` / `@tanstack/cli`) e podado cirurgicamente para espelhar a árvore de arquivos de *deep modules* do `AGENTS.md`.
-2. **Camada de Banco de Dados:** Drizzle ORM configurado para conexão direta a PostgreSQL externo via `DATABASE_URL` no `.env.local` (sem dependência obrigatória de Docker local), com fakes in-memory para testes isolados.
-3. **Catálogo de Componentes:** Instalação completa de todos os componentes do shadcn/ui utilizando a skill `/shadcn`, incluindo o primitivo `@/components/ui/typography` e utilitários auditados pelo `check_shadcn_usage.py`.
+2. **Camada de Banco de Dados:** Drizzle ORM estruturado em `src/server/db/schema/` com conexão direta a PostgreSQL via `DATABASE_URL` no `.env.local` e fakes in-memory para testes isolados.
+3. **Catálogo de Componentes:** Instalação completa de todos os 53 componentes shadcn/ui oficiais + `typography.tsx`, 100% aderente ao linter de acessibilidade.
+4. **Modo Dual de Imagens com IA (Google Gemini Imagen API):** O comerciante pode enviar foto própria ou gerar fotografias gastronômicas profissionais sob demanda (1:1) via Gemini Imagen (`imagen-3.0-generate-002`) com prompt inteligente invisível. Permite-se 1 geração gratuita na prévia (com marca d'água) e até 3 regenerações por pedido após o pagamento Pix confirmado.
+
 
 ---
 

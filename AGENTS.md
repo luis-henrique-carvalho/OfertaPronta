@@ -36,6 +36,7 @@ O **OfertaPronta** é uma plataforma web mobile-first voltada para pequenos come
 | **Arquitetura de Código** | **Deep Modules & Codebase Design** | Módulos profundos com interfaces concisas e alta localidade; zero portas hipotéticas com único adaptador. |
 | **Banco de Dados & ORM** | **PostgreSQL + Drizzle ORM** | Schemas tipados em TypeScript, transações atômicas e snapshots congelados imutáveis. |
 | **Motor Gráfico (Isomórfico)**| **SVG Isomórfico + @resvg/resvg-js**| `TemplateEngine` puro compartilhado entre prévia no browser e renderização em PNG no servidor (zero drift visual). |
+| **Geração de Imagens por IA**| **Google Gemini Imagen API** | Módulo profundo de geração fotográfica gastronômica (1:1) com prompt automático otimizado. |
 | **Gateway de Pagamento** | **Woovi / OpenPix (Pix Dinâmico)** | Módulo profundo `PixCheckout` com máquina de estados, assinatura HMAC e idempotência estrita. |
 | **Storage & Exportação** | **S3 / Cloudinary** | Persistência dos PNGs finais de alta resolução (Feed 1080×1350 e Story 1080×1920) com URLs privadas de 7 dias. |
 | **Testes & Qualidade** | **Vitest + Testing Library** | TDD nos limites da interface pública dos módulos profundos (replace-don't-layer com fakes in-memory). |
@@ -78,13 +79,13 @@ src/
 ├── features/                        # Módulos verticais de negócio (Feature-Sliced Design)
 │   │
 │   ├── promotions/                  # Feature: Rascunhos e Configuração da Oferta
-│   │   ├── components/              # PromotionForm, ImageUploader, StepNavigation
-│   │   ├── hooks/                   # use-promotion-draft, use-image-upload
+│   │   ├── components/              # PromotionForm, ImageUploader, AiImagePromptDialog, StepNavigation
+│   │   ├── hooks/                   # use-promotion-draft, use-image-upload, use-ai-image-generator
 │   │   ├── views/                   # CreatePromotionView, PreviewView
 │   │   ├── data/                    # Schemas Zod de validação de formulário e DTOs
 │   │   └── server/                  # [SERVER-ONLY] Lógica backend da feature
-│   │       ├── promotion.schema.ts  # Definição Drizzle das tabelas `drafts` e `campaigns`
-│   │       └── server-functions.ts  # TanStack Start createServerFn (saveDraftFn, getDraftFn)
+│   │       ├── ai-image.ts          # [MÓDULO PROFUNDO] Integração Gemini Imagen API com cotas
+│   │       └── server-functions.ts  # TanStack Start createServerFn (saveDraftFn, generateAiImageFn)
 │   │
 │   ├── templates/                   # Feature: Catálogo de Templates & Motor SVG Isomórfico
 │   │   ├── components/              # TemplateSelector, SvgPreviewCanvas (renderiza via TemplateEngine)
@@ -100,7 +101,6 @@ src/
 │   │   ├── views/                   # CheckoutView
 │   │   ├── data/                    # Schemas de checkout, DTOs de pagamento e estados
 │   │   └── server/                  # [SERVER-ONLY]
-│   │       ├── order.schema.ts      # Definição Drizzle das tabelas `orders` e `payment_charges`
 │   │       ├── pix-checkout.ts      # [MÓDULO PROFUNDO] Máquina de estados: createCharge e confirmPayment
 │   │       └── server-functions.ts  # TanStack Start createServerFn (createOrderFn, getOrderStatusFn)
 │   │
@@ -110,13 +110,16 @@ src/
 │       ├── views/                   # OrderDeliveryView
 │       ├── data/                    # Tipos de exportação e schemas de download
 │       └── server/                  # [SERVER-ONLY]
-│           ├── delivery.schema.ts   # Definição Drizzle da tabela `exports`
 │           └── server-functions.ts  # TanStack Start createServerFn (getDeliveryDetailsFn)
 │
 └── server/                          # [SERVER-ONLY] Infraestrutura Central & Módulos Profundos
     ├── db/                          # Conexão Drizzle ORM + PostgreSQL
     │   ├── index.ts                 # Conexão singleton e pooling do PostgreSQL
-    │   └── schema.ts                # Export consolidado de todos os schemas Drizzle
+    │   └── schema/                  # Pasta dedicada aos schemas Drizzle
+    │       ├── index.ts             # Export consolidado de todos os schemas
+    │       ├── promotions.ts        # Tabelas: drafts e campaigns
+    │       ├── orders.ts            # Tabelas: orders e payment_charges
+    │       └── delivery.ts          # Tabela: exports
     └── export-engine/               # [MÓDULO PROFUNDO: RENDER & STORAGE]
         ├── index.ts                 # Interface pública única: renderAndStore(snapshot, options)
         ├── resvg-rasterizer.ts      # Rasterização interna de alta resolução via @resvg/resvg-js e Sharp
@@ -140,9 +143,11 @@ src/
      - **Server Functions (`createServerFn`)**: Validadas obrigatoriamente com Zod tanto na entrada quanto na saída, fornecendo tipagem estrita de ponta a ponta sem expor detalhes internos de banco.
      - **API Routes (`createAPIFileRoute`)**: Reservadas para webhooks externos (`/api/webhooks/pix`) e endpoints binários (streaming protegido de download de PNGs).
 
-3. **Integridade de Negócio e Segurança de Preços**:
+3. **Integridade de Negócio, Segurança de Preços e Modo Dual de Imagem**:
    - **Preços são autoritativos do backend**: O frontend NUNCA informa o preço a ser cobrado. O backend determina o valor da campanha (R$ 9,90) e congela o snapshot dos dados (títulos, valores, imagens) no momento da criação do pedido (`orders`).
-   - Nenhuma informação de promoção é gerada ou inventada aleatoriamente pelo sistema; se o comerciante não enviar foto, o template deve adotar tipografia de destaque sem produto fictício.
+   - **Modo Dual de Imagem (Upload ou Gemini Imagen)**: O comerciante pode enviar foto própria ou gerar uma imagem sob demanda via Google Gemini Imagen API (`imagen-3.0-generate-002`) em proporção 1:1, com prompt inteligente automatizado baseado no prato e nicho.
+   - **Controle de Cotas de IA**: Na prévia gratuita, permite-se **1 geração de IA** com marca d'água; pós-pagamento Pix confirmado, o usuário tem direito a até **3 regenerações por pedido** para proteger custos de API.
+   - Se o usuário optar por não enviar foto nem gerar com IA, o layout adota modo tipográfico elegante de destaque sem inventar produtos fictícios.
 
 4. **Idempotência e Segurança de Webhooks**:
    - O webhook Pix DEVE validar rigorosamente a assinatura digital (HMAC) enviada pelo provedor de pagamento.

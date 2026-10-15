@@ -34,9 +34,9 @@ O **OfertaPronta** resolve a dor crítica de pequenos comerciantes do setor de a
 
 ## 2. Definição de Épicos & Hipóteses de Negócio
 
-### Épico 1: Criação Rápida de Oferta sem Login (Core UX & Wizard)
-- **Hipótese:** Acreditamos que permitir criar uma arte promocional preenchendo apenas 6 a 8 campos essenciais (produto, preço, foto opcional, logo, chamada) em menos de 90 segundos, sem exigir cadastro prévio ou senha, aumentará a taxa de chegada à prévia para mais de 55%, pois elimina o atrito inicial de registro.
-- **Métrica de Sucesso:** Taxa de conclusão do formulário (Visitante → Prévia) ≥ 55%; tempo médio de preenchimento ≤ 90s.
+### Épico 1: Criação Rápida de Oferta com Modo Dual (Upload ou IA Gemini Imagen)
+- **Hipótese:** Acreditamos que oferecer a criação de arte promocional com modo dual de imagem (upload de foto própria OU geração instantânea com IA via Gemini Imagen com prompt gastronômico invisível), preenchendo apenas 6 a 8 campos essenciais em menos de 90 segundos sem login, aumentará a taxa de chegada à prévia para mais de 65%, pois elimina o bloqueio de comerciantes que não têm fotos profissionais de seus pratos.
+- **Métrica de Sucesso:** Taxa de conclusão do formulário (Visitante → Prévia) ≥ 65%; tempo médio de preenchimento ≤ 90s; taxa de aprovação da imagem de IA ≥ 75%.
 - **Tamanho:** Médio (M) — 2 a 3 semanas.
 - **Outcome:** Ativação / Conversão de Topo de Funil.
 
@@ -136,8 +136,8 @@ flowchart TD
 
 | Semana | Foco de Entrega | Entregáveis Técnicos |
 |---|---|---|
-| **Semana 1** | Arquitetura Base & Wizard de Criação | - Estrutura TanStack Start + Tailwind CSS v4 + shadcn/ui.<br/>- Rota `/criar` com formulário mobile-first validado via Zod.<br/>- Upload e sanitização leve de imagens de produtos/logos. |
-| **Semana 2** | Motor Isomórfico SVG & Preview | - Módulo puro `TemplateEngine` com Template 1 (Hamburgueria).<br/>- Marca d'água vetorial dinâmica.<br/>- Canvas de prévia interativa no navegador nos formatos 1080×1350 e 1080×1920. |
+| **Semana 1** | Arquitetura Base, Wizard & IA | - Estrutura TanStack Start + Tailwind CSS v4 + shadcn/ui.<br/>- Rota `/criar` com formulário mobile-first validado via Zod.<br/>- Modo Dual: upload de fotos/logos e geração via Google Gemini Imagen API (1:1).<br/>- Módulo profundo `AiImageGenerator` com prompt gastronômico invisível e cotas (1 grátis na prévia, até 3 pós-Pix). |
+| **Semana 2** | Motor Isomórfico SVG & Preview | - Módulo puro `TemplateEngine` com Template 1 (Hamburgueria).<br/>- Marca d'água vetorial dinâmica.<br/>- Canvas de prévia interativa no navegador nos formatos 1080×1350 e 1080×1920 integrando a foto de IA. |
 | **Semana 3** | Motor de Exportação & Checkout Pix | - Módulo profundo `ExportEngine` com `@resvg/resvg-js` e `Sharp`.<br/>- Módulo profundo `PixCheckout` (OpenPix Sandbox).<br/>- Rota `/checkout/$orderId` com QR Code e Pix Copia e Cola. |
 | **Semana 4** | Webhook, Entrega e Teste Ponta a Ponta | - Rota `/api/webhooks/pix` com validação HMAC e idempotência.<br/>- Rota `/pedido/$orderId` com download direto dos PNGs.<br/>- Teste de aceitação completo com usuários reais em modo piloto. |
 
