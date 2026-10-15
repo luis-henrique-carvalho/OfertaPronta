@@ -1,0 +1,72 @@
+:root {
+  /* Clean Gourmet Light Base Palette */
+  --background: #FFF8F3;
+  --foreground: #1E1B17;
+
+  /* Card and Surfaces */
+  --card: #FFFFFF;
+  --card-foreground: #1E1B17;
+  --card-subtle: #FAF2EC;
+
+  /* Popovers */
+  --popover: #FFFFFF;
+  --popover-foreground: #1E1B17;
+
+  /* Primary Accent: Ripe Cherry (#C62828 / #A20513) */
+  --primary: #C62828;
+  --primary-foreground: #FFFFFF;
+  --primary-hover: #93000E;
+
+  /* Secondary Accent: Verde Sálvia (#4E7D63 / #39684F) */
+  --secondary: #4E7D63;
+  --secondary-foreground: #FFFFFF;
+  --secondary-subtle: #EAF4EE;
+
+  /* Muted Text and Backgrounds */
+  --muted: #FAF2EC;
+  --muted-foreground: #68625A;
+
+  /* Accent surface */
+  --accent: #FAF2EC;
+  --accent-foreground: #1E1B17;
+
+  /* Destructive */
+  --destructive: #C62828;
+  --destructive-foreground: #FFFFFF;
+
+  /* Borders and Inputs */
+  --border: #E8E1DB;
+  --input: #E8E1DB;
+  --ring: #C62828;
+
+  /* Corner Radius */
+  --radius: 0.75rem;
+
+  /* Custom shadows */
+  --shadow-gourmet: 0 4px 16px -2px rgba(43, 40, 36, 0.04), 0 1px 3px 0 rgba(43, 40, 36, 0.02);
+}
+
+.dark {
+  --background: #1A1816;
+  --foreground: #F5EFEB;
+  --card: #24201D;
+  --card-foreground: #F5EFEB;
+  --card-subtle: #2C2723;
+  --popover: #24201D;
+  --popover-foreground: #F5EFEB;
+  --primary: #E53935;
+  --primary-foreground: #FFFFFF;
+  --primary-hover: #C62828;
+  --secondary: #5E9477;
+  --secondary-foreground: #FFFFFF;
+  --secondary-subtle: #1E3327;
+  --muted: #2C2723;
+  --muted-foreground: #A8A199;
+  --accent: #2C2723;
+  --accent-foreground: #F5EFEB;
+  --destructive: #E53935;
+  --destructive-foreground: #FFFFFF;
+  --border: #3D3732;
+  --input: #3D3732;
+  --ring: #E53935;
+}
