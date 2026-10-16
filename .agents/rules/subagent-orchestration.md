@@ -9,10 +9,12 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
 
 ### Regras Inegociáveis de Execução:
 
-1. **Topologia Hierárquica em 2 Níveis**:
+1. **Topologia Hierárquica de Planejamento e Execução**:
    - **Nível 1 — Chat Canvas (Root / User Bridge)**:
-     - Realiza o **Gate 0 Mandatório (/grill-me)**: formula de 2 a 3 perguntas interativas via `ask_question` para sanar dúvidas de regras, casos de borda e decisões técnicas.
-     - Redige o plano técnico (`docs/plans/<slug>.md` e `implementation_plan.md`) via Grafo de Conhecimento (`graphify query`) em até 2 minutos (Zero Pre-work), **incluindo obrigatoriamente diagramas Mermaid estruturais** (Topologia `flowchart TD`, Ciclo de Vida `stateDiagram-v2` e/ou Sequência `sequenceDiagram`).
+     - Coordena a descoberta inicial acionando `codebase-researcher` (`model: flash`) para mapeamento rápido do grafo (`graphify query`).
+     - Delega o **Gate 0 Mandatório (`/grill-me`) e Planejamento (`/plan`)** para a dupla de especialistas em `model: inherit`:
+       - **`product-manager`**: analisa regras de negócio, domínio (`PRD.md`, `GLOSSARY.md`) e UX mobile-first, entrevistando o usuário diretamente via `ask_question` para eliminar gaps de negócio, salvando a Spec de Produto em `docs/specs/<slug>.md` (`to-spec`) e os tickets verticais em `docs/tickets/<slug>/<NN>-<ticket>.md` (`to-tickets`).
+       - **`solution-architect`**: avalia arquitetura (*Deep Modules*), isolamento Client/Server, qualidade (SOLID/Ponytail) e segurança (Zod nas bordas, HMAC, idempotência, preços autoritativos), entrevistando o usuário via `ask_question` e redigindo a especificação técnica em `docs/plans/<slug>.md` (e `implementation_plan.md`) com diagramas Mermaid estruturais obrigatórios.
      - Aguarda aprovação explícita do usuário no Gate Humano 1 & 2.
      - Invoca o subagente `feature-orchestrator` (`Role: "Feature Factory Orchestrator"`) com o plano aprovado.
      - Apresenta o resultado final no Gate 3 e dispara o fechamento `/learn`.
@@ -32,10 +34,13 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
    - Apenas arquivos compartilhados da raiz (ex.: `package.json`, configurações de bundler) operam em sequência.
    - **Identificadores Canônicos (`TypeName`)**:
      Ao invocar workers via `invoke_subagent`, utilize SEMPRE os identificadores únicos definidos em `.agents/agents/<name>.md`:
-     - `backend-builder` para o backend (TypeScript, TanStack Start Server Functions, Drizzle ORM, Sharp/Resvg, Pix Webhooks).
-     - `frontend-builder` para o frontend (TanStack Start, React 19, Tailwind CSS v4, shadcn/ui, SVG preview).
-     - `test-verifier` para a suíte de testes (Vitest) e qualidade (typecheck, lint).
-     - `implementation-validator` para a auditoria de código, spec e anti-bloat.
+     - `codebase-researcher` para mapeamento rápido do grafo (`graphify`) e leitura exploratória (`model: flash`).
+     - `product-manager` para descoberta de regras de negócio, casos de borda, UX mobile e entrevistas `/grill-me` via `ask_question` (`model: inherit`).
+     - `solution-architect` para arquitetura (*Deep Modules*), segurança, qualidade, entrevistas `/grill-me` técnicas e escrita de `docs/plans/<slug>.md` (`model: inherit`).
+     - `backend-builder` para o backend (TypeScript, TanStack Start Server Functions, Drizzle ORM, Sharp/Resvg, Pix Webhooks) (`model: flash`).
+     - `frontend-builder` para o frontend (TanStack Start, React 19, Tailwind CSS v4, shadcn/ui, SVG preview) (`model: flash`).
+     - `test-verifier` para a suíte de testes (Vitest) e qualidade (typecheck, lint) (`model: flash`).
+     - `implementation-validator` para a auditoria de código, spec e anti-bloat (`model: flash`).
      **NUNCA use `TypeName: "self"`** em despachos a partir do orquestrador (`self` é restrito ao agente raiz e sua invocação a partir de um subagente é bloqueada pelo runtime com erro fatal).
 
 4. **Template Canônico de Prompt para Subagentes (Padrão Boost)**:

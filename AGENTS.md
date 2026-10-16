@@ -173,15 +173,15 @@ src/
 
 Para novas fases, funcionalidades ou refatorações:
 
-1. **Context Discovery**: Inspecione o `PRD.md`, o `GLOSSARY.md` e a arquitetura em `src/` antes de propor alterações. Mapeie dependências com `graphify query` ou leitura direta.
-2. **Gate 0 (/grill-me)**: Se houver qualquer dúvida sobre regras de negócio, UX mobile ou trade-offs técnicos, formule de 2 a 3 perguntas objetivas via `ask_question`.
-3. **Planejamento**: Redija a especificação técnica em `docs/plans/<slug>.md` e no artefato `implementation_plan.md` antes de codificar, incluindo diagramas Mermaid de fluxo e ciclo de vida.
-4. **Construção Paralela Inteligente**:
-   - Despache `backend-builder` para serviços de backend (Server Functions, Drizzle schemas, `AdCardGenerator` Gemini, Webhooks Pix, `ExportEngine` Sharp/S3).
-   - Despache `frontend-builder` para rotas TanStack Start, componentes de briefing multisegmento, uploaders de produto/referência, preview de card e telas mobile-first.
+1. **Context Discovery (`codebase-researcher`)**: Mapeie dependências, pontos de entrada e impacto com `graphify query` (`model: flash`) e inspecione `PRD.md`, `GLOSSARY.md` e `src/` antes de propor alterações.
+2. **Gate 0 — Produto & Regras de Negócio (`product-manager`, `model: inherit`)**: Despache o `product-manager` para analisar `PRD.md` e `GLOSSARY.md`, caçar lacunas de negócio, casos de borda e fluxos mobile-first, entrevistando o usuário diretamente via `ask_question` (`/grill-me`) até eliminar todos os gaps, salvando a Spec de Produto em `docs/specs/<slug>.md` (`to-spec`) e os tickets verticais em `docs/tickets/<slug>/<NN>-<ticket>.md` (`to-tickets`).
+3. **Gate 0 Técnico & Planejamento (`solution-architect`, `model: inherit`)**: Despache o `solution-architect` para auditar Arquitetura (*Deep Modules*), Isolamento Client/Server, Segurança (Zod nas bordas, HMAC, idempotência, preços autoritativos) e Qualidade (SOLID + `ponytail`), entrevistando o usuário via `ask_question` sobre trade-offs técnicos e redigindo a especificação em `docs/plans/<slug>.md` (e `implementation_plan.md`) com diagramas Mermaid obrigatórios.
+4. **Construção Paralela Inteligente (`feature-orchestrator`)**:
+   - Despache `backend-builder` (`model: flash`) para serviços de backend (Server Functions, Drizzle schemas, `AdCardGenerator` Gemini, Webhooks Pix, `ExportEngine` Sharp/S3).
+   - Despache `frontend-builder` (`model: flash`) para rotas TanStack Start, componentes de briefing multisegmento, uploaders de produto/referência, preview de card e telas mobile-first.
 5. **Validação & Auditoria Paralelas**:
-   - Despache `test-verifier` para rodar o pipeline completo de qualidade do projeto via `./.agents/scripts/verify.sh` (ou `./scripts/verify.sh`), checagem estrita de tipos (`pnpm typecheck`), conformidade Shadcn UI, Vitest (`pnpm test`) e regressões.
-   - Despache `implementation-validator` para auditar o diff contra a Spec, SOLID e anti-bloat (`ponytail-review`).
+   - Despache `test-verifier` (`model: flash`) para rodar o pipeline completo de qualidade do projeto via `./.agents/scripts/verify.sh` (ou `./scripts/verify.sh`), checagem estrita de tipos (`pnpm typecheck`), conformidade Shadcn UI, Vitest (`pnpm test`) e regressões.
+   - Despache `implementation-validator` (`model: flash`) para auditar o diff contra a Spec, SOLID e anti-bloat (`ponytail-review`).
 6. **Fechamento**: Apresente o resultado no Gate 3 e registre aprendizados relevantes no ritual `/learn`.
 
 ---

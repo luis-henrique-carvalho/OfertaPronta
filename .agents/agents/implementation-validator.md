@@ -9,7 +9,7 @@ tools:
   - run_command
 subagent: true
 mainAgent: false
-model: inherit
+model: flash
 commandExecutionPolicy: auto
 skills:
   - code-review

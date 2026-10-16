@@ -1,24 +1,34 @@
 ---
 name: to-spec
-description: "Turn the current conversation into a spec and publish it to the project issue tracker: no interview, just synthesis of what you've already discussed."
-disable-model-invocation: true
+description: "Synthesize product requirements, user stories, decisions, and testing seams into a structured specification saved locally in docs/specs/<slug>.md."
 ---
 
-This skill takes the current conversation context and codebase understanding and produces a spec. Do NOT interview the user; just synthesize what you already know.
+# To Spec (Local Documentation)
 
-The issue tracker and triage label vocabulary should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`.
+This skill takes the aligned product context, user interview answers (`/grill-me`), and codebase understanding, and synthesizes them into a comprehensive specification saved locally in **`docs/specs/<slug>.md`**.
+
+Never publish issues to external trackers (GitHub Issues, Linear, etc.). All specifications in this repository are persisted as versioned Markdown documents under `docs/specs/`.
 
 ## Process
 
-1. Explore the repo to understand the current state of the codebase, if you haven't already. Use the project's domain glossary vocabulary throughout the spec, and respect any ADRs in the area you're touching.
+1. **Explore Domain & Codebase Context**:
+   - Inspect `PRD.md`, `GLOSSARY.md`, `AGENTS.md`, and `docs/adr/` if you haven't already.
+   - Use the project's ubiquitous domain glossary vocabulary throughout the spec, and respect any ADRs in the area you're touching.
 
-2. Sketch out the seams at which you're going to test the feature. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
+2. **Define High-Level Testing Seams**:
+   - Sketch out the public seams at which the feature will be tested.
+   - Existing seams should be preferred to new ones. Use the highest seam possible (the public interface of the deep module or Server Function). The fewer seams across the codebase, the better — the ideal number is one per deep module.
 
-Check with the user that these seams match their expectations.
-
-3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
+3. **Save Local Spec (`docs/specs/<slug>.md`)**:
+   - Write the specification using the template below and save it to `docs/specs/<slug>.md` (creating the `docs/specs/` directory if it does not exist).
+   - Mark the spec status as `ready-for-agent` in the header metadata.
 
 <spec-template>
+
+# Spec: <Feature Title>
+
+- **Slug**: `<slug>`
+- **Status**: `ready-for-agent`
 
 ## Problem Statement
 
@@ -26,50 +36,49 @@ The problem that the user is facing, from the user's perspective.
 
 ## Solution
 
-The solution to the problem, from the user's perspective.
+The solution to the problem, from the user's perspective (including mobile-first UX flow and edge-case behaviors).
 
 ## User Stories
 
-A LONG, numbered list of user stories. Each user story should be in the format of:
+A comprehensive, numbered list of user stories covering happy paths, edge cases, and failure states. Each user story must follow the format:
 
-1. As an <actor>, I want a <feature>, so that <benefit>
+1. As an `<actor>`, I want a `<feature>`, so that `<benefit>`
 
 <user-story-example>
-1. As a mobile bank customer, I want to see balance on my accounts, so that I can make better informed decisions about my spending
+1. As a local business owner on a smartphone, I want to generate an AI promotional card in under 90 seconds without creating an account, so that I can quickly post daily offers on WhatsApp and Instagram.
 </user-story-example>
 
-This list of user stories should be extremely extensive and cover all aspects of the feature.
+This list of user stories should be extensive and cover all aspects of the feature.
 
 ## Implementation Decisions
 
-A list of implementation decisions that were made. This can include:
+A list of product and architectural decisions that were made. This can include:
 
-- The modules that will be built/modified
-- The interfaces of those modules that will be modified
+- The deep modules that will be built or modified
+- The public interfaces of those modules
+- Business rules, quota limits, and state transitions
 - Technical clarifications from the developer
-- Architectural decisions
-- Schema changes
-- API contracts
-- Specific interactions
+- Schema impacts and API/RPC contracts
+- Specific user interactions and error states
 
-Do NOT include specific file paths or code snippets. They may end up being outdated very quickly.
+Do NOT hardcode fragile line numbers or implementation boilerplate that will go stale quickly.
 
-Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it within the relevant decision and note briefly that it came from a prototype. Trim to the decision-rich parts, not a working demo, just the important bits.
+Exception: if a prototype or domain model produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, Zod schema, type shape), inline it within the relevant decision and trim to the decision-rich parts.
 
 ## Testing Decisions
 
 A list of testing decisions that were made. Include:
 
-- A description of what makes a good test (only test external behavior, not implementation details)
-- Which modules will be tested
-- Prior art for the tests (i.e. similar types of tests in the codebase)
+- What makes a good test (only test external behavior at the public seam, not internal implementation details)
+- Which module boundaries / Server Functions will be tested
+- Prior art for the tests in the codebase
 
 ## Out of Scope
 
-A description of the things that are out of scope for this spec.
+A clear description of what is explicitly out of scope (YAGNI) for this spec.
 
 ## Further Notes
 
-Any further notes about the feature.
+Any further notes, references to `PRD.md`, `GLOSSARY.md`, or `docs/adr/`.
 
 </spec-template>
