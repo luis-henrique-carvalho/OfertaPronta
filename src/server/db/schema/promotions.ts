@@ -1,16 +1,20 @@
-import { pgTable, uuid, text, timestamp, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, integer, jsonb } from 'drizzle-orm/pg-core'
 
 export const drafts = pgTable('drafts', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: text('id').primaryKey(),
+  businessSegment: text('business_segment').notNull().default('supermarket'),
   businessName: text('business_name').notNull().default(''),
-  productName: text('product_name').notNull().default(''),
+  offerTitle: text('offer_title').notNull().default(''),
   promoPrice: text('promo_price').notNull().default(''),
   originalPrice: text('original_price'),
-  productImageUrl: text('product_image_url'),
-  logoUrl: text('logo_url'),
-  callToAction: text('call_to_action').notNull().default('Peça já!'),
+  callToAction: text('call_to_action'),
   whatsapp: text('whatsapp'),
-  selectedTemplateId: text('selected_template_id').notNull().default('classic-burger'),
+  productImageDataUrl: text('product_image_data_url'),
+  referenceImageDataUrl: text('reference_image_data_url'),
+  stylePresetId: text('style_preset_id'),
+  customStyleInstructions: text('custom_style_instructions'),
+  previewCardImageUrl: text('preview_card_image_url'),
+  aiGenerationCount: integer('ai_generation_count').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
@@ -19,8 +23,8 @@ export type Draft = typeof drafts.$inferSelect
 export type NewDraft = typeof drafts.$inferInsert
 
 export const campaigns = pgTable('campaigns', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  draftId: uuid('draft_id').references(() => drafts.id),
+  id: text('id').primaryKey(),
+  draftId: text('draft_id').references(() => drafts.id),
   templateId: text('template_id').notNull(),
   snapshot: jsonb('snapshot').notNull(),
   status: text('status').notNull().default('DRAFT'),

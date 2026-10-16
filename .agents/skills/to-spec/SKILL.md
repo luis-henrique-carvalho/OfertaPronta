@@ -45,7 +45,7 @@ A comprehensive, numbered list of user stories covering happy paths, edge cases,
 1. As an `<actor>`, I want a `<feature>`, so that `<benefit>`
 
 <user-story-example>
-1. As a local business owner on a smartphone, I want to generate an AI promotional card in under 90 seconds without creating an account, so that I can quickly post daily offers on WhatsApp and Instagram.
+1. As an authenticated user, I want to configure custom notification rules with quiet hours, so that I only receive critical alerts during my working schedule.
 </user-story-example>
 
 This list of user stories should be extensive and cover all aspects of the feature.

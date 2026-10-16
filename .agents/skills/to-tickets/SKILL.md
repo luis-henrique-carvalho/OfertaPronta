@@ -52,8 +52,8 @@ Verify whether the granularity and blocking edges feel right.
 ### 5. Save the tickets locally in `docs/tickets/<slug>/<NN>-<ticket>.md`
 
 Write **one file per ticket** under **`docs/tickets/<slug>/<NN>-<ticket>.md`**, numbered from `01` in dependency order (blockers first), for example:
-- `docs/tickets/03-multisegment-briefing/01-briefing-schema-and-draft-rpc.md`
-- `docs/tickets/03-multisegment-briefing/02-mobile-briefing-wizard-and-preview.md`
+- `docs/tickets/01-checkout-flow/01-order-schema-and-checkout-service.md`
+- `docs/tickets/01-checkout-flow/02-checkout-ui-and-webhook-verification.md`
 
 Each file's `Blocked by:` lists the relative links or numbers/titles of the tickets it depends on. Use the template below:
 

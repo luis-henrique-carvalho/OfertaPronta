@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import {
-  Utensils,
+  Store,
   Bolt,
   CheckCircle2,
   Sparkles,
@@ -10,6 +10,10 @@ import {
   QrCode,
   Layers,
   Smartphone,
+  ShoppingCart,
+  Pizza,
+  Flame,
+  UtensilsCrossed,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -37,7 +41,7 @@ function LandingPageComponent() {
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-              <Utensils className="size-5" />
+              <Store className="size-5" />
             </div>
             <Typography variant="h4" className="font-extrabold tracking-tight">
               Oferta<span className="text-primary">Pronta</span>
@@ -51,8 +55,8 @@ function LandingPageComponent() {
               Sem cadastro
             </Badge>
             <Button size="sm" asChild className="rounded-full font-semibold">
-              <a href="#criar">
-                Criar Arte
+              <a href="/criar">
+                Criar Card com IA
                 <ArrowRight className="size-4" data-icon="inline-end" />
               </a>
             </Button>
@@ -64,24 +68,23 @@ function LandingPageComponent() {
       <main className="flex-1">
         <section className="relative px-4 pt-10 pb-16 sm:px-6 sm:pt-16 sm:pb-20 text-center">
           <div className="mx-auto flex max-w-3xl flex-col items-center">
-            {/* Tag de Destaque Gourmet */}
+            {/* Tag de Destaque Multisegmento */}
             <Badge
               variant="outline"
               className="mb-5 gap-1.5 rounded-full border-border bg-card px-3.5 py-1 text-xs font-semibold text-muted-foreground shadow-sm"
             >
               <Sparkles className="size-3.5 text-primary" />
-              Gastronomia & Delivery Mobile
+              IA Multimodal para Microempresários & Comércio Local
             </Badge>
 
             {/* Headline Principal */}
             <Typography variant="h1" className="mb-4">
-              Sua promoção impecável para postar, sem complicação de design.
+              Seu Card Publicitário gerado por IA e pronto para postar.
             </Typography>
 
             {/* Subtítulo */}
             <Typography variant="lead" className="mb-8 max-w-xl">
-              Crie artes profissionais para Feed e Story do seu delivery em menos de 90 segundos.
-              Basta preencher nome, preço e baixar os dois formatos em alta resolução.
+              Crie artes profissionais para Supermercados, Salões, Barbearias, Pizzarias, Hamburguerias, Restaurantes e Comércio Local em menos de 90 segundos.
             </Typography>
 
             {/* Bloco de Ação / CTA */}
@@ -91,13 +94,13 @@ function LandingPageComponent() {
                 asChild
                 className="w-full h-14 rounded-2xl bg-primary text-base font-bold shadow-md hover:bg-primary-hover active:scale-[0.98] transition-all"
               >
-                <a href="#criar" className="gap-2">
+                <a href="/criar" className="gap-2">
                   <Bolt className="size-5" data-icon="inline-start" />
-                  Criar promoção agora (R$ 9,90 via Pix)
+                  Criar meu card agora (R$ 9,90 via Pix)
                 </a>
               </Button>
 
-              {/* Selos de Confiança Sálvia */}
+              {/* Selos de Confiança */}
               <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="size-4 text-secondary" />
@@ -108,17 +111,96 @@ function LandingPageComponent() {
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="size-4 text-secondary" />
                   <Typography variant="muted" className="font-medium">
-                    Feed & Story inclusos
+                    Feed (4:5) & Story (9:16)
                   </Typography>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="size-4 text-secondary" />
                   <Typography variant="muted" className="font-medium">
-                    Download HD
+                    Download HD sem marca d&apos;água
                   </Typography>
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <Separator className="mx-auto max-w-5xl" />
+
+        {/* 6 Segmentos Comerciais Atendidos */}
+        <section className="px-4 py-16 sm:px-6 max-w-5xl mx-auto" id="segmentos">
+          <div className="text-center mb-12">
+            <Badge variant="secondary" className="mb-3">
+              Multisegmento Especializado
+            </Badge>
+            <Typography variant="h2" className="mb-3">
+              Feito para o seu tipo de negócio
+            </Typography>
+            <Typography variant="muted" className="max-w-lg mx-auto">
+              A IA adapta automaticamente os elementos gráficos, iluminação, cores e tipografia ao perfil exato da sua empresa.
+            </Typography>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <Card className="rounded-2xl border-border bg-card p-4 text-center">
+              <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-3">
+                <ShoppingCart className="size-5" />
+              </div>
+              <CardTitle className="text-sm font-bold">Supermercados</CardTitle>
+              <CardDescription className="text-xs pt-1">
+                Encartes de ofertas, carnes nobres e hortifrúti fresco.
+              </CardDescription>
+            </Card>
+
+            <Card className="rounded-2xl border-border bg-card p-4 text-center">
+              <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-3">
+                <Sparkles className="size-5" />
+              </div>
+              <CardTitle className="text-sm font-bold">Salões & Barbearias</CardTitle>
+              <CardDescription className="text-xs pt-1">
+                Combos de beleza, corte, barba e estética.
+              </CardDescription>
+            </Card>
+
+            <Card className="rounded-2xl border-border bg-card p-4 text-center">
+              <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-3">
+                <Pizza className="size-5" />
+              </div>
+              <CardTitle className="text-sm font-bold">Pizzarias</CardTitle>
+              <CardDescription className="text-xs pt-1">
+                Forno a lenha, bordas recheadas e combos delivery.
+              </CardDescription>
+            </Card>
+
+            <Card className="rounded-2xl border-border bg-card p-4 text-center">
+              <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-3">
+                <Flame className="size-5" />
+              </div>
+              <CardTitle className="text-sm font-bold">Hamburguerias</CardTitle>
+              <CardDescription className="text-xs pt-1">
+                Smash burgers na chapa, bacon crocante e combos.
+              </CardDescription>
+            </Card>
+
+            <Card className="rounded-2xl border-border bg-card p-4 text-center">
+              <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-3">
+                <UtensilsCrossed className="size-5" />
+              </div>
+              <CardTitle className="text-sm font-bold">Restaurantes</CardTitle>
+              <CardDescription className="text-xs pt-1">
+                Pratos executivos, marmitas e buffet diário.
+              </CardDescription>
+            </Card>
+
+            <Card className="rounded-2xl border-border bg-card p-4 text-center">
+              <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-3">
+                <Store className="size-5" />
+              </div>
+              <CardTitle className="text-sm font-bold">Comércio Local</CardTitle>
+              <CardDescription className="text-xs pt-1">
+                Moda, óticas, eletrônicos, pet shops e serviços de bairro.
+              </CardDescription>
+            </Card>
           </div>
         </section>
 
@@ -131,10 +213,10 @@ function LandingPageComponent() {
               2 Formatos em 1 Compra
             </Badge>
             <Typography variant="h2" className="mb-3">
-              Pronto para o algoritmo do Instagram
+              Pronto para Feed e Stories do Instagram e WhatsApp
             </Typography>
             <Typography variant="muted" className="max-w-lg mx-auto">
-              Cada campanha gera automaticamente as 2 peças nas proporções exatas recomendadas para máximo engajamento.
+              Cada geração cria automaticamente as 2 peças nas proporções recomendadas para você postar sem cortes.
             </Typography>
           </div>
 
@@ -162,14 +244,14 @@ function LandingPageComponent() {
                     <Layers className="size-10 text-primary" />
                     <Typography variant="h4">Arte para Feed</Typography>
                     <Typography variant="muted" className="text-xs">
-                      Tipografia de impacto e selo de preço em destaque
+                      Tipografia comercial de alto impacto e selo de preço em destaque
                     </Typography>
                   </div>
                 </div>
               </CardContent>
               <CardFooter>
                 <Typography variant="muted" className="text-xs">
-                  Perfeito para carrosséis, promoções do dia e cardápio promocional.
+                  Perfeito para carrosséis, promoções semanais e ofertas relâmpago.
                 </Typography>
               </CardFooter>
             </Card>
@@ -180,7 +262,7 @@ function LandingPageComponent() {
                 <div className="flex items-center justify-between">
                   <Badge variant="outline" className="gap-1">
                     <Zap className="size-3.5 text-secondary" />
-                    Story & Reels
+                    Story & Status
                   </Badge>
                   <Typography variant="muted" className="text-xs font-semibold">
                     1080 × 1920 px (9:16)
@@ -188,7 +270,7 @@ function LandingPageComponent() {
                 </div>
                 <CardTitle className="pt-2">Story com Área de Link</CardTitle>
                 <CardDescription>
-                  Formatado em tela cheia com respiro inferior seguro para adesivo de link do WhatsApp/iFood.
+                  Formatado em tela cheia com respiro inferior seguro para adesivo de link do WhatsApp.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -197,14 +279,14 @@ function LandingPageComponent() {
                     <Zap className="size-10 text-secondary" />
                     <Typography variant="h4">Arte para Story</Typography>
                     <Typography variant="muted" className="text-xs">
-                      Zona segura calibrada para adesivo de pedido
+                      Zona segura calibrada para sticker de pedido e mensagens
                     </Typography>
                   </div>
                 </div>
               </CardContent>
               <CardFooter>
                 <Typography variant="muted" className="text-xs">
-                  Ideal para disparar no horário de pico do almoço ou jantar.
+                  Ideal para disparar no WhatsApp Status e Instagram Stories diários.
                 </Typography>
               </CardFooter>
             </Card>
@@ -222,7 +304,7 @@ function LandingPageComponent() {
                 Como funciona em 3 passos
               </Typography>
               <Typography variant="muted" className="max-w-md mx-auto">
-                Você não precisa de cadastro, senha ou tutorial. Só preencher e baixar.
+                Você não precisa de cadastro, cartão de crédito ou tutorial. Só preencher e baixar.
               </Typography>
             </div>
 
@@ -233,14 +315,14 @@ function LandingPageComponent() {
                   <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold">
                     1
                   </div>
-                  <CardTitle className="pt-2">Dados da Oferta</CardTitle>
+                  <CardTitle className="pt-2">Escolha seu Ramo</CardTitle>
                   <CardDescription>
-                    Digite o nome do prato, subtítulo e valor promocional.
+                    Supermercado, Salão, Barbearia, Pizzaria, Hamburgueria, Restaurante ou Comércio.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Typography variant="muted">
-                    Sem complicação: nosso sistema ajusta a tipografia automaticamente para caber com elegância.
+                    A IA adapta o vocabulário, placeholders e clima publicitário com base no seu nicho.
                   </Typography>
                 </CardContent>
               </Card>
@@ -251,14 +333,14 @@ function LandingPageComponent() {
                   <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold">
                     2
                   </div>
-                  <CardTitle className="pt-2">Escolha o Tema</CardTitle>
+                  <CardTitle className="pt-2">Dados & Insumos Visuais</CardTitle>
                   <CardDescription>
-                    Selecione entre estilos para Hamburgueria, Pizzaria e Delivery.
+                    Digite o produto, valor e anexe opcionalmente foto do produto ou referência.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Typography variant="muted">
-                    Veja a prévia em tempo real com marca d&apos;água imediatamente na sua tela.
+                    Se não tiver foto, a IA cria a imagem do zero com iluminação e composição profissional.
                   </Typography>
                 </CardContent>
               </Card>
@@ -271,12 +353,12 @@ function LandingPageComponent() {
                   </div>
                   <CardTitle className="pt-2">Pix e Download HD</CardTitle>
                   <CardDescription>
-                    Pague R$ 9,90 no Pix e receba os PNGs nítidos em segundos.
+                    Pague R$ 9,90 no Pix e receba os PNGs nítidos sem marca d&apos;água em segundos.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Typography variant="muted">
-                    Confirmação instantânea e links de download com validade segura de 7 dias.
+                    Confirmação instantânea com direito a até 3 regenerações por IA pós-compra.
                   </Typography>
                 </CardContent>
               </Card>
@@ -295,7 +377,7 @@ function LandingPageComponent() {
                 Apenas R$ 9,90 por campanha completa
               </Typography>
               <Typography variant="muted" className="max-w-md mx-auto">
-                1 design final entregue nos dois formatos: Feed (1080×1350) e Story (1080×1920).
+                1 card publicitário entregue nos dois formatos: Feed (1080×1350) e Story (1080×1920).
               </Typography>
             </CardHeader>
 
@@ -319,15 +401,15 @@ function LandingPageComponent() {
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="size-4 text-secondary shrink-0" />
-                  <Typography variant="muted">QR Code Pix e Copia e Cola</Typography>
+                  <Typography variant="muted">QR Code Pix e Copia e Cola instantâneo</Typography>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="size-4 text-secondary shrink-0" />
-                  <Typography variant="muted">Download direto em alta qualidade</Typography>
+                  <Typography variant="muted">Download direto em alta resolução</Typography>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="size-4 text-secondary shrink-0" />
-                  <Typography variant="muted">Liberação em menos de 10 segundos</Typography>
+                  <Typography variant="muted">Até 3 regenerações por IA inclusas</Typography>
                 </div>
               </div>
             </CardContent>
@@ -338,9 +420,9 @@ function LandingPageComponent() {
                 asChild
                 className="w-full max-w-sm h-14 rounded-2xl bg-primary text-base font-bold shadow-md hover:bg-primary-hover active:scale-[0.98] transition-all"
               >
-                <a href="#criar" className="gap-2">
+                <a href="/criar" className="gap-2">
                   <QrCode className="size-5" data-icon="inline-start" />
-                  Começar agora sem cadastro
+                  Criar meu card agora sem cadastro
                 </a>
               </Button>
               <div className="flex items-center gap-2">
@@ -359,14 +441,14 @@ function LandingPageComponent() {
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
           <div className="flex items-center gap-2">
             <div className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Utensils className="size-4" />
+              <Store className="size-4" />
             </div>
             <Typography variant="muted" className="text-sm font-bold text-foreground">
               OfertaPronta
             </Typography>
           </div>
           <Typography variant="muted" className="text-xs">
-            © 2026 OfertaPronta. Feito para pequenos comércios e deliveries.
+            © 2026 OfertaPronta. Feito para microempresários de supermercados, salões, barbearias, pizzarias, hamburguerias, restaurantes e comércio local.
           </Typography>
         </div>
       </footer>

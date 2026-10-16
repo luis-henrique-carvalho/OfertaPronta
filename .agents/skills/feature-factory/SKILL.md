@@ -46,12 +46,12 @@ Organiza o ciclo de vida de qualquer demanda em camadas estritas de **pesquisa**
 | Papel | Tipo / Agente (`TypeName`) | Modelo | Permissão | Skills Integradas | Responsabilidade |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **1. `codebase-researcher`** | `codebase-researcher` | `flash` | Leitura | **`graphify`**, **`research`** | Mapeia o grafo de dependências, pontos de impacto e interfaces afetadas sem alterar código. |
-| **2. `product-manager`** | `product-manager` | `inherit` | Leitura / `ask_question` / Docs | **`domain-modeling`**, **`to-spec`**, **`to-tickets`**, **`roadmap-planning`** | Analisa `PRD.md` e `GLOSSARY.md`, entrevista o usuário via `ask_question` (`/grill-me`) para eliminar gaps de negócio, salva a Spec de Produto em `docs/specs/<slug>.md` e quebra em tickets verticais em `docs/tickets/<slug>/<NN>-<ticket>.md`. |
-| **3. `solution-architect`** | `solution-architect` | `inherit` | Leitura / `ask_question` / Docs | **`plan`**, **`codebase-design`**, **`solid`**, **`ponytail`**, **`graphify`** | Avalia arquitetura (*Deep Modules*), qualidade, isolamento Client/Server e segurança; entrevista o usuário via `ask_question` (`/grill-me`) sobre trade-offs técnicos e redige `docs/plans/<slug>.md`. |
-| **4. `backend-builder`** | `backend-builder` | `flash` | Escrita | **`tdd`**, **`solid`**, **`ponytail`**, **`codebase-design`** | Constrói regras de negócio, dados e APIs em Go, Python, Node.js/NestJS ou TS com ciclo estrito Red → Green, aplicando SOLID e Clean Architecture balanceados com YAGNI radical. |
-| **5. `frontend-builder`** | `frontend-builder` | `flash` | Escrita | **`shadcn`**, **`frontend-design`**, **`modern-web-guidance`** | Constrói telas e componentes com React, Next.js ou TanStack (Router/Query/Start), Tailwind CSS e primitivos acessíveis (shadcn/ui) sem acoplar backend. |
-| **6. `test-verifier`** | `test-verifier` | `flash` | Escrita / Cmd | **`tdd`**, **`chrome-devtools`**, **`a11y-debugging`** | Executa suítes de teste (Go, Pytest, Vitest/Jest), adiciona testes de aceitação e verifica acessibilidade/performance onde aplicável. |
-| **7. `implementation-validator`** | `implementation-validator` | `flash` | Leitura | **`code-review`**, **`solid`**, **`ponytail-review`**, **`efficient-swe-workflow`** | Audita o diff final em dois eixos (Spec vs. Padrões do `AGENTS.md` e SOLID), caçando code smells e complexidade desnecessária. |
+| **2. `product-manager`** | `product-manager` | `inherit` | Leitura / `ask_question` / Docs | **`domain-modeling`**, **`to-spec`**, **`to-tickets`**, **`roadmap-planning`** | Analisa `AGENTS.md`, `PRD.md` e `GLOSSARY.md`, entrevista o usuário via `ask_question` (`/grill-me`) para eliminar gaps de negócio, salva a Spec de Produto em `docs/specs/<slug>.md` e quebra em tickets verticais em `docs/tickets/<slug>/<NN>-<ticket>.md`. |
+| **3. `solution-architect`** | `solution-architect` | `inherit` | Leitura / `ask_question` / Docs | **`plan`**, **`codebase-design`**, **`improve-codebase-architecture`**, **`solid`**, **`ponytail`**, **`graphify`** | Avalia arquitetura (*Deep Modules*), qualidade, isolamento de camadas/fronteiras e segurança; entrevista o usuário via `ask_question` (`/grill-me`) sobre trade-offs técnicos e redige `docs/plans/<slug>.md`. |
+| **4. `backend-builder`** | `backend-builder` | `flash` | Escrita | **`tdd`**, **`solid`**, **`ponytail`**, **`codebase-design`**, **`domain-modeling`**, **`improve-codebase-architecture`** | Constrói regras de negócio, módulos profundos, dados e APIs guiado pelo `AGENTS.md` com ciclo estrito Red → Green, aplicando SOLID e Deep Modules balanceados com YAGNI radical. |
+| **5. `frontend-builder`** | `frontend-builder` | `flash` | Escrita | **`shadcn`**, **`frontend-design`**, **`modern-web-guidance`**, **`responsive-design`** | Constrói telas e componentes responsivos/mobile-first com o framework e design system definidos no `AGENTS.md` (ex.: React, Next.js, TanStack, Tailwind CSS, shadcn/ui) sem acoplar backend. |
+| **6. `test-verifier`** | `test-verifier` | `flash` | Escrita / Cmd | **`tdd`**, **`chrome-devtools`**, **`a11y-debugging`** | Executa a suíte de testes e o pipeline de verificação do `AGENTS.md`, valida critérios BDD dos tickets e verifica acessibilidade/performance onde aplicável. |
+| **7. `implementation-validator`** | `implementation-validator` | `flash` | Leitura | **`code-review`**, **`codebase-design`**, **`solid`**, **`ponytail-review`**, **`efficient-swe-workflow`** | Audita o diff final em três eixos (Spec/Plan/Tickets vs. Padrões do `AGENTS.md` e SOLID vs. Anti-Bloat `ponytail-review`), caçando code smells e complexidade desnecessária. |
 
 
 ---
@@ -128,19 +128,19 @@ Antes de qualquer interação:
 - **Role**: `"Product Manager & Domain Strategist"`
 - **Skills Ativas**: `domain-modeling`, `to-spec`, `to-tickets`, `roadmap-planning`.
 - **Procedimento**:
-  - Analisa `PRD.md`, `GLOSSARY.md` e `AGENTS.md` para identificar gaps de negócio, limites de cotas/preços, fluxos de erro e ergonomia mobile-first (< 90s).
+  - Analisa `AGENTS.md`, `PRD.md` e `GLOSSARY.md` (se presentes) para extrair regras de domínio, limites/cotas, fluxos de erro e jornada do usuário (UX).
   - Possui **autonomia direta com `ask_question` (`/grill-me`)**: realiza quantas perguntas forem necessárias diretamente ao usuário (sempre com a melhor opção marcada com **`(Recommended)`**) até eliminar todas as lacunas de negócio.
   - Salva localmente a **Spec de Produto** em **`docs/specs/<slug>.md`** (`to-spec`) e os **Tracer-Bullet Tickets** numerados por ordem de dependência em **`docs/tickets/<slug>/<NN>-<ticket>.md`** (`to-tickets`).
 
 #### 2.2. `solution-architect` (Modelo: `inherit`) — Lente de Arquitetura, Qualidade & Segurança
 - **TypeName**: `"solution-architect"`
 - **Role**: `"Principal Solution & Security Architect"`
-- **Skills Ativas**: `plan`, `codebase-design`, `solid`, `ponytail`, `graphify`.
+- **Skills Ativas**: `plan`, `codebase-design`, `improve-codebase-architecture`, `solid`, `ponytail`, `graphify`.
 - **Procedimento**:
-  - Avalia os 4 pilares técnicos:
-    1. **Arquitetura & Deep Modules**: Interfaces concisas, costuras (*seams*) de TDD e isolamento estrito Client/Server.
-    2. **Integridade de Negócio**: Preço autoritativo no backend (`Frozen Snapshot`), transações atômicas e máquinas de estado.
-    3. **Segurança por Design**: Schemas Zod nas bordas RPC/HTTP, validação HMAC em webhooks, idempotência estrita, tokens assinados e sanitização de uploads.
+  - Avalia os 4 pilares técnicos universais guiados pelo `AGENTS.md` do projeto:
+    1. **Arquitetura & Deep Modules**: Interfaces concisas, costuras (*seams*) de TDD e isolamento estrito entre camadas/fronteiras (ex.: Client/Server ou Domínio/Infra).
+    2. **Integridade de Negócio**: Regras e cálculos autoritativos no backend, transações atômicas e máquinas de estado.
+    3. **Segurança por Design**: Validação de schemas nas bordas RPC/HTTP, verificação de assinaturas em webhooks, idempotência estrita, tokens/permissões com menor privilégio e sanitização de entradas.
     4. **Qualidade & Anti-Bloat**: SOLID equilibrado com `ponytail` (YAGNI).
   - Possui **autonomia direta com `ask_question` (`/grill-me`)** para alinhar decisões arquiteturais e de segurança com o usuário.
   - Consolida as definições do `product-manager` e as respostas do usuário redigindo a especificação técnica completa em **`docs/plans/<slug>.md`** (e espelhando no artefato `implementation_plan.md` quando aplicável), com diagramas Mermaid obrigatórios.
@@ -185,13 +185,15 @@ Antes de executar qualquer comando ou criar/modificar arquivos, você DEVE carre
 
 **Additional Context**:
 - Repositório: <caminho> | Branch: <branch>
-- Especificação: docs/plans/<slug>.md e implementation_plan.md
-- Invariantes: AGENTS.md (Zero Shared Package, Strict TS, CLI pnpm)
+- Spec de Produto: docs/specs/<slug>.md
+- Plano Técnico: docs/plans/<slug>.md (e implementation_plan.md)
+- Ticket Ativo: docs/tickets/<slug>/<NN>-<ticket>.md
+- Invariantes: AGENTS.md do projeto (Stack, Deep Modules, Isolamento de Camadas, Tipagem Estrita, CLI oficial)
 
 **Escopo a Implementar**:
-1. Arquivos, portas e contratos específicos do workspace.
-2. Protocolos de qualidade (TDD Red-Green, Zod nas bordas).
-3. Comandos de teste (pnpm --filter <app> test, ./scripts/verify.sh).
+1. Arquivos, módulos profundos e contratos específicos do workspace.
+2. Protocolos de qualidade (TDD Red-Green nas costuras públicas, validação nas bordas).
+3. Comandos de verificação definidos no AGENTS.md do projeto.
 ```
 
 #### 3.1. `backend-builder` (Modelo: `flash` com High Effort / `inherit`)
