@@ -19,6 +19,7 @@ export default tseslint.config(
       ".tanstack/**",
       "**/.output/**",
       "**/.tanstack/**",
+      "**/*.json",
     ],
   },
   eslint.configs.recommended,
