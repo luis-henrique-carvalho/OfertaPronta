@@ -17,11 +17,12 @@ Este arquivo é a fonte única de regras e arquitetura do repositório para agen
 
 ## 1. Visão Geral do Projeto — OfertaPronta
 
-O **OfertaPronta** é uma plataforma web mobile-first voltada para pequenos comerciantes de alimentação (hamburguerias, pizzarias, açaíterias e delivery em geral) criarem artes promocionais profissionais prontas para publicação no Instagram (Feed 1080×1350 e Story 1080×1920) em menos de 90 segundos, sem necessidade de cadastro ou conhecimento de design.
+O **OfertaPronta** é uma plataforma web mobile-first voltada para **microempresários de diversos segmentos** (donos de supermercado, cabeleireiros, salões de beleza, barbearias, pizzarias, hamburguerias, restaurantes e comércio local) criarem **Cards Publicitários (`Ad Cards`) profissionais gerados por Inteligência Artificial** prontos para publicação no Instagram e WhatsApp (Feed 1080×1350 e Story 1080×1920) em menos de 90 segundos, sem necessidade de cadastro ou conhecimento de design.
 
-- **Proposta de Valor:** "Sua promoção pronta para postar, sem precisar saber design."
-- **Modelo de Negócio (MVP):** R$ 9,90 por campanha (1 design nos 2 formatos: Feed e Story), com pagamento avulso via Pix (QR Code e Copia e Cola) e entrega automática dos arquivos em alta resolução após confirmação via webhook.
-- **Princípio Fundamental:** Validar a experiência de ponta a ponta (criação rápida sem login, prévia com marca d'água, checkout Pix e geração/entrega de PNGs fiéis) com extrema simplicidade e sem bloat (YAGNI).
+- **Proposta de Valor:** *"Seu card publicitário criado por IA e pronto para postar, sem precisar saber design."*
+- **Core do Produto (Geração de Card por IA Multimodal):** O microempresário informa os dados da promoção (**Briefing da Oferta**), envia opcionalmente a **Imagem do Produto/Serviço (`Product Image`)** e/ou uma **Imagem de Referência (`Reference Image`)** (ou escolhe um **Estilo Visual (`Style Preset`)**), e a IA gera o **Card Publicitário completo** (cenário, produto, composição gráfica e textos/preços integrados).
+- **Modelo de Negócio (MVP):** R$ 9,90 por campanha (o Card Publicitário gerado nos 2 formatos: Feed e Story), com pagamento avulso via Pix (QR Code e Copia e Cola) e entrega automática dos arquivos em alta resolução sem marca d'água após confirmação via webhook (com direito a até 3 regenerações/ajustes por IA pós-pagamento).
+- **Princípio Fundamental:** Validar a experiência de ponta a ponta (briefing rápido sem login, geração do card completo por IA, prévia protegida por marca d'água, checkout Pix e entrega em alta resolução) com extrema simplicidade e sem bloat (YAGNI).
 
 ---
 
@@ -35,10 +36,10 @@ O **OfertaPronta** é uma plataforma web mobile-first voltada para pequenos come
 | **Fronteira RPC & HTTP** | **Server Functions + API Routes** | `createServerFn` para RPC tipado end-to-end com Zod; `createAPIFileRoute` exclusivamente para o webhook Pix da OpenPix. |
 | **Arquitetura de Código** | **Deep Modules & Codebase Design** | Módulos profundos com interfaces concisas e alta localidade; zero portas hipotéticas com único adaptador. |
 | **Banco de Dados & ORM** | **PostgreSQL + Drizzle ORM** | Schemas tipados em TypeScript, transações atômicas e snapshots congelados imutáveis. |
-| **Motor Gráfico (Isomórfico)**| **SVG Isomórfico + @resvg/resvg-js**| `TemplateEngine` puro compartilhado entre prévia no browser e renderização em PNG no servidor (zero drift visual). |
-| **Geração de Imagens por IA**| **Google Gemini Imagen API** | Módulo profundo de geração fotográfica gastronômica (1:1) com prompt automático otimizado. |
+| **Motor Central de IA** | **Google Gemini Multimodal Image API (`@google/genai`)** | Módulo profundo `AdCardGenerator` usando `gemini-nano-banana-2.1` / `gemini-3-pro-image` para gerar o Card Publicitário completo fundindo Briefing + Foto do Produto + Imagem de Referência. |
+| **Pós-Processamento & Marca d'Água** | **Sharp + @resvg/resvg-js** | Módulo profundo `ExportEngine` para aplicação determinística de marca d'água na prévia gratuita e exportação limpa em alta resolução (1080×1350 e 1080×1920) pós-Pix. |
 | **Gateway de Pagamento** | **Woovi / OpenPix (Pix Dinâmico)** | Módulo profundo `PixCheckout` com máquina de estados, assinatura HMAC e idempotência estrita. |
-| **Storage & Exportação** | **S3 / Cloudinary** | Persistência dos PNGs finais de alta resolução (Feed 1080×1350 e Story 1080×1920) com URLs privadas de 7 dias. |
+| **Storage & Exportação** | **S3 / Cloudinary** | Persistência dos insumos e dos PNGs finais de alta resolução (Feed 1080×1350 e Story 1080×1920) com URLs privadas de 7 dias. |
 | **Testes & Qualidade** | **Vitest + Testing Library** | TDD nos limites da interface pública dos módulos profundos (replace-don't-layer com fakes in-memory). |
 
 ---
@@ -55,7 +56,7 @@ src/
 │
 ├── config/                          # Configurações do ambiente com validação Zod
 │   ├── client-env.ts                # Variáveis públicas acessíveis no browser (VITE_PUBLIC_*)
-│   └── server-env.ts                # [SERVER-ONLY] Segredos de backend (DATABASE_URL, PIX_KEY, S3_SECRET)
+│   └── server-env.ts                # [SERVER-ONLY] Segredos de backend (DATABASE_URL, GEMINI_API_KEY, PIX_KEY, S3_SECRET)
 │
 ├── hooks/                           # React hooks globais utilitários (use-mobile, use-copy-to-clipboard)
 │
@@ -65,10 +66,10 @@ src/
 │
 ├── routes/                          # File-based routing do TanStack Router / Start
 │   ├── __root.tsx                   # Shell raiz da aplicação (HTML, Head, Meta, Providers)
-│   ├── index.tsx                    # Landing Page / Apresentação do serviço
-│   ├── criar.tsx                    # Wizard de criação (Passo 1: Dados -> Passo 2: Template -> Passo 3: Prévia)
+│   ├── index.tsx                    # Landing Page / Apresentação do serviço multisegmento
+│   ├── criar.tsx                    # Fluxo de criação (Briefing + Upload Produto/Referência -> Geração do Card por IA -> Prévia)
 │   ├── checkout.$orderId.tsx        # Tela de pagamento Pix (QR Code + Copia e Cola)
-│   ├── pedido.$orderId.tsx          # Tela de entrega com download dos PNGs finais
+│   ├── pedido.$orderId.tsx          # Tela de entrega com download dos PNGs finais e até 3 regenerações com IA
 │   └── api/                         # [HTTP REST Endpoints via createAPIFileRoute]
 │       └── webhooks.pix.ts          # Adaptador HTTP para o webhook Pix (valida HMAC e delega ao PixCheckout)
 │
@@ -78,22 +79,14 @@ src/
 │
 ├── features/                        # Módulos verticais de negócio (Feature-Sliced Design)
 │   │
-│   ├── promotions/                  # Feature: Rascunhos e Configuração da Oferta
-│   │   ├── components/              # PromotionForm, ImageUploader, AiImagePromptDialog, StepNavigation
-│   │   ├── hooks/                   # use-promotion-draft, use-image-upload, use-ai-image-generator
+│   ├── promotions/                  # Feature: Briefing da Oferta, Insumos Visuais e Geração de Card por IA
+│   │   ├── components/              # OfferBriefForm, ProductAndReferenceUploader, StylePresetSelector, LiveCardPreview
+│   │   ├── hooks/                   # use-promotion-draft, use-ad-card-generator
 │   │   ├── views/                   # CreatePromotionView, PreviewView
-│   │   ├── data/                    # Schemas Zod de validação de formulário e DTOs
+│   │   ├── data/                    # Schemas Zod de Briefing multisegmento, estilos e DTOs
 │   │   └── server/                  # [SERVER-ONLY] Lógica backend da feature
-│   │       ├── ai-image.ts          # [MÓDULO PROFUNDO] Integração Gemini Imagen API com cotas
-│   │       └── server-functions.ts  # TanStack Start createServerFn (saveDraftFn, generateAiImageFn)
-│   │
-│   ├── templates/                   # Feature: Catálogo de Templates & Motor SVG Isomórfico
-│   │   ├── components/              # TemplateSelector, SvgPreviewCanvas (renderiza via TemplateEngine)
-│   │   ├── data/                    # Metadados e definições dos 3 templates (Hamburgueria, Pizzaria, Delivery)
-│   │   └── engine/                  # [ISOMÓRFICO: BROWSER + SERVER] Motor puro de SVG
-│   │       ├── template-engine.ts   # Função pura renderTemplateSvg(id, data, options) -> string SVG
-│   │       ├── watermark.ts         # Injeção determinística de marca d'água vetorial para prévias
-│   │       └── catalog.ts           # Definições vetoriais dos templates Feed (1080x1350) e Story (1080x1920)
+│   │       ├── ai-card-generator.ts # [MÓDULO PROFUNDO] Geração completa do Card Publicitário via Gemini Multimodal + cotas
+│   │       └── server-functions.ts  # TanStack Start createServerFn (saveDraftFn, generateAdCardFn, regenerateAdCardFn)
 │   │
 │   ├── checkout/                    # Feature: Criação de Pedidos & Checkout Pix
 │   │   ├── components/              # PixQRCodeCard, PixCopiaECola, PaymentPollingIndicator
@@ -104,8 +97,8 @@ src/
 │   │       ├── pix-checkout.ts      # [MÓDULO PROFUNDO] Máquina de estados: createCharge e confirmPayment
 │   │       └── server-functions.ts  # TanStack Start createServerFn (createOrderFn, getOrderStatusFn)
 │   │
-│   └── delivery/                    # Feature: Entrega Segura & Downloads
-│       ├── components/              # DownloadCard, ShareButtons, CorrectionNotice
+│   └── delivery/                    # Feature: Entrega Segura, Downloads & Regeneração Pós-Compra
+│       ├── components/              # DownloadCard, ShareButtons, AiRegenerationPanel
 │       ├── hooks/                   # use-delivery-status
 │       ├── views/                   # OrderDeliveryView
 │       ├── data/                    # Tipos de exportação e schemas de download
@@ -117,12 +110,12 @@ src/
     │   ├── index.ts                 # Conexão singleton e pooling do PostgreSQL
     │   └── schema/                  # Pasta dedicada aos schemas Drizzle
     │       ├── index.ts             # Export consolidado de todos os schemas
-    │       ├── promotions.ts        # Tabelas: drafts e campaigns
+    │       ├── promotions.ts        # Tabelas: drafts e campaigns (com segmento, foto do produto e imagem de referência)
     │       ├── orders.ts            # Tabelas: orders e payment_charges
     │       └── delivery.ts          # Tabela: exports
-    └── export-engine/               # [MÓDULO PROFUNDO: RENDER & STORAGE]
-        ├── index.ts                 # Interface pública única: renderAndStore(snapshot, options)
-        ├── resvg-rasterizer.ts      # Rasterização interna de alta resolução via @resvg/resvg-js e Sharp
+    └── export-engine/               # [MÓDULO PROFUNDO: WATERMARK, FORMAT & STORAGE]
+        ├── index.ts                 # Interface pública única: applyWatermarkAndStore / exportFinalCards
+        ├── image-processor.ts       # Aplicação de marca d'água e dimensionamento 1080×1350 e 1080×1920 via Sharp
         └── s3-storage.ts            # Upload para S3/Cloudinary e emissão de URLs privadas com validade de 7 dias
 ```
 
@@ -138,21 +131,20 @@ src/
 
 2. **Isolamento Estrito entre Client e Server (Zero Server Code Leaks)**:
    - Arquivos dentro de `src/server/` ou subpastas `server/` dentro de features contêm código que roda **exclusivamente no Node.js**.
-   - Dependências nativas de backend (`sharp`, `@resvg/resvg-js`, `pg`, `drizzle-orm`) e segredos de ambiente NUNCA devem ser importados em componentes cliente ou em código executado no navegador.
+   - Dependências nativas de backend (`sharp`, `@resvg/resvg-js`, `pg`, `drizzle-orm`, `@google/genai`) e segredos de ambiente (`GEMINI_API_KEY`, `DATABASE_URL`) NUNCA devem ser importados em componentes cliente ou em código executado no navegador.
    - A comunicação entre o frontend e a lógica de backend deve ocorrer exclusivamente através de:
      - **Server Functions (`createServerFn`)**: Validadas obrigatoriamente com Zod tanto na entrada quanto na saída, fornecendo tipagem estrita de ponta a ponta sem expor detalhes internos de banco.
      - **API Routes (`createAPIFileRoute`)**: Reservadas para webhooks externos (`/api/webhooks/pix`) e endpoints binários (streaming protegido de download de PNGs).
 
-3. **Integridade de Negócio, Segurança de Preços e Modo Dual de Imagem**:
-   - **Preços são autoritativos do backend**: O frontend NUNCA informa o preço a ser cobrado. O backend determina o valor da campanha (R$ 9,90) e congela o snapshot dos dados (títulos, valores, imagens) no momento da criação do pedido (`orders`).
-   - **Modo Dual de Imagem (Upload ou Gemini Imagen)**: O comerciante pode enviar foto própria ou gerar uma imagem sob demanda via Google Gemini Imagen API (`imagen-3.0-generate-002`) em proporção 1:1, com prompt inteligente automatizado baseado no prato e nicho.
-   - **Controle de Cotas de IA**: Na prévia gratuita, permite-se **1 geração de IA** com marca d'água; pós-pagamento Pix confirmado, o usuário tem direito a até **3 regenerações por pedido** para proteger custos de API.
-   - Se o usuário optar por não enviar foto nem gerar com IA, o layout adota modo tipográfico elegante de destaque sem inventar produtos fictícios.
+3. **Integridade de Negócio, Segurança de Preços e Geração de Card por IA Multimodal**:
+   - **Preços são autoritativos do backend**: O frontend NUNCA informa o preço a ser cobrado. O backend determina o valor da campanha (R$ 9,90) e congela o snapshot dos dados (`Frozen Snapshot`) no momento da criação do pedido (`orders`).
+   - **Geração Completa de Card Publicitário por IA (`AdCardGenerator`)**: O microempresário informa o **Briefing da Oferta** (qualquer segmento: supermercado, salão/barbearia, pizzaria, hamburgueria, restaurante, varejo) e pode enviar opcionalmente a **Imagem do Produto**, a **Imagem de Referência**, ambas ou nenhuma (escolhendo um **Estilo Visual**). A IA multimodal (`gemini-nano-banana-2.1` / `gemini-3-pro-image`) gera o **Card Publicitário completo** com cenário, produto e textos/preços integrados.
+   - **Controle de Cotas de IA e Marca d'Água**: Na prévia gratuita, permite-se **1 geração de Card por IA** sempre protegida por marca d'água; pós-pagamento Pix confirmado, os arquivos limpos são liberados e o usuário tem direito a até **3 regenerações/ajustes por pedido** para proteger custos de API.
 
 4. **Idempotência e Segurança de Webhooks**:
    - O webhook Pix DEVE validar rigorosamente a assinatura digital (HMAC) enviada pelo provedor de pagamento.
    - O processamento de pagamentos deve ser estritamente idempotente: registrar o identificador da transação e ignorar notificações duplicadas sem gerar novas cobranças ou novos jobs redundantes.
-   - Liberação de downloads é restrita a pedidos cujo status de pagamento foi confirmado com sucesso. Arquivos são protegidos por tokens assinados com validade mínima de 7 dias.
+   - Liberação de downloads sem marca d'água é restrita a pedidos cujo status de pagamento foi confirmado com sucesso. Arquivos são protegidos por tokens assinados com validade mínima de 7 dias.
 
 5. **Codebase Design & Módulos Profundos (TDD)**:
    - **Módulos Profundos**: Projete **módulos profundos** (uma interface pequena e concisa ocultando uma implementação substancial), proporcionando *leverage* para quem chama e *locality* para quem mantém. Evite módulos rasos que apenas repassam chamadas.
@@ -181,12 +173,12 @@ src/
 
 Para novas fases, funcionalidades ou refatorações:
 
-1. **Context Discovery**: Inspecione o `PRD.md` e a arquitetura em `src/` antes de propor alterações. Mapeie dependências com `graphify query` ou leitura direta.
+1. **Context Discovery**: Inspecione o `PRD.md`, o `GLOSSARY.md` e a arquitetura em `src/` antes de propor alterações. Mapeie dependências com `graphify query` ou leitura direta.
 2. **Gate 0 (/grill-me)**: Se houver qualquer dúvida sobre regras de negócio, UX mobile ou trade-offs técnicos, formule de 2 a 3 perguntas objetivas via `ask_question`.
 3. **Planejamento**: Redija a especificação técnica em `docs/plans/<slug>.md` e no artefato `implementation_plan.md` antes de codificar, incluindo diagramas Mermaid de fluxo e ciclo de vida.
 4. **Construção Paralela Inteligente**:
-   - Despache `backend-builder` para serviços de backend (Server Functions, Drizzle schemas, Webhooks Pix, renderizador SVG/Sharp, portas e adaptadores).
-   - Despache `frontend-builder` para rotas TanStack Start, componentes de formulário, preview canvas e telas mobile-first.
+   - Despache `backend-builder` para serviços de backend (Server Functions, Drizzle schemas, `AdCardGenerator` Gemini, Webhooks Pix, `ExportEngine` Sharp/S3).
+   - Despache `frontend-builder` para rotas TanStack Start, componentes de briefing multisegmento, uploaders de produto/referência, preview de card e telas mobile-first.
 5. **Validação & Auditoria Paralelas**:
    - Despache `test-verifier` para rodar o pipeline completo de qualidade do projeto via `./.agents/scripts/verify.sh` (ou `./scripts/verify.sh`), checagem estrita de tipos (`pnpm typecheck`), conformidade Shadcn UI, Vitest (`pnpm test`) e regressões.
    - Despache `implementation-validator` para auditar o diff contra a Spec, SOLID e anti-bloat (`ponytail-review`).
@@ -220,4 +212,3 @@ pnpm db:migrate         # Aplica migrações pendentes no banco PostgreSQL
 pnpm db:push            # Sincroniza schemas diretamente com o banco de desenvolvimento
 pnpm db:studio          # Abre interface gráfica do Drizzle Studio para inspecionar tabelas
 ```
-

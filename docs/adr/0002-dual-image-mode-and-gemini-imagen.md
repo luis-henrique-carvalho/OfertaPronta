@@ -1,49 +1,49 @@
-# ADR 0002: Modo Dual de Imagem e Geração Gastronômica via Google Gemini Imagen API
+# ADR 0002: Geração Completa de Cards Publicitários via IA Multimodal com Fusão de Produto e Referência
 
-- **Status:** Aceito
+- **Status:** Aceito (Substitui a versão anterior de Modo Dual restrito a fotos gastronômicas)
 - **Data:** 2026-10-15
 - **Decisores:** Luis Carvalho & Antigravity Assistant
-- **Contexto:** OfertaPronta — Criação de artes promocionais para delivery sem atrito
+- **Contexto:** OfertaPronta — Motor Central de Criação de Cards Publicitários por IA para Microempresários
 
 ---
 
 ## Contexto
 
-A proposta original do MVP exigia que o pequeno comerciante enviasse a foto real do seu próprio prato ou, na ausência dela, utilizasse um layout puramente tipográfico. Essa regra visava evitar propaganda enganosa e alucinações tipográficas comuns em modelos generativos de imagem.
+Na concepção anterior da documentação, o sistema estava restrito ao setor de alimentação e tratava a inteligência artificial apenas como um recurso secundário para gerar fotos isoladas de pratos (1:1), enquanto o card em si era montado por templates SVG estáticos e pré-fabricados. Além disso, o envio de foto própria e o uso de IA eram tratados como opções mutuamente exclusivas.
 
-No entanto, a validação de produto revelou um ponto crítico de abandono de funil (*drop-off*): a grande maioria dos pequenos comerciantes de bairro (hamburguerias caseiras, pizzarias e deliverys iniciantes) não possui fotografias profissionais com iluminação de estúdio e fundo isolado. A exigência de upload obrigatório de fotos de alta qualidade ou a restrição a layouts puramente tipográficos reduzia severamente a percepção de valor e a taxa de conversão para compra (R$ 9,90).
-
-Por outro lado, delegar a arte inteira para um modelo de difusão de imagem (gerar o post completo com textos e preços via prompt) é inviável, pois modelos generativos alucinam textos em português, erram valores monetários e não garantem legibilidade vetorial em formatos oficiais do Instagram (Feed 1080×1350 e Story 1080×1920).
+Essa abordagem contradiz a visão central do produto por três razões fundamentais:
+1. **Público Multisegmento:** O produto atende microempresários de múltiplos ramos (donos de supermercado, cabeleireiros, barbearias, pizzarias, hamburguerias, restaurantes e comércio local), cujas necessidades visuais não cabem em três templates engessados de comida.
+2. **O Card Final é Criado por IA:** O diferencial competitivo do OfertaPronta é que a própria IA projeta e gera o **Card Publicitário (`Ad Card`) completo** — incluindo composição gráfica, cenário, iluminação comercial e integração tipográfica da oferta e dos preços.
+3. **Insumos Combináveis (Produto + Referência + Briefing):** O microempresário frequentemente possui a foto simples do seu produto (ex.: item na prateleira do mercado, corte de cabelo ou lanche) e/ou uma imagem de referência de um anúncio que achou atraente, desejando que a IA combine ambos para gerar um card publicitário profissional.
 
 ---
 
 ## Decisão
 
-Adotamos o **Modo Dual de Imagem** com **Composição Híbrida** integrando a **Google Gemini Imagen API** (`imagen-3.0-generate-002`):
+Adotamos a **Geração Completa de Cards Publicitários via IA Multimodal** utilizando os modelos de imagem da família Google Gemini (`gemini-nano-banana-2.1` / `gemini-3-pro-image` via SDK oficial `@google/genai`):
 
-1. **Modo Dual no Formulário (Upload ou IA com 1 Clique):**
-   - O comerciante tem a liberdade de fazer upload da sua foto/logotipo real OU clicar em *"Gerar foto profissional com IA"* informando apenas o nome do prato e detalhes opcionais.
+1. **Entradas Multimodais Flexíveis e Combináveis:**
+   - **Briefing da Oferta (`Offer Brief`):** Obrigatório (segmento comercial, nome do negócio, produto/serviço, preço promocional, chamada e contato).
+   - **Imagem do Produto (`Product Image`):** Opcional. Se enviada, a IA preserva a identidade do produto/serviço real e o ambienta profissionalmente no card.
+   - **Imagem de Referência (`Reference Image`):** Opcional. Se enviada, a IA extrai a direção de arte (paleta, distribuição visual, energia gráfica) como inspiração para compor o novo card.
+   - **Estilo Visual (`Style Preset`):** Caso o usuário não envie nem foto do produto nem referência, ele seleciona um estilo visual do seu segmento (ou descreve livremente) e a IA gera o Card Publicitário completo do zero.
 
-2. **Composição Híbrida (Foto IA + Tipografia Vetorial SVG):**
-   - O Gemini Imagen gera exclusivamente a fotografia do prato/produto culinário em proporção 1:1 (quadrada), com iluminação comercial gastronômica.
-   - O motor isomórfico (`TemplateEngine`) sobrepõe tipografia vetorial nítida, selos de preço autoritativos (R$ 9,90), WhatsApp e logotipo sobre a foto, eliminando qualquer risco de alucinação de texto.
+2. **O Card Publicitário Completo é Gerado pela IA:**
+   - O módulo profundo `AdCardGenerator` (`src/features/promotions/server/ai-card-generator.ts`) constrói a instrução multimodal estruturada combinando o `Offer Brief` com as imagens de entrada (`Product Image` e `Reference Image`) e invoca o modelo Gemini (`gemini-nano-banana-2.1` por padrão, com suporte a fusão de múltiplas imagens de referência).
+   - A IA gera a arte publicitária completa já com a hierarquia visual da promoção, preços, chamada para ação e ambientação nas proporções de Feed (1080×1350 / 4:5) e Story (1080×1920 / 9:16).
 
-3. **Prompt Gastronômico Inteligente Invisível:**
-   - O usuário não precisa aprender engenharia de prompt. O módulo `AiImageGenerator` injeta automaticamente parâmetros estéticos de *commercial food photography* (luz suave de estúdio, close-up apetitoso, profundidade de campo, 8k) baseados no nicho e no nome do prato.
-
-4. **Política Rígida de Cotas e Proteção de Custos:**
-   - **Prévia Gratuita:** O usuário tem direito a **1 geração de IA com marca d'água** para visualizar a arte antes de pagar.
-   - **Pós-Pagamento Pix:** Após a confirmação do pagamento, o usuário ganha o direito de realizar até **3 regenerações por pedido** caso queira ajustar o prato, protegendo os custos operacionais da aplicação.
+3. **Proteção de Prévia com Marca d'Água e Cotas de Custo:**
+   - **Prévia Gratuita:** Permite **1 geração de Card Publicitário por IA** aplicada com marca d'água protetora no servidor antes de exibir no cliente.
+   - **Pós-Pagamento Pix (R$ 9,90):** Libera imediatamente os PNGs em alta resolução sem marca d'água e concede direito a até **3 regenerações/ajustes por IA** no mesmo pedido para refinar detalhes sem comprometer a margem financeira.
 
 ---
 
 ## Consequências
 
 ### Positivas
-- **Aumento Expressivo de Conversão de Topo de Funil:** Elimina a barreira de entrada para comerciantes que não têm fotos prontas de seus produtos.
-- **Fidelidade e Legibilidade Garantidas:** Textos, telefones e preços continuam vetoriais e 100% legíveis, unindo o melhor da IA fotográfica com a precisão do motor SVG/Resvg.
-- **Previsibilidade Financeira:** A cota estrita (1 na prévia, até 3 pós-pagamento) impede abusos e mantém a margem de lucro saudável no valor de R$ 9,90 por campanha.
+- **Alinhamento Total com o Core do Produto:** Entrega exatamente a proposta de valor de criar cards publicitários sob medida com IA para qualquer microempresário (supermercado, salão, restaurante, etc.).
+- **Fusão Criativa Real (Produto + Referência):** Permite ao comerciante transformar uma foto simples de celular + uma referência de design em uma peça publicitária de nível de agência.
+- **Arquitetura Mais Simples (YAGNI):** Elimina a necessidade de desenhar e manter dezenas de layouts SVG manuais para cada segmento de mercado.
 
 ### Negativas / Trade-offs
-- **Dependência Externa:** Introduz a dependência da chave de API `GEMINI_API_KEY` e latência de geração de 5 a 10 segundos no momento da requisição da IA.
-- **Isolamento de Testes:** Exige fakes in-memory / mocks no módulo `AiImageGenerator` para garantir que a suíte de testes Vitest continue rodando em milissegundos sem custos de API.
+- **Controle de Custo e Latência de Inferência:** A geração multimodal leva de 4 a 10 segundos e consome tokens de imagem da API Gemini, exigindo controle rigoroso de cotas por sessão/pedido e aplicação de marca d'água server-side nas prévias.
