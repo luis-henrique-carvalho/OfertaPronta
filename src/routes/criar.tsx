@@ -1,12 +1,12 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { OfferBriefWizard } from '@/features/promotions/components/offer-brief-wizard'
-import { Typography } from '@/components/ui/typography'
-import { Badge } from '@/components/ui/badge'
-import { Sparkles, Store } from 'lucide-react'
+import { createFileRoute } from "@tanstack/react-router";
+import { OfferBriefWizard } from "@/features/promotions/components/offer-brief-wizard";
+import { Typography } from "@/components/ui/typography";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles, Store } from "lucide-react";
 
-export const Route = createFileRoute('/criar')({
+export const Route = createFileRoute("/criar")({
   component: CriarPageComponent,
-})
+});
 
 function CriarPageComponent() {
   return (
@@ -18,12 +18,18 @@ function CriarPageComponent() {
             <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Store className="size-4" />
             </div>
-            <Typography variant="h4" className="text-base font-extrabold tracking-tight">
+            <Typography
+              variant="h4"
+              className="text-base font-extrabold tracking-tight"
+            >
               Oferta<span className="text-primary">Pronta</span>
             </Typography>
           </a>
 
-          <Badge variant="secondary" className="gap-1 px-2.5 py-0.5 text-[11px] font-semibold">
+          <Badge
+            variant="secondary"
+            className="gap-1 px-2.5 py-0.5 text-[11px] font-semibold"
+          >
             <Sparkles className="size-3 text-primary" />
             IA Multimodal
           </Badge>
@@ -38,9 +44,10 @@ function CriarPageComponent() {
       {/* Footer minimalista */}
       <footer className="border-t border-border bg-card py-6 px-4 text-center">
         <Typography variant="muted" className="text-xs text-muted-foreground">
-          © 2026 OfertaPronta • Card Publicitário nos formatos Feed (4:5) e Story (9:16)
+          © 2026 OfertaPronta • Card Publicitário nos formatos Feed (4:5) e
+          Story (9:16)
         </Typography>
       </footer>
     </div>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query"
+import { QueryClient } from "@tanstack/react-query";
 
 export function makeQueryClient(): QueryClient {
   return new QueryClient({
@@ -9,22 +9,22 @@ export function makeQueryClient(): QueryClient {
         refetchOnWindowFocus: false,
       },
     },
-  })
+  });
 }
 
-let browserQueryClient: QueryClient | undefined = undefined
+let browserQueryClient: QueryClient | undefined = undefined;
 
 export function getQueryClient(): QueryClient {
   if (typeof window === "undefined") {
     // Server: always create a new query client
-    return makeQueryClient()
+    return makeQueryClient();
   } else {
     // Browser: reuse the existing query client if available
     if (!browserQueryClient) {
-      browserQueryClient = makeQueryClient()
+      browserQueryClient = makeQueryClient();
     }
-    return browserQueryClient
+    return browserQueryClient;
   }
 }
 
-export const queryClient = getQueryClient()
+export const queryClient = getQueryClient();

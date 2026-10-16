@@ -35,8 +35,20 @@ def main():
         tool_call = payload.get("toolCall", {})
         args = tool_call.get("args", {})
         
-        target_file = args.get("TargetFile") or args.get("target_file") or args.get("path") or ""
-        
+        command_line = args.get("CommandLine") or args.get("command") or ""
+        if command_line:
+            # Bloqueio de comandos git destrutivos
+            destructive_git_pattern = r"\bgit\s+(reset|restore|checkout|clean)\b"
+            if re.search(destructive_git_pattern, command_line):
+                for pattern in PROTECTED_PATTERNS:
+                    if re.search(pattern, command_line) or "--hard" in command_line or "--force" in command_line or "-f" in command_line:
+                        output = {
+                            "decision": "force_ask",
+                            "reason": f"Tentativa de execução de comando git destrutivo ou sobre arquivo de configuração protegido: '{command_line}'"
+                        }
+                        print(json.dumps(output))
+                        return
+
         if target_file:
             for pattern in PROTECTED_PATTERNS:
                 if re.search(pattern, target_file):

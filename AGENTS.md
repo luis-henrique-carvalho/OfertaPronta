@@ -85,8 +85,9 @@ src/
 │   │   ├── views/                   # CreatePromotionView, PreviewView
 │   │   ├── data/                    # Schemas Zod de Briefing multisegmento, estilos e DTOs
 │   │   └── server/                  # [SERVER-ONLY] Lógica backend da feature
-│   │       ├── ai-card-generator.ts # [MÓDULO PROFUNDO] Geração completa do Card Publicitário via Gemini Multimodal + cotas
-│   │       └── server-functions.ts  # TanStack Start createServerFn (saveDraftFn, generateAdCardFn, regenerateAdCardFn)
+│   │       ├── index.ts             # Ponto único de export público (Server Functions e DTOs)
+│   │       ├── functions/           # [FRONTEIRA RPC] TanStack Start createServerFn (drafts.functions.ts, generator.functions.ts)
+│   │       └── services/            # [MÓDULOS PROFUNDOS] Regras de negócio puras e Drizzle (drafts.service.ts, ai-card-generator.service.ts)
 │   │
 │   ├── checkout/                    # Feature: Criação de Pedidos & Checkout Pix
 │   │   ├── components/              # PixQRCodeCard, PixCopiaECola, PaymentPollingIndicator
@@ -94,8 +95,9 @@ src/
 │   │   ├── views/                   # CheckoutView
 │   │   ├── data/                    # Schemas de checkout, DTOs de pagamento e estados
 │   │   └── server/                  # [SERVER-ONLY]
-│   │       ├── pix-checkout.ts      # [MÓDULO PROFUNDO] Máquina de estados: createCharge e confirmPayment
-│   │       └── server-functions.ts  # TanStack Start createServerFn (createOrderFn, getOrderStatusFn)
+│   │       ├── index.ts             # Ponto único de export público (Server Functions e DTOs)
+│   │       ├── functions/           # [FRONTEIRA RPC] TanStack Start createServerFn (checkout.functions.ts)
+│   │       └── services/            # [MÓDULOS PROFUNDOS] Máquina de estados Pix e banco (pix-checkout.service.ts)
 │   │
 │   └── delivery/                    # Feature: Entrega Segura, Downloads & Regeneração Pós-Compra
 │       ├── components/              # DownloadCard, ShareButtons, AiRegenerationPanel
@@ -103,7 +105,9 @@ src/
 │       ├── views/                   # OrderDeliveryView
 │       ├── data/                    # Tipos de exportação e schemas de download
 │       └── server/                  # [SERVER-ONLY]
-│           └── server-functions.ts  # TanStack Start createServerFn (getDeliveryDetailsFn)
+│           ├── index.ts             # Ponto único de export público (Server Functions e DTOs)
+│           ├── functions/           # [FRONTEIRA RPC] TanStack Start createServerFn (delivery.functions.ts)
+│           └── services/            # [MÓDULOS PROFUNDOS] Validação de tokens e liberação (delivery.service.ts)
 │
 └── server/                          # [SERVER-ONLY] Infraestrutura Central & Módulos Profundos
     ├── db/                          # Conexão Drizzle ORM + PostgreSQL
@@ -161,11 +165,17 @@ src/
 
 7. **Qualidade e Tipagem Estrita**:
    - TypeScript em modo estrito (`strict: true`) com **zero `any`**.
+   - Proibido usar comentários de supressão (`eslint-disable`, `eslint-disable-next-line`, `@ts-ignore`, etc.) ou configurar ignores para burlar regras de lint e tipos. Corrija a causa raiz do problema ou refatore o código em funções/componentes menores.
    - Toda resposta externa (webhooks, APIs parceiras, uploads) deve ser validada na fronteira com schemas Zod.
 
 8. **Segredos e Credenciais**:
    - Nunca registre segredos, tokens de API ou credenciais no Git.
    - Trate `.env`, `.env.local` e credenciais como dados estritamente sensíveis.
+
+9. **Configurações de Desenvolvimento e Integridade de Configurações**:
+   - **Proibido alterar ou resetar arquivos de configuração de desenvolvimento**: Arquivos como `eslint.config.js`, `tsconfig.json`, `vitest.config.ts`, `vite.config.ts` e scripts de verificação são estritamente protegidos.
+   - **Proibido executar comandos git destrutivos**: Jamais execute `git reset`, `git checkout -- <config>`, `git restore` em arquivos de configuração ou comandos com flags destrutivas (`--hard`, `--force`) para tentar contornar erros ou reverter configurações.
+   - Qualquer ajuste nesses arquivos requer solicitação prévia e aprovação explícita do usuário. Violações de regras de lint e tipos devem ser resolvidas exclusivamente através de refatoração do código da aplicação (`src/`).
 
 ---
 

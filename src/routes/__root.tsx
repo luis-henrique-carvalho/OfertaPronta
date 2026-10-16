@@ -5,12 +5,12 @@ import {
   createRootRouteWithContext,
   HeadContent,
   Scripts,
-} from "@tanstack/react-router"
-import type { QueryClient } from "@tanstack/react-query"
-import appCss from "@/styles/index.css?url"
+} from "@tanstack/react-router";
+import type { QueryClient } from "@tanstack/react-query";
+import appCss from "@/styles/index.css?url";
 
 export interface MyRouterContext {
-  queryClient: QueryClient
+  queryClient: QueryClient;
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
@@ -53,7 +53,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     ],
   }),
   component: RootComponent,
-})
+});
 
 function RootComponent() {
   return (
@@ -67,5 +67,5 @@ function RootComponent() {
         <Scripts />
       </body>
     </html>
-  )
+  );
 }

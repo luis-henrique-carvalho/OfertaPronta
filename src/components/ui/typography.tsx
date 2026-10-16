@@ -1,7 +1,7 @@
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 const typographyVariants = cva("text-foreground", {
   variants: {
@@ -13,17 +13,22 @@ const typographyVariants = cva("text-foreground", {
       p: "leading-relaxed [&:not(:first-child)]:mt-4 text-base",
       lead: "text-lg sm:text-xl text-muted-foreground leading-relaxed font-normal text-balance",
       muted: "text-sm text-muted-foreground leading-normal",
-      blockquote: "mt-6 border-l-2 border-primary pl-6 italic text-muted-foreground",
+      blockquote:
+        "mt-6 border-l-2 border-primary pl-6 italic text-muted-foreground",
     },
   },
   defaultVariants: {
     variant: "p",
   },
-})
+});
 
-type ElementTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "blockquote" | "span" | "div"
+type ElementTag =
+  "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "blockquote" | "span" | "div";
 
-const defaultElementMap: Record<NonNullable<VariantProps<typeof typographyVariants>["variant"]>, ElementTag> = {
+const defaultElementMap: Record<
+  NonNullable<VariantProps<typeof typographyVariants>["variant"]>,
+  ElementTag
+> = {
   h1: "h1",
   h2: "h2",
   h3: "h3",
@@ -32,18 +37,21 @@ const defaultElementMap: Record<NonNullable<VariantProps<typeof typographyVarian
   lead: "p",
   muted: "p",
   blockquote: "blockquote",
-}
+};
 
 export interface TypographyProps
-  extends React.HTMLAttributes<HTMLElement>,
+  extends
+    React.HTMLAttributes<HTMLElement>,
     VariantProps<typeof typographyVariants> {
-  as?: ElementTag
+  as?: ElementTag;
 }
 
 export const Typography = React.forwardRef<HTMLElement, TypographyProps>(
   ({ className, variant = "p", as, children, ...props }, ref) => {
     // Determine target HTML element
-    const Component = (as || defaultElementMap[variant ?? "p"] || "p") as React.ElementType
+    const Component = (as ||
+      defaultElementMap[variant ?? "p"] ||
+      "p") as React.ElementType;
 
     return (
       <Component
@@ -53,8 +61,8 @@ export const Typography = React.forwardRef<HTMLElement, TypographyProps>(
       >
         {children}
       </Component>
-    )
-  }
-)
+    );
+  },
+);
 
-Typography.displayName = "Typography"
+Typography.displayName = "Typography";

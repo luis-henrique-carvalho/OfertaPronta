@@ -1,215 +1,264 @@
-import { useState, useCallback, useTransition } from 'react'
-import type { BusinessSegment, SaveOfferDraftInput } from '../data/offer-brief.schema'
-import { SEGMENT_CATALOG, deriveVisualInputMode } from '../data/offer-brief.schema'
-import { saveDraftFn } from '../server/server-functions'
+import { useState, useCallback, useTransition } from "react";
+import type {
+  BusinessSegment,
+  SaveOfferDraftInput,
+} from "../data/offer-brief.schema";
+import {
+  SEGMENT_CATALOG,
+  deriveVisualInputMode,
+} from "../data/offer-brief.schema";
+import { saveDraftFn } from "../server";
 
 export interface UseOfferBriefDraftOptions {
-  initialDraft?: Partial<SaveOfferDraftInput>
-  onSavedSuccess?: (draftId: string) => void
+  initialDraft?: Partial<SaveOfferDraftInput>;
+  onSavedSuccess?: (draftId: string) => void;
 }
 
-export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
-  const initialSegment: BusinessSegment =
-    (options.initialDraft?.businessSegment as BusinessSegment) || 'supermarket'
+interface FormFieldsState {
+  businessName: string;
+  offerTitle: string;
+  promoPrice: string;
+  originalPrice: string;
+  callToAction: string;
+  whatsapp: string;
+  productImageDataUrl?: string;
+  referenceImageDataUrl?: string;
+  stylePresetId?: string;
+  customStyleInstructions: string;
+}
 
-  const initialPlaceholders = SEGMENT_CATALOG[initialSegment].placeholders
+function getInitialFields(
+  initialDraft: Partial<SaveOfferDraftInput> | undefined,
+  segment: BusinessSegment,
+): FormFieldsState {
+  const placeholders = SEGMENT_CATALOG[segment].placeholders;
+  return {
+    businessName: initialDraft?.businessName ?? placeholders.businessName,
+    offerTitle: initialDraft?.offerTitle ?? placeholders.offerTitle,
+    promoPrice: initialDraft?.promoPrice ?? placeholders.promoPrice,
+    originalPrice: initialDraft?.originalPrice ?? placeholders.originalPrice,
+    callToAction: initialDraft?.callToAction ?? placeholders.callToAction,
+    whatsapp: initialDraft?.whatsapp ?? "",
+    productImageDataUrl: initialDraft?.productImageDataUrl ?? undefined,
+    referenceImageDataUrl: initialDraft?.referenceImageDataUrl ?? undefined,
+    stylePresetId:
+      initialDraft?.stylePresetId ??
+      SEGMENT_CATALOG[segment].stylePresets[0].id,
+    customStyleInstructions: initialDraft?.customStyleInstructions ?? "",
+  };
+}
 
-  const [draftId, setDraftId] = useState<string | undefined>(options.initialDraft?.id)
-  const [businessSegment, setBusinessSegment] = useState<BusinessSegment>(initialSegment)
-  const [businessName, setBusinessName] = useState(
-    options.initialDraft?.businessName ?? initialPlaceholders.businessName
-  )
-  const [offerTitle, setOfferTitle] = useState(
-    options.initialDraft?.offerTitle ?? initialPlaceholders.offerTitle
-  )
-  const [promoPrice, setPromoPrice] = useState(
-    options.initialDraft?.promoPrice ?? initialPlaceholders.promoPrice
-  )
-  const [originalPrice, setOriginalPrice] = useState(
-    options.initialDraft?.originalPrice ?? initialPlaceholders.originalPrice
-  )
-  const [callToAction, setCallToAction] = useState(
-    options.initialDraft?.callToAction ?? initialPlaceholders.callToAction
-  )
-  const [whatsapp, setWhatsapp] = useState(options.initialDraft?.whatsapp ?? '')
+function buildDraftPayload(
+  draftId: string | undefined,
+  businessSegment: BusinessSegment,
+  fields: FormFieldsState,
+): SaveOfferDraftInput {
+  return {
+    id: draftId,
+    businessSegment,
+    businessName: fields.businessName,
+    offerTitle: fields.offerTitle,
+    promoPrice: fields.promoPrice,
+    originalPrice: fields.originalPrice || null,
+    callToAction: fields.callToAction || null,
+    whatsapp: fields.whatsapp || null,
+    productImageDataUrl: fields.productImageDataUrl || null,
+    referenceImageDataUrl: fields.referenceImageDataUrl || null,
+    stylePresetId: fields.stylePresetId || null,
+    customStyleInstructions: fields.customStyleInstructions || null,
+  };
+}
 
-  // Insumos visuais flexíveis
-  const [productImageDataUrl, setProductImageDataUrl] = useState<string | undefined>(
-    options.initialDraft?.productImageDataUrl ?? undefined
-  )
-  const [referenceImageDataUrl, setReferenceImageDataUrl] = useState<string | undefined>(
-    options.initialDraft?.referenceImageDataUrl ?? undefined
-  )
-  const [stylePresetId, setStylePresetId] = useState<string | undefined>(
-    options.initialDraft?.stylePresetId ?? SEGMENT_CATALOG[initialSegment].stylePresets[0].id
-  )
-  const [customStyleInstructions, setCustomStyleInstructions] = useState(
-    options.initialDraft?.customStyleInstructions ?? ''
-  )
+function updateSegmentPlaceholders(
+  prev: FormFieldsState,
+  oldSegment: BusinessSegment,
+  newSegment: BusinessSegment,
+): FormFieldsState {
+  const prevPl = SEGMENT_CATALOG[oldSegment].placeholders;
+  const newPl = SEGMENT_CATALOG[newSegment].placeholders;
+  return {
+    ...prev,
+    stylePresetId: SEGMENT_CATALOG[newSegment].stylePresets[0].id,
+    businessName:
+      prev.businessName === prevPl.businessName
+        ? newPl.businessName
+        : prev.businessName,
+    offerTitle:
+      prev.offerTitle === prevPl.offerTitle
+        ? newPl.offerTitle
+        : prev.offerTitle,
+    promoPrice:
+      prev.promoPrice === prevPl.promoPrice
+        ? newPl.promoPrice
+        : prev.promoPrice,
+    originalPrice:
+      prev.originalPrice === prevPl.originalPrice
+        ? newPl.originalPrice
+        : prev.originalPrice,
+    callToAction:
+      prev.callToAction === prevPl.callToAction
+        ? newPl.callToAction
+        : prev.callToAction,
+  };
+}
 
-  // Erros e status
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [isSaving, startSavingTransition] = useTransition()
+function useDraftFormFields(
+  initialSegment: BusinessSegment,
+  initialDraft?: Partial<SaveOfferDraftInput>,
+) {
+  const [fields, setFields] = useState<FormFieldsState>(() =>
+    getInitialFields(initialDraft, initialSegment),
+  );
 
-  // Troca de segmento inteligente: adapta placeholders e o estilo padrão
-  const handleSegmentChange = useCallback(
-    (newSegment: BusinessSegment) => {
-      setBusinessSegment(newSegment)
-      const catalog = SEGMENT_CATALOG[newSegment]
-      // Define o estilo default do novo segmento
-      setStylePresetId(catalog.stylePresets[0].id)
-      // Se os campos ainda forem o default do segmento anterior, atualiza para o novo
-      const prevCatalog = SEGMENT_CATALOG[businessSegment]
-      if (businessName === prevCatalog.placeholders.businessName) {
-        setBusinessName(catalog.placeholders.businessName)
-      }
-      if (offerTitle === prevCatalog.placeholders.offerTitle) {
-        setOfferTitle(catalog.placeholders.offerTitle)
-      }
-      if (promoPrice === prevCatalog.placeholders.promoPrice) {
-        setPromoPrice(catalog.placeholders.promoPrice)
-      }
-      if (originalPrice === prevCatalog.placeholders.originalPrice) {
-        setOriginalPrice(catalog.placeholders.originalPrice)
-      }
-      if (callToAction === prevCatalog.placeholders.callToAction) {
-        setCallToAction(catalog.placeholders.callToAction)
-      }
-    },
-    [businessSegment, businessName, offerTitle, promoPrice, originalPrice, callToAction]
-  )
-
-  // Preenchimento com 1 toque a partir de um exemplo do segmento
-  const handleApplyExample = useCallback(
+  const applyExample = useCallback(
     (example: {
-      title: string
-      promoPrice: string
-      originalPrice?: string
-      stylePresetId: string
+      title: string;
+      promoPrice: string;
+      originalPrice?: string;
+      stylePresetId: string;
     }) => {
-      setOfferTitle(example.title)
-      setPromoPrice(example.promoPrice)
-      if (example.originalPrice) {
-        setOriginalPrice(example.originalPrice)
-      }
-      setStylePresetId(example.stylePresetId)
-      // Limpa eventuais erros de campo preenchido
-      setValidationErrors((prev) => {
-        const next = { ...prev }
-        delete next.offerTitle
-        delete next.promoPrice
-        return next
-      })
+      setFields((prev) => ({
+        ...prev,
+        offerTitle: example.title,
+        promoPrice: example.promoPrice,
+        originalPrice: example.originalPrice ?? prev.originalPrice,
+        stylePresetId: example.stylePresetId,
+      }));
     },
-    []
-  )
+    [],
+  );
 
-  // Modo de insumo visual derivado
-  const visualInputMode = deriveVisualInputMode({
-    hasProductImage: !!productImageDataUrl,
-    hasReferenceImage: !!referenceImageDataUrl,
-    hasStylePreset: !!stylePresetId,
-  })
+  return {
+    fields,
+    setFields,
+    applyExample,
+    setBusinessName: (v: string) =>
+      setFields((p) => ({ ...p, businessName: v })),
+    setOfferTitle: (v: string) => setFields((p) => ({ ...p, offerTitle: v })),
+    setPromoPrice: (v: string) => setFields((p) => ({ ...p, promoPrice: v })),
+    setOriginalPrice: (v: string) =>
+      setFields((p) => ({ ...p, originalPrice: v })),
+    setCallToAction: (v: string) =>
+      setFields((p) => ({ ...p, callToAction: v })),
+    setWhatsapp: (v: string) => setFields((p) => ({ ...p, whatsapp: v })),
+    setProductImageDataUrl: (v?: string) =>
+      setFields((p) => ({ ...p, productImageDataUrl: v })),
+    setReferenceImageDataUrl: (v?: string) =>
+      setFields((p) => ({ ...p, referenceImageDataUrl: v })),
+    setStylePresetId: (v?: string) =>
+      setFields((p) => ({ ...p, stylePresetId: v })),
+    setCustomStyleInstructions: (v: string) =>
+      setFields((p) => ({ ...p, customStyleInstructions: v })),
+  };
+}
 
-  // Validação básica client-side
-  const validateForm = useCallback((): boolean => {
-    const errors: Record<string, string> = {}
-    if (!businessName.trim()) {
-      errors.businessName = 'Informe o nome do estabelecimento'
-    }
-    if (!offerTitle.trim()) {
-      errors.offerTitle = 'Informe o título da promoção ou produto'
-    }
-    if (!promoPrice.trim()) {
-      errors.promoPrice = 'Informe o preço promocional'
-    }
+function useSaveDraft(
+  draftId: string | undefined,
+  setDraftId: (id: string) => void,
+  businessSegment: BusinessSegment,
+  fields: FormFieldsState,
+  options: UseOfferBriefDraftOptions,
+) {
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, startSavingTransition] = useTransition();
 
-    setValidationErrors(errors)
-    return Object.keys(errors).length === 0
-  }, [businessName, offerTitle, promoPrice])
-
-  // Salvar rascunho via Server Function
   const saveDraft = useCallback(async (): Promise<string | null> => {
-    setSaveError(null)
-
-    const payload: SaveOfferDraftInput = {
-      id: draftId,
-      businessSegment,
-      businessName,
-      offerTitle,
-      promoPrice,
-      originalPrice: originalPrice ? originalPrice : null,
-      callToAction: callToAction ? callToAction : null,
-      whatsapp: whatsapp ? whatsapp : null,
-      productImageDataUrl: productImageDataUrl ? productImageDataUrl : null,
-      referenceImageDataUrl: referenceImageDataUrl ? referenceImageDataUrl : null,
-      stylePresetId: stylePresetId ? stylePresetId : null,
-      customStyleInstructions: customStyleInstructions ? customStyleInstructions : null,
-    }
+    setSaveError(null);
+    const payload = buildDraftPayload(draftId, businessSegment, fields);
 
     return new Promise((resolve) => {
       startSavingTransition(async () => {
         try {
-          const saved = await saveDraftFn({ data: payload })
-          setDraftId(saved.draftId)
-          if (options.onSavedSuccess) {
-            options.onSavedSuccess(saved.draftId)
-          }
-          resolve(saved.draftId)
+          const saved = await saveDraftFn({ data: payload });
+          setDraftId(saved.draftId);
+          options.onSavedSuccess?.(saved.draftId);
+          resolve(saved.draftId);
         } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : 'Falha ao salvar rascunho da oferta'
-          setSaveError(msg)
-          resolve(null)
+          const msg =
+            err instanceof Error
+              ? err.message
+              : "Falha ao salvar rascunho da oferta";
+          setSaveError(msg);
+          resolve(null);
         }
-      })
-    })
-  }, [
+      });
+    });
+  }, [draftId, businessSegment, fields, options, setDraftId]);
+
+  return { saveError, isSaving, saveDraft };
+}
+
+export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
+  const initialSegment: BusinessSegment =
+    (options.initialDraft?.businessSegment as BusinessSegment) || "supermarket";
+
+  const [draftId, setDraftId] = useState<string | undefined>(
+    options.initialDraft?.id,
+  );
+  const [businessSegment, setBusinessSegment] =
+    useState<BusinessSegment>(initialSegment);
+  const { fields, setFields, applyExample, ...fieldSetters } =
+    useDraftFormFields(initialSegment, options.initialDraft);
+
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
+  const { saveError, isSaving, saveDraft } = useSaveDraft(
     draftId,
+    setDraftId,
     businessSegment,
-    businessName,
-    offerTitle,
-    promoPrice,
-    originalPrice,
-    callToAction,
-    whatsapp,
-    productImageDataUrl,
-    referenceImageDataUrl,
-    stylePresetId,
-    customStyleInstructions,
+    fields,
     options,
-  ])
+  );
+
+  const handleSegmentChange = useCallback(
+    (newSegment: BusinessSegment) => {
+      setBusinessSegment((curr) => {
+        setFields((f) => updateSegmentPlaceholders(f, curr, newSegment));
+        return newSegment;
+      });
+    },
+    [setFields],
+  );
+
+  const handleApplyExample = useCallback(
+    (example: Parameters<typeof applyExample>[0]) => {
+      applyExample(example);
+      setValidationErrors(({ offerTitle: _, promoPrice: __, ...next }) => next);
+    },
+    [applyExample],
+  );
+
+  const validateForm = useCallback((): boolean => {
+    const errors: Record<string, string> = {};
+    if (!fields.businessName.trim())
+      errors.businessName = "Informe o nome do estabelecimento";
+    if (!fields.offerTitle.trim())
+      errors.offerTitle = "Informe o título da promoção ou produto";
+    if (!fields.promoPrice.trim())
+      errors.promoPrice = "Informe o preço promocional";
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [fields.businessName, fields.offerTitle, fields.promoPrice]);
+
+  const visualInputMode = deriveVisualInputMode({
+    hasProductImage: !!fields.productImageDataUrl,
+    hasReferenceImage: !!fields.referenceImageDataUrl,
+    hasStylePreset: !!fields.stylePresetId,
+  });
 
   return {
     draftId,
     businessSegment,
-    businessName,
-    offerTitle,
-    promoPrice,
-    originalPrice,
-    callToAction,
-    whatsapp,
-    productImageDataUrl,
-    referenceImageDataUrl,
-    stylePresetId,
-    customStyleInstructions,
+    ...fields,
+    ...fieldSetters,
     visualInputMode,
     validationErrors,
     saveError,
     isSaving,
     setBusinessSegment: handleSegmentChange,
-    setBusinessName,
-    setOfferTitle,
-    setPromoPrice,
-    setOriginalPrice,
-    setCallToAction,
-    setWhatsapp,
-    setProductImageDataUrl,
-    setReferenceImageDataUrl,
-    setStylePresetId,
-    setCustomStyleInstructions,
     applyExample: handleApplyExample,
     validateForm,
     saveDraft,
-  }
+  };
 }

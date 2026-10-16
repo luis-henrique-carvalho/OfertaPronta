@@ -1,11 +1,11 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 /**
  * Merges class names safely using clsx and tailwind-merge.
  */
 export function cn(...inputs: ClassValue[]): string {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 /**
@@ -13,9 +13,9 @@ export function cn(...inputs: ClassValue[]): string {
  * Example: 990 -> "R$ 9,90"
  */
 export function formatBRL(cents: number): string {
-  const value = cents / 100
+  const value = cents / 100;
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(value)
+  }).format(value);
 }
