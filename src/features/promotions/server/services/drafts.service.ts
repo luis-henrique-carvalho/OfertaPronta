@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, type AppDatabase } from "../../../../server/db";
 import { drafts, type Draft } from "../../../../server/db/schema/promotions";
 import {
@@ -27,6 +27,7 @@ export async function saveOfferDraft(
     .values({
       id: draftId,
       businessSegment: validated.businessSegment,
+      targetAspectRatio: validated.targetAspectRatio ?? "feed",
       businessName: validated.businessName,
       offerTitle: validated.offerTitle,
       promoPrice: validated.promoPrice,
@@ -46,6 +47,7 @@ export async function saveOfferDraft(
       target: drafts.id,
       set: {
         businessSegment: validated.businessSegment,
+        targetAspectRatio: validated.targetAspectRatio ?? "feed",
         businessName: validated.businessName,
         offerTitle: validated.offerTitle,
         promoPrice: validated.promoPrice,
@@ -82,4 +84,32 @@ export async function getOfferDraft(
     .where(eq(drafts.id, id))
     .limit(1);
   return rows[0] ?? null;
+}
+
+/**
+ * Atualiza atomicamente a prévia com marca d'água e consome exatamente 1 cota de IA.
+ * Condição atômica estrita: a atualização só ocorre se aiGenerationCount for exatamente 0.
+ * Retorna o rascunho atualizado ou null em caso de falha de concorrência / cota já consumida.
+ */
+export async function updateDraftPreviewCard(
+  id: string,
+  previewCardImageUrl: string,
+  database: AppDatabase = db,
+): Promise<OfferDraft | null> {
+  if (!id || id.trim().length === 0) {
+    return null;
+  }
+
+  const now = new Date();
+  const [updated] = await database
+    .update(drafts)
+    .set({
+      previewCardImageUrl,
+      aiGenerationCount: 1,
+      updatedAt: now,
+    })
+    .where(and(eq(drafts.id, id), eq(drafts.aiGenerationCount, 0)))
+    .returning();
+
+  return updated ?? null;
 }

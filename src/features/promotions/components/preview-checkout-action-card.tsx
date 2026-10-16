@@ -12,11 +12,13 @@ import { CheckCircle2, Layers, QrCode, ArrowLeft } from "lucide-react";
 export interface PreviewCheckoutActionCardProps {
   onPrevStep: () => void;
   onCheckout: () => void;
+  isQuotaExceeded?: boolean;
 }
 
 export function PreviewCheckoutActionCard({
   onPrevStep,
   onCheckout,
+  isQuotaExceeded = false,
 }: PreviewCheckoutActionCardProps) {
   return (
     <>
@@ -62,7 +64,11 @@ export function PreviewCheckoutActionCard({
           onClick={onCheckout}
         >
           <QrCode className="size-5 mr-1.5 shrink-0" />
-          <span>Liberar em HD sem marca d&apos;água (R$ 9,90)</span>
+          <span>
+            {isQuotaExceeded
+              ? "Pagar com Pix (R$ 9,90)"
+              : "Liberar em HD sem marca d'água (R$ 9,90)"}
+          </span>
         </Button>
 
         <Button

@@ -1,20 +1,66 @@
 import { useState, useCallback, useTransition } from "react";
 import type {
   BusinessSegment,
+  CardAspectRatio,
   SaveOfferDraftInput,
 } from "../data/offer-brief.schema";
 import {
   SEGMENT_CATALOG,
   deriveVisualInputMode,
 } from "../data/offer-brief.schema";
-import { saveDraftFn } from "../server";
+import {
+  saveDraftFn,
+  type SaveDraftResponse,
+} from "../server/functions/drafts.functions";
+import {
+  generatePreviewFn,
+  type GeneratePreviewResponse,
+} from "../server/functions/generator.functions";
 
-export interface UseOfferBriefDraftOptions {
-  initialDraft?: Partial<SaveOfferDraftInput>;
-  onSavedSuccess?: (draftId: string) => void;
+export type GenerationStage = "briefing" | "composing" | "watermarking";
+
+export interface GenerationError {
+  code: string;
+  message: string;
 }
 
-interface FormFieldsState {
+export type GenerateAiPreviewResult =
+  | {
+      success: true;
+      previewUrl: string;
+      aiGenerationCount: 1;
+    }
+  | {
+      success: false;
+      code: "AI_QUOTA_EXCEEDED";
+      message: string;
+      previewUrl?: string | null;
+      aiGenerationCount?: number;
+    }
+  | {
+      success: false;
+      code: string;
+      message: string;
+      aiGenerationCount?: number;
+    };
+
+export type SaveDraftFunction = (args: {
+  data: SaveOfferDraftInput;
+}) => Promise<SaveDraftResponse>;
+
+export type GeneratePreviewFunction = (args: {
+  data: { draftId: string };
+}) => Promise<GeneratePreviewResponse>;
+
+export interface UseOfferBriefDraftOptions {
+  initialDraft?: Partial<SaveOfferDraftInput> & { aiGenerationCount?: number };
+  onSavedSuccess?: (draftId: string) => void;
+  saveDraftFn?: SaveDraftFunction;
+  generatePreviewFn?: GeneratePreviewFunction;
+}
+
+export interface FormFieldsState {
+  targetAspectRatio: CardAspectRatio;
   businessName: string;
   offerTitle: string;
   promoPrice: string;
@@ -33,6 +79,7 @@ function getInitialFields(
 ): FormFieldsState {
   const placeholders = SEGMENT_CATALOG[segment].placeholders;
   return {
+    targetAspectRatio: initialDraft?.targetAspectRatio ?? "feed",
     businessName: initialDraft?.businessName ?? placeholders.businessName,
     offerTitle: initialDraft?.offerTitle ?? placeholders.offerTitle,
     promoPrice: initialDraft?.promoPrice ?? placeholders.promoPrice,
@@ -52,10 +99,12 @@ function buildDraftPayload(
   draftId: string | undefined,
   businessSegment: BusinessSegment,
   fields: FormFieldsState,
+  previewCardImageUrl?: string | null,
 ): SaveOfferDraftInput {
   return {
     id: draftId,
     businessSegment,
+    targetAspectRatio: fields.targetAspectRatio,
     businessName: fields.businessName,
     offerTitle: fields.offerTitle,
     promoPrice: fields.promoPrice,
@@ -66,6 +115,7 @@ function buildDraftPayload(
     referenceImageDataUrl: fields.referenceImageDataUrl || null,
     stylePresetId: fields.stylePresetId || null,
     customStyleInstructions: fields.customStyleInstructions || null,
+    previewCardImageUrl: previewCardImageUrl || null,
   };
 }
 
@@ -128,10 +178,20 @@ function useDraftFormFields(
     [],
   );
 
+  const updateField = useCallback(
+    <K extends keyof FormFieldsState>(field: K, value: FormFieldsState[K]) => {
+      setFields((prev) => ({ ...prev, [field]: value }));
+    },
+    [],
+  );
+
   return {
     fields,
     setFields,
     applyExample,
+    updateField,
+    setTargetAspectRatio: (v: CardAspectRatio) =>
+      setFields((p) => ({ ...p, targetAspectRatio: v })),
     setBusinessName: (v: string) =>
       setFields((p) => ({ ...p, businessName: v })),
     setOfferTitle: (v: string) => setFields((p) => ({ ...p, offerTitle: v })),
@@ -158,18 +218,25 @@ function useSaveDraft(
   businessSegment: BusinessSegment,
   fields: FormFieldsState,
   options: UseOfferBriefDraftOptions,
+  previewCardImageUrl: string | null,
 ) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSavingTransition] = useTransition();
 
   const saveDraft = useCallback(async (): Promise<string | null> => {
     setSaveError(null);
-    const payload = buildDraftPayload(draftId, businessSegment, fields);
+    const payload = buildDraftPayload(
+      draftId,
+      businessSegment,
+      fields,
+      previewCardImageUrl,
+    );
 
     return new Promise((resolve) => {
       startSavingTransition(async () => {
         try {
-          const saved = await saveDraftFn({ data: payload });
+          const fn = options.saveDraftFn ?? saveDraftFn;
+          const saved = await fn({ data: payload });
           setDraftId(saved.draftId);
           options.onSavedSuccess?.(saved.draftId);
           resolve(saved.draftId);
@@ -183,9 +250,153 @@ function useSaveDraft(
         }
       });
     });
-  }, [draftId, businessSegment, fields, options, setDraftId]);
+  }, [
+    draftId,
+    businessSegment,
+    fields,
+    options,
+    previewCardImageUrl,
+    setDraftId,
+  ]);
 
   return { saveError, isSaving, saveDraft };
+}
+
+function applyPreviewResult(
+  res: GeneratePreviewResponse,
+  setPreviewCardImageUrl: (url: string | null) => void,
+  setAiGenerationCount: React.Dispatch<React.SetStateAction<number>>,
+  setGenerationError: (err: GenerationError | null) => void,
+): GeneratePreviewResponse {
+  if (res.success) {
+    setPreviewCardImageUrl(res.previewUrl);
+    setAiGenerationCount(res.aiGenerationCount);
+    setGenerationError(null);
+    return res;
+  }
+
+  if (res.code === "AI_QUOTA_EXCEEDED") {
+    if (res.previewUrl) setPreviewCardImageUrl(res.previewUrl);
+    if (res.aiGenerationCount !== undefined) {
+      setAiGenerationCount(res.aiGenerationCount);
+    }
+  }
+
+  setGenerationError({ code: res.code, message: res.message });
+  return res;
+}
+
+function startStageProgressTimers(
+  setStage: React.Dispatch<React.SetStateAction<GenerationStage>>,
+) {
+  const timer1 = setTimeout(() => setStage("composing"), 2500);
+  const timer2 = setTimeout(() => setStage("watermarking"), 5500);
+  return () => {
+    clearTimeout(timer1);
+    clearTimeout(timer2);
+  };
+}
+
+function handlePreviewRpcError(
+  err: unknown,
+  setGenerationError: (err: GenerationError | null) => void,
+): GenerateAiPreviewResult {
+  console.error(
+    "[useOfferBriefDraft] Erro na chamada RPC de geração de prévia:",
+    err,
+  );
+  const msg =
+    err instanceof Error
+      ? err.message
+      : "Instabilidade temporária na geração por IA. Por favor, tente novamente.";
+  const errObj: GenerationError = {
+    code: "AI_GENERATION_FAILED",
+    message: msg,
+  };
+  setGenerationError(errObj);
+  return { success: false, ...errObj, aiGenerationCount: 0 };
+}
+
+function useAiPreviewGeneration(
+  saveDraft: () => Promise<string | null>,
+  saveError: string | null,
+  options: UseOfferBriefDraftOptions,
+) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStage, setGenerationStage] =
+    useState<GenerationStage>("briefing");
+  const [generationError, setGenerationError] =
+    useState<GenerationError | null>(null);
+  const [previewCardImageUrl, setPreviewCardImageUrl] = useState<string | null>(
+    options.initialDraft?.previewCardImageUrl ?? null,
+  );
+  const [aiGenerationCount, setAiGenerationCount] = useState<number>(
+    options.initialDraft?.aiGenerationCount ?? 0,
+  );
+
+  const generateAiPreview =
+    useCallback(async (): Promise<GenerateAiPreviewResult> => {
+      setIsGenerating(true);
+      setGenerationError(null);
+      setGenerationStage("briefing");
+      const clearTimers = startStageProgressTimers(setGenerationStage);
+
+      try {
+        const currentDraftId = await saveDraft();
+        if (!currentDraftId) {
+          const err: GenerationError = {
+            code: "SAVE_FAILED",
+            message:
+              saveError ||
+              "Não foi possível salvar os dados do rascunho antes da geração.",
+          };
+          console.error(
+            "[useOfferBriefDraft] Falha ao salvar rascunho antes da geração:",
+            err,
+          );
+          setGenerationError(err);
+          return { success: false, ...err, aiGenerationCount: 0 };
+        }
+
+        console.warn(
+          "[useOfferBriefDraft] Chamando Server Function generatePreviewFn para draftId:",
+          currentDraftId,
+        );
+        const genFn = options.generatePreviewFn ?? generatePreviewFn;
+        const res = await genFn({ data: { draftId: currentDraftId } });
+        console.warn(
+          "[useOfferBriefDraft] Resposta recebida de generatePreviewFn:",
+          res,
+        );
+
+        return applyPreviewResult(
+          res,
+          setPreviewCardImageUrl,
+          setAiGenerationCount,
+          setGenerationError,
+        );
+      } catch (err: unknown) {
+        return handlePreviewRpcError(err, setGenerationError);
+      } finally {
+        clearTimers();
+        setIsGenerating(false);
+      }
+    }, [saveDraft, options.generatePreviewFn, saveError]);
+
+  const clearGenerationError = useCallback(() => {
+    setGenerationError(null);
+  }, []);
+
+  return {
+    isGenerating,
+    generationStage,
+    generationError,
+    previewCardImageUrl,
+    aiGenerationCount,
+    generateAiPreview,
+    setPreviewCardImageUrl,
+    clearGenerationError,
+  };
 }
 
 export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
@@ -203,13 +414,17 @@ export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
+
   const { saveError, isSaving, saveDraft } = useSaveDraft(
     draftId,
     setDraftId,
     businessSegment,
     fields,
     options,
+    options.initialDraft?.previewCardImageUrl ?? null,
   );
+
+  const aiPreview = useAiPreviewGeneration(saveDraft, saveError, options);
 
   const handleSegmentChange = useCallback(
     (newSegment: BusinessSegment) => {
@@ -252,6 +467,7 @@ export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
     businessSegment,
     ...fields,
     ...fieldSetters,
+    formData: fields,
     visualInputMode,
     validationErrors,
     saveError,
@@ -260,5 +476,6 @@ export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
     applyExample: handleApplyExample,
     validateForm,
     saveDraft,
+    ...aiPreview,
   };
 }

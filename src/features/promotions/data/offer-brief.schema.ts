@@ -14,6 +14,9 @@ export const BUSINESS_SEGMENTS = [
 
 export type BusinessSegment = (typeof BUSINESS_SEGMENTS)[number];
 
+export const CARD_ASPECT_RATIOS = ["feed", "story"] as const;
+export type CardAspectRatio = (typeof CARD_ASPECT_RATIOS)[number];
+
 export interface StylePreset {
   id: string;
   label: string;
@@ -389,6 +392,7 @@ export function deriveVisualInputMode(input: {
  */
 export const offerBriefSchema = z.object({
   businessSegment: z.enum(BUSINESS_SEGMENTS),
+  targetAspectRatio: z.enum(CARD_ASPECT_RATIOS).default("feed"),
   businessName: z
     .string()
     .trim()
@@ -415,6 +419,7 @@ export type OfferBrief = z.infer<typeof offerBriefSchema>;
 export const saveOfferDraftSchema = z.object({
   id: z.string().optional(),
   businessSegment: z.enum(BUSINESS_SEGMENTS).default("supermarket"),
+  targetAspectRatio: z.enum(CARD_ASPECT_RATIOS).default("feed"),
   businessName: z.string().default(""),
   offerTitle: z.string().default(""),
   promoPrice: z.string().default(""),
@@ -428,4 +433,5 @@ export const saveOfferDraftSchema = z.object({
   previewCardImageUrl: z.string().optional().nullable(),
 });
 
-export type SaveOfferDraftInput = z.infer<typeof saveOfferDraftSchema>;
+export type SaveOfferDraftInput = z.input<typeof saveOfferDraftSchema>;
+export type SavedOfferDraft = z.infer<typeof saveOfferDraftSchema>;

@@ -1,6 +1,6 @@
 /**
  * Ponto de entrada público do módulo Promotions Server.
- * Expõe exclusivamente Server Functions e tipos de DTO autorizados para a UI / hooks.
+ * Expõe exclusivamente Server Functions, serviços e tipos de DTO autorizados.
  */
 export {
   saveDraftFn,
@@ -13,3 +13,14 @@ export type {
   SaveDraftResponse,
   GetDraftResponse,
 } from "./functions/drafts.functions";
+
+export {
+  generatePreviewFn,
+  generatePreviewInputSchema,
+} from "./functions/generator.functions";
+
+export type {
+  GeneratePreviewInput,
+  GeneratePreviewResponse,
+  GeneratePreviewDependencies,
+} from "./functions/generator.functions";

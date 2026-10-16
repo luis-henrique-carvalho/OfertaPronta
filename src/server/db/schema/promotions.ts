@@ -3,6 +3,7 @@ import { pgTable, text, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
 export const drafts = pgTable("drafts", {
   id: text("id").primaryKey(),
   businessSegment: text("business_segment").notNull().default("supermarket"),
+  targetAspectRatio: text("target_aspect_ratio").notNull().default("feed"),
   businessName: text("business_name").notNull().default(""),
   offerTitle: text("offer_title").notNull().default(""),
   promoPrice: text("promo_price").notNull().default(""),

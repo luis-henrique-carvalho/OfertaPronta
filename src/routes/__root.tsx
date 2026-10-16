@@ -1,13 +1,14 @@
 // shadcn-ignore: root html document shell
 import {
   Outlet,
-  ScrollRestoration,
   createRootRouteWithContext,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
 import appCss from "@/styles/index.css?url";
+import { RootErrorComponent } from "@/components/shared/root-error-component";
+import { RootNotFoundComponent } from "@/components/shared/root-not-found-component";
 
 export interface MyRouterContext {
   queryClient: QueryClient;
@@ -53,6 +54,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     ],
   }),
   component: RootComponent,
+  errorComponent: RootErrorComponent,
+  notFoundComponent: RootNotFoundComponent,
 });
 
 function RootComponent() {
@@ -63,7 +66,6 @@ function RootComponent() {
       </head>
       <body className="min-h-screen bg-background text-foreground font-sans antialiased selection:bg-primary selection:text-white">
         <Outlet />
-        <ScrollRestoration />
         <Scripts />
       </body>
     </html>

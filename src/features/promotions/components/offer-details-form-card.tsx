@@ -15,10 +15,15 @@ import {
   FieldError,
 } from "@/components/ui/field";
 import { Store } from "lucide-react";
-import type { SegmentCatalogItem } from "../data/offer-brief.schema";
+import type {
+  CardAspectRatio,
+  SegmentCatalogItem,
+} from "../data/offer-brief.schema";
+import { CardAspectRatioSelector } from "./card-aspect-ratio-selector";
 
 export interface OfferDetailsFormCardProps {
   currentCatalog: SegmentCatalogItem;
+  targetAspectRatio: CardAspectRatio;
   businessName: string;
   offerTitle: string;
   promoPrice: string;
@@ -26,6 +31,7 @@ export interface OfferDetailsFormCardProps {
   callToAction?: string | null;
   whatsapp?: string | null;
   validationErrors: Record<string, string | undefined>;
+  onTargetAspectRatioChange: (val: CardAspectRatio) => void;
   onBusinessNameChange: (val: string) => void;
   onOfferTitleChange: (val: string) => void;
   onPromoPriceChange: (val: string) => void;
@@ -36,6 +42,7 @@ export interface OfferDetailsFormCardProps {
 
 export function OfferDetailsFormCard({
   currentCatalog,
+  targetAspectRatio,
   businessName,
   offerTitle,
   promoPrice,
@@ -43,6 +50,7 @@ export function OfferDetailsFormCard({
   callToAction,
   whatsapp,
   validationErrors,
+  onTargetAspectRatioChange,
   onBusinessNameChange,
   onOfferTitleChange,
   onPromoPriceChange,
@@ -71,6 +79,11 @@ export function OfferDetailsFormCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 pt-0">
+        <CardAspectRatioSelector
+          targetAspectRatio={targetAspectRatio}
+          onTargetAspectRatioChange={onTargetAspectRatioChange}
+        />
+
         <Field data-invalid={!!validationErrors.businessName}>
           <FieldLabel htmlFor="business-name">Nome do seu Negócio</FieldLabel>
           <Input

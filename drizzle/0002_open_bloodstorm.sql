@@ -1,0 +1,1 @@
+ALTER TABLE "drafts" ADD COLUMN "target_aspect_ratio" text DEFAULT 'feed' NOT NULL;

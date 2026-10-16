@@ -27,4 +27,17 @@ export function parseServerEnv(
   return result.data;
 }
 
+if (typeof process.loadEnvFile === "function") {
+  try {
+    process.loadEnvFile(".env.local");
+  } catch {
+    // .env.local é opcional (CI/Produção injeta direto via process.env)
+  }
+  try {
+    process.loadEnvFile(".env");
+  } catch {
+    // .env é opcional
+  }
+}
+
 export const serverEnv = parseServerEnv(process.env);

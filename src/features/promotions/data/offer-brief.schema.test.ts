@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   BUSINESS_SEGMENTS,
+  CARD_ASPECT_RATIOS,
   SEGMENT_CATALOG,
   imageDataUrlSchema,
   offerBriefSchema,
@@ -19,6 +20,10 @@ describe("offer-brief.schema", () => {
         "restaurant",
         "local-retail",
       ]);
+    });
+
+    it("should define the 2 expected card aspect ratios (feed and story)", () => {
+      expect(CARD_ASPECT_RATIOS).toEqual(["feed", "story"]);
     });
 
     it("should have catalog metadata and 3 style presets for each segment", () => {
@@ -161,6 +166,34 @@ describe("offer-brief.schema", () => {
         promoPrice: "R$ 39,90",
       });
       expect(draftResult.success).toBe(true);
+    });
+
+    it("validates CARD_ASPECT_RATIOS and defaults targetAspectRatio to feed", () => {
+      const parsedBrief = offerBriefSchema.parse(validDraftInput);
+      expect(parsedBrief.targetAspectRatio).toBe("feed");
+
+      const parsedStory = offerBriefSchema.parse({
+        ...validDraftInput,
+        targetAspectRatio: "story",
+      });
+      expect(parsedStory.targetAspectRatio).toBe("story");
+
+      const invalidAspect = offerBriefSchema.safeParse({
+        ...validDraftInput,
+        targetAspectRatio: "square",
+      });
+      expect(invalidAspect.success).toBe(false);
+
+      const parsedDraft = saveOfferDraftSchema.parse({
+        businessSegment: "pizzeria",
+      });
+      expect(parsedDraft.targetAspectRatio).toBe("feed");
+
+      const parsedDraftStory = saveOfferDraftSchema.parse({
+        businessSegment: "pizzeria",
+        targetAspectRatio: "story",
+      });
+      expect(parsedDraftStory.targetAspectRatio).toBe("story");
     });
   });
 });

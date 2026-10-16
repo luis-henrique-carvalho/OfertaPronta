@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -34,9 +34,11 @@ export interface LiveCardPreviewProps {
   originalPrice?: string | null;
   callToAction?: string | null;
   whatsapp?: string | null;
+  previewCardImageUrl?: string | null;
   productImageDataUrl?: string | null;
   referenceImageDataUrl?: string | null;
   stylePresetId?: string | null;
+  targetAspectRatio?: PreviewAspectRatio;
   aspectRatio?: PreviewAspectRatio;
   onAspectRatioChange?: (ratio: PreviewAspectRatio) => void;
   showWatermark?: boolean;
@@ -59,15 +61,26 @@ export function LiveCardPreview({
   originalPrice,
   callToAction = "Peça agora!",
   whatsapp,
+  previewCardImageUrl,
   productImageDataUrl,
   referenceImageDataUrl,
   stylePresetId,
+  targetAspectRatio,
   aspectRatio: externalAspectRatio,
   onAspectRatioChange,
   showWatermark = true,
 }: LiveCardPreviewProps) {
   const [internalAspectRatio, setInternalAspectRatio] =
-    useState<PreviewAspectRatio>("feed");
+    useState<PreviewAspectRatio>(
+      () => targetAspectRatio ?? externalAspectRatio ?? "feed",
+    );
+
+  useEffect(() => {
+    if (targetAspectRatio && !externalAspectRatio) {
+      setInternalAspectRatio(targetAspectRatio);
+    }
+  }, [targetAspectRatio, externalAspectRatio]);
+
   const currentRatio = externalAspectRatio ?? internalAspectRatio;
 
   const handleRatioChange = (ratio: PreviewAspectRatio) => {
@@ -107,6 +120,7 @@ export function LiveCardPreview({
               size="sm"
               onClick={() => handleRatioChange("feed")}
               className="h-8 px-3 text-xs font-semibold flex-1 sm:flex-none"
+              aria-pressed={currentRatio === "feed"}
             >
               <Layers className="size-3.5 mr-1.5 shrink-0" />
               Feed (4:5)
@@ -117,6 +131,7 @@ export function LiveCardPreview({
               size="sm"
               onClick={() => handleRatioChange("story")}
               className="h-8 px-3 text-xs font-semibold flex-1 sm:flex-none"
+              aria-pressed={currentRatio === "story"}
             >
               <Smartphone className="size-3.5 mr-1.5 shrink-0" />
               Story (9:16)
@@ -126,8 +141,7 @@ export function LiveCardPreview({
 
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
           <CardTitle className="text-base sm:text-lg font-bold leading-tight">
-            Card Publicitário (
-            {currentRatio === "feed" ? "1080×1350" : "1080×1920"})
+            {`Card Publicitário (${currentRatio === "feed" ? "1080×1350" : "1080×1920"})`}
           </CardTitle>
           <Badge
             variant="outline"
@@ -141,7 +155,9 @@ export function LiveCardPreview({
       <CardContent className="flex justify-center p-2 sm:p-6 bg-muted/10 overflow-hidden">
         <CardArtCanvas
           currentRatio={currentRatio}
+          targetAspectRatio={targetAspectRatio}
           activePreset={activePreset}
+          previewCardImageUrl={previewCardImageUrl}
           productImageDataUrl={productImageDataUrl}
           referenceImageDataUrl={referenceImageDataUrl}
           showWatermark={showWatermark}
