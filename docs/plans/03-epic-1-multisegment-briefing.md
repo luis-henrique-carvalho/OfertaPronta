@@ -36,21 +36,19 @@ flowchart TD
 
     Wizard -->|"Seam: TanStack Server Functions (saveDraftFn / getDraftFn)"| ServerFn
 
-    subgraph Core_Module["Módulo Profundo: DraftStore (src/features/promotions/server/)"]
-        ServerFn["server-functions.ts (Fronteira RPC)"]
-        ZodGuard["Validação Zod (offerBriefSchema + imageDataUrlSchema <= 4MB)"]
-        ModeDerivation["Derivação do Modo Multimodal (deriveVisualInputMode)"]
-        DraftStore["draft-store.ts (saveOfferDraft / getOfferDraft)"]
+    subgraph Core_Module["Módulo Profundo: server-functions.ts (src/features/promotions/server/)"]
+        ServerFn["server-functions.ts (Fronteira RPC TanStack Start)"]
+        ZodGuard["Validação Zod (saveOfferDraftSchema / getDraftInputSchema)"]
+        DrizzleUpsert["Drizzle Atomic Upsert (.onConflictDoUpdate())"]
 
         ServerFn --> ZodGuard
-        ZodGuard --> ModeDerivation
-        ModeDerivation --> DraftStore
+        ZodGuard --> DrizzleUpsert
     end
 
-    DraftStore -->|"Seam: DraftRepositoryAdapter (Replace-Don't-Layer)"| Repo
+    DrizzleUpsert -->|"Persistência Atômica"| Repo
 
     subgraph Infra_Layer["Infraestrutura & Persistência"]
-        Repo["Postgres Drizzle Adapter (drafts) / In-Memory Fake (TDD)"]
+        Repo["PostgreSQL Drizzle (drafts)"]
     end
 ```
 
@@ -140,12 +138,10 @@ sequenceDiagram
   - Definir `BUSINESS_SEGMENTS` (6 segmentos), `STYLE_PRESETS_BY_SEGMENT`, `imageDataUrlSchema`, `offerBriefSchema`, `saveOfferDraftSchema`, tipos inferidos (`OfferBrief`, `BusinessSegment`, `VisualInputMode`) e a função pura `deriveVisualInputMode()`.
 - **`[NEW]` `src/features/promotions/data/offer-brief.schema.test.ts`**
   - Testes unitários validando schemas, limites de tamanho de DataURL (4MB), obrigatoriedade de campos e derivação correta dos 4 modos visuais (`product-and-reference`, `product-only`, `reference-only`, `style-preset-only`).
-- **`[NEW]` `src/features/promotions/server/draft-store.ts`**
-  - Módulo profundo com `saveOfferDraft`, `getOfferDraft` e adaptador `createInMemoryDraftRepo()` para testes rápidos e fallback seguro.
-- **`[NEW]` `src/features/promotions/server/draft-store.test.ts`**
-  - Testes TDD da interface pública do `DraftStore` cobrindo criação, atualização de rascunho existente e validação de erros.
 - **`[NEW]` `src/features/promotions/server/server-functions.ts`**
-  - Server Functions `saveDraftFn` e `getDraftFn` usando `createServerFn` do `@tanstack/react-start` com `.inputValidator(zodSchema)`.
+  - Módulo profundo com `saveOfferDraft`, `getOfferDraft`, e Server Functions `saveDraftFn` e `getDraftFn` usando `createServerFn` do `@tanstack/react-start` com upsert atômico PostgreSQL (`.onConflictDoUpdate()`) e isolamento estrito contra client bundle leaks.
+- **`[NEW]` `src/features/promotions/server/server-functions.test.ts`**
+  - Testes TDD integrados na costura pública do módulo validando criação, atualização atômica, persistência de imagens DataURL e contratos RPC.
 
 ### 4.2. Componentes de UI Mobile-First & Rota `/criar` (`frontend-builder`)
 

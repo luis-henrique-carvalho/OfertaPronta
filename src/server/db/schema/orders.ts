@@ -3,7 +3,7 @@ import { campaigns } from './promotions'
 
 export const orders = pgTable('orders', {
   id: uuid('id').defaultRandom().primaryKey(),
-  campaignId: uuid('campaign_id').references(() => campaigns.id),
+  campaignId: text('campaign_id').references(() => campaigns.id),
   status: text('status').notNull().default('PENDING'),
   amountCents: integer('amount_cents').notNull().default(990),
   frozenSnapshot: jsonb('frozen_snapshot').notNull(),
