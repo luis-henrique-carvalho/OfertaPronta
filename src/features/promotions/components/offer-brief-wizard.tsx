@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -8,29 +9,46 @@ import {
 } from "../hooks/use-offer-brief-draft";
 import type { SaveOfferDraftInput } from "../data/offer-brief.schema";
 import { SEGMENT_CATALOG } from "../data/offer-brief.schema";
-import { SegmentSelector } from "./segment-selector";
+import { initiateCheckoutFn as defaultInitiateCheckoutFn } from "@/features/checkout/server/functions/checkout.functions";
+import { WizardStep1Segment } from "./wizard-step1-segment";
 import { FlexibleVisualInputs } from "./flexible-visual-inputs";
-import { LiveCardPreview } from "./live-card-preview";
 import { WizardProgressBar } from "./wizard-progress-bar";
 import { OfferDetailsFormCard } from "./offer-details-form-card";
-import { PreviewCheckoutActionCard } from "./preview-checkout-action-card";
+import { WizardStep3Preview } from "./wizard-step3-preview";
 import { ContextualAiLoader } from "./contextual-ai-loader";
 import { AiGenerationErrorAlert } from "./ai-generation-error-alert";
-import { AiQuotaExceededAlert } from "./ai-quota-exceeded-alert";
-import { ArrowLeft, ArrowRight, Wand2 } from "lucide-react";
+import { ArrowLeft, Wand2 } from "lucide-react";
+
+export type InitiateCheckoutFunction = (input: {
+  data: { draftId: string; customerWhatsapp?: string };
+}) => Promise<{ orderId: string }>;
 
 export interface OfferBriefWizardProps {
   initialDraft?: Partial<SaveOfferDraftInput> & { aiGenerationCount?: number };
   saveDraftFn?: SaveDraftFunction;
   generatePreviewFn?: GeneratePreviewFunction;
+  initiateCheckoutFn?: InitiateCheckoutFunction;
+  onNavigateToCheckout?: (orderId: string) => void;
 }
 
 export function OfferBriefWizard({
   initialDraft,
   saveDraftFn: customSaveDraftFn,
   generatePreviewFn: customGeneratePreviewFn,
+  initiateCheckoutFn: customInitiateCheckoutFn,
+  onNavigateToCheckout,
 }: OfferBriefWizardProps = {}) {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  const [isInitiatingCheckout, setIsInitiatingCheckout] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  let navigateHook: ReturnType<typeof useNavigate> | null = null;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    navigateHook = useNavigate();
+  } catch {
+    navigateHook = null;
+  }
 
   const draft = useOfferBriefDraft({
     initialDraft,
@@ -62,13 +80,57 @@ export function OfferBriefWizard({
     }
   };
 
+  const handleCheckout = async () => {
+    setIsInitiatingCheckout(true);
+    setCheckoutError(null);
+    try {
+      let targetDraftId = draft.draftId;
+      if (!targetDraftId) {
+        const savedId = await draft.saveDraft();
+        if (savedId) {
+          targetDraftId = savedId;
+        }
+      }
+
+      if (!targetDraftId) {
+        setIsInitiatingCheckout(false);
+        setCheckoutError(
+          "Salve o rascunho antes de prosseguir para o checkout",
+        );
+        return;
+      }
+
+      const checkoutFn = customInitiateCheckoutFn ?? defaultInitiateCheckoutFn;
+      const res = await checkoutFn({
+        data: {
+          draftId: targetDraftId,
+          customerWhatsapp: draft.whatsapp || undefined,
+        },
+      });
+      if (onNavigateToCheckout) {
+        onNavigateToCheckout(res.orderId);
+      } else if (navigateHook) {
+        navigateHook({
+          to: "/checkout/$orderId",
+          params: { orderId: res.orderId },
+        });
+      } else if (typeof window !== "undefined") {
+        window.location.href = `/checkout/${res.orderId}`;
+      }
+    } catch (err: unknown) {
+      setIsInitiatingCheckout(false);
+      const msg =
+        err instanceof Error ? err.message : "Erro ao iniciar checkout Pix";
+      setCheckoutError(msg);
+    }
+  };
+
   const isQuotaExceeded = draft.generationError?.code === "AI_QUOTA_EXCEEDED";
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
       <WizardProgressBar currentStep={currentStep} />
 
-      {/* Modal Contextual de Carregamento Progressivo de IA */}
       <ContextualAiLoader
         open={draft.isGenerating}
         stage={draft.generationStage}
@@ -76,22 +138,11 @@ export function OfferBriefWizard({
 
       {/* ETAPA 1: Seleção de Segmento Comercial */}
       {currentStep === 1 && (
-        <div className="flex flex-col gap-6">
-          <SegmentSelector
-            value={draft.businessSegment}
-            onChange={(newSegment) => draft.setBusinessSegment(newSegment)}
-          />
-
-          <Button
-            type="button"
-            size="lg"
-            onClick={handleNextStep}
-            className="h-13 w-full rounded-xl bg-primary text-base font-bold shadow-md hover:bg-primary/90"
-          >
-            Avançar para dados da oferta
-            <ArrowRight className="size-5 ml-1" />
-          </Button>
-        </div>
+        <WizardStep1Segment
+          businessSegment={draft.businessSegment}
+          onSegmentChange={draft.setBusinessSegment}
+          onNextStep={handleNextStep}
+        />
       )}
 
       {/* ETAPA 2: Dados do Briefing + Insumos Visuais Combináveis */}
@@ -180,33 +231,14 @@ export function OfferBriefWizard({
 
       {/* ETAPA 3: Prévia Completa do Card Publicitário & Avanço para Checkout */}
       {currentStep === 3 && (
-        <div className="flex flex-col gap-6">
-          {isQuotaExceeded && <AiQuotaExceededAlert />}
-
-          <LiveCardPreview
-            businessSegment={draft.businessSegment}
-            businessName={draft.businessName}
-            offerTitle={draft.offerTitle}
-            promoPrice={draft.promoPrice}
-            originalPrice={draft.originalPrice}
-            callToAction={draft.callToAction}
-            whatsapp={draft.whatsapp}
-            previewCardImageUrl={draft.previewCardImageUrl}
-            productImageDataUrl={draft.productImageDataUrl}
-            referenceImageDataUrl={draft.referenceImageDataUrl}
-            stylePresetId={draft.stylePresetId}
-            targetAspectRatio={draft.targetAspectRatio}
-            showWatermark={true}
-          />
-
-          <PreviewCheckoutActionCard
-            isQuotaExceeded={isQuotaExceeded}
-            onPrevStep={handlePrevStep}
-            onCheckout={() => {
-              alert("Avançando para o Checkout Pix (R$ 9,90)...");
-            }}
-          />
-        </div>
+        <WizardStep3Preview
+          isQuotaExceeded={isQuotaExceeded}
+          checkoutError={checkoutError}
+          draft={draft}
+          isInitiatingCheckout={isInitiatingCheckout}
+          onPrevStep={handlePrevStep}
+          onCheckout={handleCheckout}
+        />
       )}
     </div>
   );

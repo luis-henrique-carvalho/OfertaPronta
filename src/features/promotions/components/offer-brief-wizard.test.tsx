@@ -341,6 +341,63 @@ describe("OfferBriefWizard Component & AI Generation Flow", () => {
       ).toBeDefined();
     });
   });
+
+  it("deve disparar initiateCheckoutFn na Etapa 3 e navegar para checkout com orderId", async () => {
+    const mockInitiateCheckout = vi.fn().mockResolvedValue({
+      orderId: "order-abc-123",
+    });
+    const onNavigateToCheckout = vi.fn();
+
+    render(
+      <OfferBriefWizard
+        initialDraft={{
+          id: "draft-123",
+          businessSegment: "supermarket",
+          businessName: "Mercado Central",
+          offerTitle: "Oferta de Frutas",
+          promoPrice: "R$ 4,99",
+          previewCardImageUrl: "data:image/png;base64,mockPreview",
+        }}
+        saveDraftFn={mockSuccessfulSave}
+        generatePreviewFn={mockSuccessfulPreview}
+        initiateCheckoutFn={mockInitiateCheckout}
+        onNavigateToCheckout={onNavigateToCheckout}
+      />,
+    );
+
+    // Avança para a Etapa 2
+    fireEvent.click(
+      screen.getByRole("button", { name: /Avançar para dados da oferta/i }),
+    );
+
+    // Clica para Gerar Prévia com IA -> Etapa 3
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: /Gerar Prévia com IA/i }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Gostou da prévia\?/i)).toBeDefined();
+    });
+
+    // Clica no botão de checkout
+    const checkoutBtn = screen.getByRole("button", {
+      name: /Liberar em HD sem marca d'água/i,
+    });
+    await act(async () => {
+      fireEvent.click(checkoutBtn);
+    });
+
+    await waitFor(() => {
+      expect(mockInitiateCheckout).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          draftId: "draft-123",
+        }),
+      });
+      expect(onNavigateToCheckout).toHaveBeenCalledWith("order-abc-123");
+    });
+  });
 });
 
 describe("ContextualAiLoader Component", () => {

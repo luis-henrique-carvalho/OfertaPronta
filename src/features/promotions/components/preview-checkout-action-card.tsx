@@ -7,18 +7,20 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { CheckCircle2, Layers, QrCode, ArrowLeft } from "lucide-react";
+import { CheckCircle2, Layers, QrCode, ArrowLeft, Loader2 } from "lucide-react";
 
 export interface PreviewCheckoutActionCardProps {
   onPrevStep: () => void;
   onCheckout: () => void;
   isQuotaExceeded?: boolean;
+  isLoading?: boolean;
 }
 
 export function PreviewCheckoutActionCard({
   onPrevStep,
   onCheckout,
   isQuotaExceeded = false,
+  isLoading = false,
 }: PreviewCheckoutActionCardProps) {
   return (
     <>
@@ -60,21 +62,32 @@ export function PreviewCheckoutActionCard({
         <Button
           type="button"
           size="lg"
-          className="h-auto min-h-14 w-full rounded-2xl bg-primary py-3.5 px-4 text-sm sm:text-base font-bold shadow-lg hover:bg-primary/90 whitespace-normal break-words text-center"
+          disabled={isLoading}
+          className="h-auto min-h-14 w-full rounded-2xl bg-primary py-3.5 px-4 text-sm sm:text-base font-bold shadow-lg hover:bg-primary/90 whitespace-normal break-words text-center disabled:opacity-70"
           onClick={onCheckout}
         >
-          <QrCode className="size-5 mr-1.5 shrink-0" />
-          <span>
-            {isQuotaExceeded
-              ? "Pagar com Pix (R$ 9,90)"
-              : "Liberar em HD sem marca d'água (R$ 9,90)"}
-          </span>
+          {isLoading ? (
+            <>
+              <Loader2 className="size-5 mr-1.5 shrink-0 animate-spin" />
+              <span>Preparando Pix...</span>
+            </>
+          ) : (
+            <>
+              <QrCode className="size-5 mr-1.5 shrink-0" />
+              <span>
+                {isQuotaExceeded
+                  ? "Pagar com Pix (R$ 9,90)"
+                  : "Liberar em HD sem marca d'água (R$ 9,90)"}
+              </span>
+            </>
+          )}
         </Button>
 
         <Button
           type="button"
           variant="outline"
           size="lg"
+          disabled={isLoading}
           onClick={onPrevStep}
           className="h-11 w-full rounded-xl border-border font-medium text-xs text-muted-foreground"
         >

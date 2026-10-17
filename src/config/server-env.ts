@@ -10,6 +10,10 @@ export const serverEnvSchema = z.object({
     .default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
   GEMINI_API_KEY: z.string().optional(),
+  PUSHIN_PAY_TOKEN: z.string().optional(),
+  PUSHIN_PAY_BASE_URL: z.string().url().default("https://api.pushinpay.com.br"),
+  PUSHIN_PAY_WEBHOOK_URL: z.string().url().optional(),
+  PUSHIN_PAY_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

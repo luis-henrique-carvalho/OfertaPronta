@@ -33,12 +33,12 @@ O **OfertaPronta** é uma plataforma web mobile-first voltada para **microempres
 | **Framework Full-Stack** | **TanStack Start** | React 19 + TanStack Router + Vite / Vinxi / Nitro (SSR, File-based Routing, RPC via Server Functions). |
 | **Frontend & UI** | **Tailwind CSS v4 + shadcn/ui** | Design system mobile-first, primitivos Radix UI, Lucide Icons, tipografia moderna (Inter + Space Grotesk). |
 | **Client State & Cache** | **TanStack Query v5** | Cache de dados assíncronos, polling de status de pagamento e mutations tipadas via Server Functions. |
-| **Fronteira RPC & HTTP** | **Server Functions + API Routes** | `createServerFn` para RPC tipado end-to-end com Zod; `createAPIFileRoute` exclusivamente para o webhook Pix da OpenPix. |
+| **Fronteira RPC & HTTP** | **Server Functions + API Routes** | `createServerFn` para RPC tipado end-to-end com Zod; rota de API exclusivamente para o webhook Pix da Pushin Pay. |
 | **Arquitetura de Código** | **Deep Modules & Codebase Design** | Módulos profundos com interfaces concisas e alta localidade; zero portas hipotéticas com único adaptador. |
 | **Banco de Dados & ORM** | **PostgreSQL + Drizzle ORM** | Schemas tipados em TypeScript, transações atômicas e snapshots congelados imutáveis. |
 | **Motor Central de IA** | **Google Gemini Multimodal Image API (`@google/genai`)** | Módulo profundo `AdCardGenerator` usando `gemini-nano-banana-2.1` / `gemini-3-pro-image` para gerar o Card Publicitário completo fundindo Briefing + Foto do Produto + Imagem de Referência. |
 | **Pós-Processamento & Marca d'Água** | **Sharp + @resvg/resvg-js** | Módulo profundo `ExportEngine` para aplicação determinística de marca d'água na prévia gratuita e exportação limpa em alta resolução (1080×1350 e 1080×1920) pós-Pix. |
-| **Gateway de Pagamento** | **Woovi / OpenPix (Pix Dinâmico)** | Módulo profundo `PixCheckout` com máquina de estados, assinatura HMAC e idempotência estrita. |
+| **Gateway de Pagamento** | **Pushin Pay (Pix Dinâmico R$ 0,35)** | Módulo profundo `PixCheckout` com máquina de estados, token de segurança, reconciliação ativa e idempotência estrita. |
 | **Storage & Exportação** | **S3 / Cloudinary** | Persistência dos insumos e dos PNGs finais de alta resolução (Feed 1080×1350 e Story 1080×1920) com URLs privadas de 7 dias. |
 | **Testes & Qualidade** | **Vitest + Testing Library** | TDD nos limites da interface pública dos módulos profundos (replace-don't-layer com fakes in-memory). |
 
@@ -70,8 +70,7 @@ src/
 │   ├── criar.tsx                    # Fluxo de criação (Briefing + Upload Produto/Referência -> Geração do Card por IA -> Prévia)
 │   ├── checkout.$orderId.tsx        # Tela de pagamento Pix (QR Code + Copia e Cola)
 │   ├── pedido.$orderId.tsx          # Tela de entrega com download dos PNGs finais e até 3 regenerações com IA
-│   └── api/                         # [HTTP REST Endpoints via createAPIFileRoute]
-│       └── webhooks.pix.ts          # Adaptador HTTP para o webhook Pix (valida HMAC e delega ao PixCheckout)
+│   └── api.webhooks.pix.ts          # Adaptador HTTP para o webhook Pix da Pushin Pay (valida payload, reconcilia e delega ao PixCheckout)
 │
 ├── styles/                          # Estilização global e tokens Tailwind CSS v4
 │   ├── theme.css                    # Variáveis de tema CSS, cores e tokens visuais
@@ -146,9 +145,10 @@ src/
    - **Controle de Cotas de IA e Marca d'Água**: Na prévia gratuita, permite-se **1 geração de Card por IA** sempre protegida por marca d'água; pós-pagamento Pix confirmado, os arquivos limpos são liberados e o usuário tem direito a até **3 regenerações/ajustes por pedido** para proteger custos de API.
 
 4. **Idempotência e Segurança de Webhooks**:
-   - O webhook Pix DEVE validar rigorosamente a assinatura digital (HMAC) enviada pelo provedor de pagamento.
-   - O processamento de pagamentos deve ser estritamente idempotente: registrar o identificador da transação e ignorar notificações duplicadas sem gerar novas cobranças ou novos jobs redundantes.
-   - Liberação de downloads sem marca d'água é restrita a pedidos cujo status de pagamento foi confirmado com sucesso. Arquivos são protegidos por tokens assinados com validade mínima de 7 dias.
+   - O webhook Pix DEVE validar o token/secret de segurança enviado pelo provedor de pagamento (Pushin Pay).
+   - O processamento de pagamentos deve ser estritamente idempotente: registrar o identificador da transação (`txId`) e ignorar notificações duplicadas sem gerar novas cobranças ou novos jobs redundantes.
+   - O backend realiza reconciliação ativa (anti-spoofing) consultando a API da Pushin Pay antes de validar pagamentos em caso de divergência ou fallback.
+   - Liberação de downloads sem marca d'água é restrita a pedidos cujo status de pagamento foi confirmado com sucesso (`orders.status === "PAID"`). Arquivos são protegidos por tokens assinados com validade mínima de 7 dias.
 
 5. **Codebase Design & Módulos Profundos (TDD)**:
    - **Módulos Profundos**: Projete **módulos profundos** (uma interface pequena e concisa ocultando uma implementação substancial), proporcionando *leverage* para quem chama e *locality* para quem mantém. Evite módulos rasos que apenas repassam chamadas.

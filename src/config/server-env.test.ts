@@ -45,6 +45,30 @@ describe("serverEnv", () => {
     expect(() => parseServerEnv(invalid)).toThrow();
   });
 
+  it("should parse Pushin Pay environment variables with defaults", () => {
+    const env = parseServerEnv({});
+    expect(env.PUSHIN_PAY_BASE_URL).toBe("https://api.pushinpay.com.br");
+    expect(env.PUSHIN_PAY_TOKEN).toBeUndefined();
+    expect(env.PUSHIN_PAY_WEBHOOK_URL).toBeUndefined();
+    expect(env.PUSHIN_PAY_WEBHOOK_SECRET).toBeUndefined();
+
+    const customEnv = parseServerEnv({
+      PUSHIN_PAY_TOKEN: "mock_token_123",
+      PUSHIN_PAY_BASE_URL: "https://sandbox.pushinpay.com.br",
+      PUSHIN_PAY_WEBHOOK_URL: "https://example.com/api/webhooks/pix",
+      PUSHIN_PAY_WEBHOOK_SECRET: "my_secret_token",
+    });
+
+    expect(customEnv.PUSHIN_PAY_TOKEN).toBe("mock_token_123");
+    expect(customEnv.PUSHIN_PAY_BASE_URL).toBe(
+      "https://sandbox.pushinpay.com.br",
+    );
+    expect(customEnv.PUSHIN_PAY_WEBHOOK_URL).toBe(
+      "https://example.com/api/webhooks/pix",
+    );
+    expect(customEnv.PUSHIN_PAY_WEBHOOK_SECRET).toBe("my_secret_token");
+  });
+
   it("should export schema for runtime validation", () => {
     expect(serverEnvSchema).toBeDefined();
   });

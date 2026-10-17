@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CriarRouteImport } from './routes/criar'
+import { Route as CheckoutOrderIdRouteImport } from './routes/checkout.$orderId'
+import { Route as ApiWebhooksPixRouteImport } from './routes/api.webhooks.pix'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +24,49 @@ const CriarRoute = CriarRouteImport.update({
   path: '/criar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutOrderIdRoute = CheckoutOrderIdRouteImport.update({
+  id: '/checkout/$orderId',
+  path: '/checkout/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksPixRoute = ApiWebhooksPixRouteImport.update({
+  id: '/api/webhooks/pix',
+  path: '/api/webhooks/pix',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/criar': typeof CriarRoute
+  '/checkout/$orderId': typeof CheckoutOrderIdRoute
+  '/api/webhooks/pix': typeof ApiWebhooksPixRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/criar': typeof CriarRoute
+  '/checkout/$orderId': typeof CheckoutOrderIdRoute
+  '/api/webhooks/pix': typeof ApiWebhooksPixRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/criar': typeof CriarRoute
+  '/checkout/$orderId': typeof CheckoutOrderIdRoute
+  '/api/webhooks/pix': typeof ApiWebhooksPixRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/criar'
+  fullPaths: '/' | '/criar' | '/checkout/$orderId' | '/api/webhooks/pix'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/criar'
-  id: '__root__' | '/' | '/criar'
+  to: '/' | '/criar' | '/checkout/$orderId' | '/api/webhooks/pix'
+  id: '__root__' | '/' | '/criar' | '/checkout/$orderId' | '/api/webhooks/pix'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CriarRoute: typeof CriarRoute
+  CheckoutOrderIdRoute: typeof CheckoutOrderIdRoute
+  ApiWebhooksPixRoute: typeof ApiWebhooksPixRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +85,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CriarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checkout/$orderId': {
+      id: '/checkout/$orderId'
+      path: '/checkout/$orderId'
+      fullPath: '/checkout/$orderId'
+      preLoaderRoute: typeof CheckoutOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/pix': {
+      id: '/api/webhooks/pix'
+      path: '/api/webhooks/pix'
+      fullPath: '/api/webhooks/pix'
+      preLoaderRoute: typeof ApiWebhooksPixRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CriarRoute: CriarRoute,
+  CheckoutOrderIdRoute: CheckoutOrderIdRoute,
+  ApiWebhooksPixRoute: ApiWebhooksPixRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

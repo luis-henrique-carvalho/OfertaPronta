@@ -6,16 +6,18 @@ import {
   timestamp,
   jsonb,
 } from "drizzle-orm/pg-core";
-import { campaigns } from "./promotions";
+import { campaigns, drafts } from "./promotions";
 
 export const orders = pgTable("orders", {
   id: uuid("id").defaultRandom().primaryKey(),
   campaignId: text("campaign_id").references(() => campaigns.id),
+  draftId: text("draft_id").references(() => drafts.id),
   status: text("status").notNull().default("PENDING"),
   amountCents: integer("amount_cents").notNull().default(990),
   frozenSnapshot: jsonb("frozen_snapshot").notNull(),
   customerEmail: text("customer_email"),
   customerWhatsapp: text("customer_whatsapp"),
+  aiRegenerationCount: integer("ai_regeneration_count").notNull().default(0),
   paidAt: timestamp("paid_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()

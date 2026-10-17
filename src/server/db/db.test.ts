@@ -49,9 +49,11 @@ describe("Database Schema & Module", () => {
       const columns = getTableColumns(schema.orders);
       expect(columns.id).toBeDefined();
       expect(columns.campaignId).toBeDefined();
+      expect(columns.draftId).toBeDefined();
       expect(columns.status).toBeDefined();
       expect(columns.amountCents).toBeDefined();
       expect(columns.frozenSnapshot).toBeDefined();
+      expect(columns.aiRegenerationCount).toBeDefined();
       expect(columns.createdAt).toBeDefined();
       expect(columns.updatedAt).toBeDefined();
     });
