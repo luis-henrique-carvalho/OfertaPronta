@@ -9,7 +9,10 @@ import {
   type CheckoutDetailsResult,
   type PushinPayWebhookPayload,
 } from "../../data/checkout.schemas";
-import { PushinPayService } from "./pushin-pay.service";
+import { PushinPayService, type PixChargeResult } from "./pushin-pay.service";
+import { createServerLogger } from "../../../../server/logger";
+
+const log = createServerLogger("checkout.pix-checkout");
 
 /**
  * Módulo profundo PixCheckoutService.
@@ -95,6 +98,7 @@ export class PixCheckoutService {
     input: InitiateCheckoutInput,
   ): Promise<{ orderId: string }> {
     const validated = initiateCheckoutSchema.parse(input);
+    log.info("Iniciando checkout Pix", { draftId: validated.draftId });
 
     const [draft] = await this.database
       .select()
@@ -103,10 +107,16 @@ export class PixCheckoutService {
       .limit(1);
 
     if (!draft) {
+      log.warn("Tentativa de checkout para rascunho inexistente", {
+        draftId: validated.draftId,
+      });
       throw new Error("Rascunho não encontrado");
     }
 
     if (!draft.previewCardImageUrl) {
+      log.warn("Tentativa de checkout sem prévia de card gerada", {
+        draftId: validated.draftId,
+      });
       throw new Error(
         "Não é possível iniciar o checkout sem antes gerar a prévia do card com IA",
       );
@@ -117,6 +127,10 @@ export class PixCheckoutService {
       validated.customerWhatsapp,
     );
     if (activeOrder) {
+      log.info("Reutilizando pedido pendente ativo com cobrança válida", {
+        orderId: activeOrder.orderId,
+        draftId: draft.id,
+      });
       return activeOrder;
     }
 
@@ -124,37 +138,32 @@ export class PixCheckoutService {
       draft,
       validated.customerWhatsapp,
     );
+    log.info(
+      "Snapshot imutável congelado. Solicitando cobrança Pix à Pushin Pay...",
+      {
+        draftId: draft.id,
+      },
+    );
     const chargeResult = await this.pushinPay.createCashInCharge({
       valueCents: 990,
     });
+    log.info("Cobrança Pix emitida com sucesso pela Pushin Pay", {
+      draftId: draft.id,
+      txId: chargeResult.txId,
+    });
 
-    const orderId = await this.database.transaction(async (tx) => {
-      const [newOrder] = await tx
-        .insert(orders)
-        .values({
-          draftId: draft.id,
-          status: "PENDING",
-          amountCents: 990,
-          frozenSnapshot,
-          customerWhatsapp:
-            validated.customerWhatsapp || draft.whatsapp || null,
-          customerEmail: validated.customerEmail || null,
-          aiRegenerationCount: 0,
-        })
-        .returning({ id: orders.id });
+    const orderId = await this.persistOrderAndCharge(
+      draft.id,
+      frozenSnapshot,
+      chargeResult,
+      validated.customerWhatsapp || draft.whatsapp || null,
+      validated.customerEmail || null,
+    );
 
-      await tx.insert(paymentCharges).values({
-        orderId: newOrder.id,
-        txId: chargeResult.txId,
-        status: "PENDING",
-        qrCodeImageUrl: chargeResult.qrCodeBase64,
-        copiaECola: chargeResult.copiaECola,
-        amountCents: 990,
-        expiresAt: chargeResult.expiresAt,
-        rawPayload: chargeResult as unknown as Record<string, unknown>,
-      });
-
-      return newOrder.id;
+    log.info("Pedido e cobrança persistidos com sucesso no PostgreSQL", {
+      orderId,
+      draftId: draft.id,
+      txId: chargeResult.txId,
     });
 
     return { orderId };
@@ -221,6 +230,9 @@ export class PixCheckoutService {
       process.env.PUSHIN_PAY_WEBHOOK_SECRET;
 
     if (expectedSecret && secretHeader !== expectedSecret) {
+      log.warn("Assinatura/Secret do Webhook inválido", {
+        txId: payload.id,
+      });
       throw new Error("Assinatura/Secret do Webhook inválido");
     }
 
@@ -231,6 +243,9 @@ export class PixCheckoutService {
       .limit(1);
 
     if (!charge) {
+      log.warn("Cobrança não encontrada para webhook", {
+        txId: payload.id,
+      });
       return {
         processed: false,
         ignored: true,
@@ -240,37 +255,36 @@ export class PixCheckoutService {
 
     // Idempotência estrita: se a cobrança já estiver paga, encerra com sucesso sem mutação redundante
     if (charge.status === "PAID") {
+      log.info("Idempotência confirmada: cobrança já estava com status PAID", {
+        txId: payload.id,
+        orderId: charge.orderId,
+      });
       return { processed: true, orderId: charge.orderId, alreadyPaid: true };
     }
 
     if (payload.status === "paid") {
       if (Number(payload.value) !== 990) {
+        log.error(
+          "Valor recebido divergente do esperado em webhook",
+          undefined,
+          {
+            txId: payload.id,
+            receivedValue: payload.value,
+            expectedValue: 990,
+          },
+        );
         throw new Error(
           `Valor recebido (${payload.value}) divergente do esperado (990 centavos)`,
         );
       }
 
       const now = payload.paid_at ? new Date(payload.paid_at) : new Date();
-
-      await this.database.transaction(async (tx) => {
-        await tx
-          .update(paymentCharges)
-          .set({
-            status: "PAID",
-            paidAt: now,
-            updatedAt: new Date(),
-          })
-          .where(eq(paymentCharges.id, charge.id));
-
-        await tx
-          .update(orders)
-          .set({
-            status: "PAID",
-            paidAt: now,
-            updatedAt: new Date(),
-          })
-          .where(eq(orders.id, charge.orderId));
-      });
+      await this.markOrderAndChargePaid(
+        charge.id,
+        charge.orderId,
+        charge.txId,
+        now,
+      );
 
       return { processed: true, orderId: charge.orderId };
     }
@@ -292,6 +306,7 @@ export class PixCheckoutService {
       .limit(1);
 
     if (!order) {
+      log.warn("Pedido não encontrado na verificação de status", { orderId });
       throw new Error("Pedido não encontrado");
     }
 
@@ -309,6 +324,10 @@ export class PixCheckoutService {
     if (charge && charge.status === "PENDING") {
       // Checa se expirou por tempo
       if (new Date() > charge.expiresAt) {
+        log.info("Cobrança Pix expirada por tempo", {
+          orderId,
+          chargeId: charge.id,
+        });
         await this.database
           .update(paymentCharges)
           .set({ status: "EXPIRED", updatedAt: new Date() })
@@ -321,21 +340,23 @@ export class PixCheckoutService {
         const remoteTx = await this.pushinPay.getTransactionStatus(charge.txId);
         if (remoteTx.status === "paid" && remoteTx.valueCents === 990) {
           const now = remoteTx.paidAt || new Date();
-          await this.database.transaction(async (tx) => {
-            await tx
-              .update(paymentCharges)
-              .set({ status: "PAID", paidAt: now, updatedAt: new Date() })
-              .where(eq(paymentCharges.id, charge.id));
-
-            await tx
-              .update(orders)
-              .set({ status: "PAID", paidAt: now, updatedAt: new Date() })
-              .where(eq(orders.id, orderId));
+          await this.markOrderAndChargePaid(
+            charge.id,
+            orderId,
+            charge.txId,
+            now,
+          );
+          log.info("Reconciliação ativa confirmou pagamento com sucesso", {
+            orderId,
+            txId: charge.txId,
           });
           return { status: "PAID", isPaid: true };
         }
-      } catch {
-        // Falha transitória na checagem remota não interrompe o polling
+      } catch (err) {
+        log.warn("Falha transitória na checagem remota da Pushin Pay", {
+          orderId,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
 
@@ -348,6 +369,7 @@ export class PixCheckoutService {
   async regenerateExpiredCharge(
     orderId: string,
   ): Promise<CheckoutDetailsResult> {
+    log.info("Regenerando cobrança expirada para pedido", { orderId });
     const [order] = await this.database
       .select()
       .from(orders)
@@ -394,6 +416,11 @@ export class PixCheckoutService {
         .where(eq(orders.id, orderId));
     });
 
+    log.info("Nova cobrança Pix gerada com sucesso para pedido", {
+      orderId,
+      newTxId: newCharge.txId,
+    });
+
     return this.getCheckoutDetails(orderId);
   }
 
@@ -408,5 +435,76 @@ export class PixCheckoutService {
       .update(orders)
       .set({ customerWhatsapp: whatsapp, updatedAt: new Date() })
       .where(eq(orders.id, orderId));
+  }
+
+  private async persistOrderAndCharge(
+    draftId: string,
+    frozenSnapshot: Record<string, unknown>,
+    chargeResult: PixChargeResult,
+    customerWhatsapp: string | null,
+    customerEmail: string | null,
+  ): Promise<string> {
+    return this.database.transaction(async (tx) => {
+      const [newOrder] = await tx
+        .insert(orders)
+        .values({
+          draftId,
+          status: "PENDING",
+          amountCents: 990,
+          frozenSnapshot,
+          customerWhatsapp,
+          customerEmail,
+          aiRegenerationCount: 0,
+        })
+        .returning({ id: orders.id });
+
+      await tx.insert(paymentCharges).values({
+        orderId: newOrder.id,
+        txId: chargeResult.txId,
+        status: "PENDING",
+        qrCodeImageUrl: chargeResult.qrCodeBase64,
+        copiaECola: chargeResult.copiaECola,
+        amountCents: 990,
+        expiresAt: chargeResult.expiresAt,
+        rawPayload: chargeResult as unknown as Record<string, unknown>,
+      });
+
+      return newOrder.id;
+    });
+  }
+
+  private async markOrderAndChargePaid(
+    chargeId: string,
+    orderId: string,
+    txId: string,
+    paidAt: Date,
+  ): Promise<void> {
+    await this.database.transaction(async (tx) => {
+      await tx
+        .update(paymentCharges)
+        .set({
+          status: "PAID",
+          paidAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(paymentCharges.id, chargeId));
+
+      await tx
+        .update(orders)
+        .set({
+          status: "PAID",
+          paidAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(orders.id, orderId));
+    });
+
+    log.info(
+      "Webhook processado com sucesso: pedido e cobrança atualizados para PAID",
+      {
+        orderId,
+        txId,
+      },
+    );
   }
 }

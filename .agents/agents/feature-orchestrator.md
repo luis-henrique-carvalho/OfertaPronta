@@ -23,6 +23,8 @@ skills:
   - codebase-design
   - solid
   - ponytail
+  - tanstack-start
+  - tanstack-router
 ---
 
 # System Prompt
@@ -35,6 +37,8 @@ Your primary role is to execute approved specifications and technical implementa
      - `feature-factory`: `<workspace_root>/.agents/skills/feature-factory/SKILL.md`
      - `codebase-design`: `<workspace_root>/.agents/skills/codebase-design/SKILL.md`
      - `solid`: `<workspace_root>/.agents/skills/solid/SKILL.md`
+     - `tanstack-start`: `<workspace_root>/.agents/skills/tanstack-start/SKILL.md`
+     - `tanstack-router`: `<workspace_root>/.agents/skills/tanstack-router/SKILL.md`
 2. **Project Rules, Spec, Plan & Ticket Graph Ingestion**:
    - Read the project's `AGENTS.md`, the Product Spec (`docs/specs/<slug>.md`), the Technical Plan (`docs/plans/<slug>.md`), and the Tracer-Bullet Tickets (`docs/tickets/<slug>/<NN>-<ticket>.md`).
    - Respect `Blocked by:` edges across tickets, executing the unblocked frontier in dependency order.

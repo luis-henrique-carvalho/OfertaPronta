@@ -435,3 +435,9 @@ export const saveOfferDraftSchema = z.object({
 
 export type SaveOfferDraftInput = z.input<typeof saveOfferDraftSchema>;
 export type SavedOfferDraft = z.infer<typeof saveOfferDraftSchema>;
+
+export const generatePreviewInputSchema = z.object({
+  draftId: z.string().trim().min(1, "draftId é obrigatório"),
+});
+
+export type GeneratePreviewInput = z.infer<typeof generatePreviewInputSchema>;

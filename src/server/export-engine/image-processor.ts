@@ -1,4 +1,7 @@
 import sharp from "sharp";
+import { createServerLogger } from "../logger";
+
+const log = createServerLogger("export-engine.image-processor");
 
 export interface WatermarkOptions {
   watermarkText?: string;
@@ -24,6 +27,12 @@ export async function formatFeedCard(imageBuffer: Buffer): Promise<Buffer> {
   const height = metadata.height ?? 1350;
   const inputRatio = width / height;
   const feedRatio = 1080 / 1350; // 0.8
+
+  log.info("Formatando imagem para Feed (1080x1350)", {
+    width,
+    height,
+    inputRatio: Number(inputRatio.toFixed(3)),
+  });
 
   // Se a imagem já estiver na proporção 4:5 (ou próxima com margem de 2%), redimensiona nativamente
   if (Math.abs(inputRatio - feedRatio) < 0.02) {
@@ -96,6 +105,12 @@ export async function formatStoryCard(imageBuffer: Buffer): Promise<Buffer> {
   const inputRatio = width / height;
   const storyRatio = 1080 / 1920; // 0.5625
 
+  log.info("Formatando imagem para Story (1080x1920)", {
+    width,
+    height,
+    inputRatio: Number(inputRatio.toFixed(3)),
+  });
+
   // Se a imagem de entrada já estiver no aspect ratio 9:16 Story (ou margem de 2%), redimensiona nativamente
   if (Math.abs(inputRatio - storyRatio) < 0.02) {
     return sharp(imageBuffer)
@@ -150,6 +165,12 @@ export async function applyWatermark(
   const metadata = await sharp(imageBuffer).metadata();
   const width = metadata.width ?? 1080;
   const height = metadata.height ?? 1350;
+
+  log.info("Aplicando marca d'água de proteção na prévia", {
+    width,
+    height,
+    bufferSizeBytes: imageBuffer.length,
+  });
 
   const mainText = options?.watermarkText ?? "PRÉVIA OFERTAPRONTA";
   const subText = options?.subText ?? "ARTE PROTEGIDA • LIBERAÇÃO PÓS-PIX";

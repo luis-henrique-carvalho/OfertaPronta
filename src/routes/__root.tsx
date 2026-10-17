@@ -5,7 +5,8 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import type { QueryClient } from "@tanstack/react-query";
+import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
+import { getQueryClient } from "@/lib/query-client";
 import appCss from "@/styles/index.css?url";
 import { RootErrorComponent } from "@/components/shared/root-error-component";
 import { RootNotFoundComponent } from "@/components/shared/root-not-found-component";
@@ -59,15 +60,20 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 });
 
 function RootComponent() {
+  const context = Route.useRouteContext();
+  const client = context?.queryClient ?? getQueryClient();
+
   return (
-    <html lang="pt-BR" className="scroll-smooth">
-      <head>
-        <HeadContent />
-      </head>
-      <body className="min-h-screen bg-background text-foreground font-sans antialiased selection:bg-primary selection:text-white">
-        <Outlet />
-        <Scripts />
-      </body>
-    </html>
+    <QueryClientProvider client={client}>
+      <html lang="pt-BR" className="scroll-smooth">
+        <head>
+          <HeadContent />
+        </head>
+        <body className="min-h-screen bg-background text-foreground font-sans antialiased selection:bg-primary selection:text-white">
+          <Outlet />
+          <Scripts />
+        </body>
+      </html>
+    </QueryClientProvider>
   );
 }

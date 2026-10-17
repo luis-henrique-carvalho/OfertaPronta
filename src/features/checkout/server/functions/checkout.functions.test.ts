@@ -5,12 +5,14 @@ import {
   checkPaymentStatusFn,
   updateOrderWhatsappFn,
   regenerateExpiredChargeFn,
+} from "./checkout.functions";
+import {
   executeInitiateCheckout,
   executeGetOrderCheckoutDetails,
   executeCheckPaymentStatus,
   executeUpdateOrderWhatsapp,
   executeRegenerateExpiredCharge,
-} from "./checkout.functions";
+} from "../services/checkout-runners.service";
 import {
   initiateCheckoutSchema,
   orderIdSchema,

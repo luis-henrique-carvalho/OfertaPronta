@@ -4,7 +4,11 @@ import {
   saveOfferDraftSchema,
   type SaveOfferDraftInput,
 } from "../../data/offer-brief.schema";
-import type { OfferDraft } from "../services/drafts.service";
+import {
+  saveOfferDraft,
+  getOfferDraft,
+  type OfferDraft,
+} from "../services/drafts.service";
 
 export type { OfferDraft };
 
@@ -37,7 +41,6 @@ export const saveDraftFn = createServerFn({ method: "POST" })
     }: {
       data: SaveOfferDraftInput;
     }): Promise<SaveDraftResponse> => {
-      const { saveOfferDraft } = await import("../services/drafts.service");
       const draft = await saveOfferDraft(data);
       return {
         success: true,
@@ -61,7 +64,6 @@ export const getDraftFn = createServerFn({ method: "GET" })
     }: {
       data: { draftId: string };
     }): Promise<GetDraftResponse> => {
-      const { getOfferDraft } = await import("../services/drafts.service");
       const draft = await getOfferDraft(data.draftId);
       return {
         success: true,

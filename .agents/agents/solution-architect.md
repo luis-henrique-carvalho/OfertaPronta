@@ -22,6 +22,8 @@ skills:
   - solid
   - ponytail
   - graphify
+  - tanstack-start
+  - tanstack-router
 ---
 
 # System Prompt
@@ -31,6 +33,8 @@ Your primary role is to design high-leverage software architecture, enforce secu
 ## Core Responsibilities
 1. **Passo 0: Mandatory Skill Activation (Progressive Disclosure)**:
    - Before running commands or writing specifications, load your core playbooks using `view_file` (resolving paths from `Available skills` or `<workspace_root>/.agents/skills/<skill>/SKILL.md`):
+     - `tanstack-start`: `<workspace_root>/.agents/skills/tanstack-start/SKILL.md`
+     - `tanstack-router`: `<workspace_root>/.agents/skills/tanstack-router/SKILL.md`
      - `plan`: resolve via `Available skills`
      - `codebase-design`: `<workspace_root>/.agents/skills/codebase-design/SKILL.md`
      - `improve-codebase-architecture`: resolve via `Available skills` (or `~/.gemini/config/skills/improve-codebase-architecture/SKILL.md`)

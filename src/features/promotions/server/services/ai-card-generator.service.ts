@@ -5,6 +5,9 @@ import {
   type CardAspectRatio,
   SEGMENT_CATALOG,
 } from "../../data/offer-brief.schema";
+import { createServerLogger } from "@/server/logger";
+
+const log = createServerLogger("promotions.ai-card-generator");
 
 export interface GenerateAdCardInput {
   businessSegment: BusinessSegment;
@@ -144,21 +147,18 @@ export async function generateAdCardImage(
   const targetAspectRatio: CardAspectRatio = input.targetAspectRatio ?? "feed";
   const geminiAspectRatio = targetAspectRatio === "story" ? "9:16" : "4:5";
 
-  console.warn(
-    "[AdCardGenerator] Enviando requisição para gemini-3.1-flash-image:",
-    {
-      segment: input.businessSegment,
-      targetAspectRatio,
-      geminiAspectRatio,
-      businessName: input.businessName,
-      offerTitle: input.offerTitle,
-      promoPrice: input.promoPrice,
-      promptPartsCount: promptParts.length,
-      hasProductImage: !!input.productImageDataUrl,
-      hasReferenceImage: !!input.referenceImageDataUrl,
-      hasStylePreset: !!input.stylePresetId,
-    },
-  );
+  log.info("Enviando requisição para gemini-3.1-flash-image", {
+    segment: input.businessSegment,
+    targetAspectRatio,
+    geminiAspectRatio,
+    businessName: input.businessName,
+    offerTitle: input.offerTitle,
+    promoPrice: input.promoPrice,
+    promptPartsCount: promptParts.length,
+    hasProductImage: !!input.productImageDataUrl,
+    hasReferenceImage: !!input.referenceImageDataUrl,
+    hasStylePreset: !!input.stylePresetId,
+  });
 
   try {
     const response = await geminiClient.models.generateContent({
@@ -175,15 +175,10 @@ export async function generateAdCardImage(
       },
     });
 
-    console.warn(
-      "[AdCardGenerator] Resposta recebida da API Gemini com sucesso.",
-    );
+    log.info("Resposta recebida da API Gemini com sucesso");
     return extractCandidateImage(response);
   } catch (error) {
-    console.error(
-      "[AdCardGenerator] Erro ao chamar gemini-3.1-flash-image:",
-      error,
-    );
+    log.error("Erro ao chamar gemini-3.1-flash-image", error);
     handleGeminiApiError(error);
   }
 }
@@ -277,8 +272,8 @@ function resolveDefaultClient(): GoogleGenAIClient {
     process.env.GEMINI_API_KEY ||
     (process.env.NODE_ENV !== "test" ? serverEnv.GEMINI_API_KEY : undefined);
   if (!apiKey) {
-    console.error(
-      "[AdCardGenerator] ERRO DE CONFIGURAÇÃO: GEMINI_API_KEY não está definida nas variáveis de ambiente (.env.local).",
+    log.error(
+      "ERRO DE CONFIGURAÇÃO: GEMINI_API_KEY não está definida nas variáveis de ambiente (.env.local)",
     );
     throw new AdCardGenerationError(
       "A chave GEMINI_API_KEY não está configurada no servidor.",
@@ -286,9 +281,7 @@ function resolveDefaultClient(): GoogleGenAIClient {
     );
   }
 
-  console.warn(
-    "[AdCardGenerator] GEMINI_API_KEY detectada. Inicializando cliente GoogleGenAI...",
-  );
+  log.info("GEMINI_API_KEY detectada. Inicializando cliente GoogleGenAI...");
   const ai = new GoogleGenAI({ apiKey });
   return ai as unknown as GoogleGenAIClient;
 }

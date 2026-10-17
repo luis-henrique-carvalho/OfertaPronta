@@ -3,8 +3,8 @@ import sharp from "sharp";
 import {
   generatePreviewFn,
   generatePreviewInputSchema,
-  executeGeneratePreview,
 } from "./generator.functions";
+import { executeGeneratePreview } from "../services/preview-generator.service";
 import {
   generatePreviewFn as barrelGeneratePreviewFn,
   generatePreviewInputSchema as barrelGeneratePreviewInputSchema,

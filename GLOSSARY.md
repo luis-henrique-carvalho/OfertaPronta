@@ -40,8 +40,16 @@ _Avoid_: Sessão, carrinho, proposta
 
 ### Comercialização, Pagamento e Entrega
 
+**Campaign Catalog (Catálogo de Planos)**:
+A relação oficial de ofertas comerciais da plataforma, que governa os Planos de Campanha disponíveis, seus preços autoritativos e os direitos de uso e regeneração concedidos ao microempresário.
+_Avoid_: Tabela de preços solta, lista de produtos, configuração avulsa
+
+**Campaign Plan (Plano de Campanha)**:
+A modalidade comercial ofertada no Catálogo de Planos (como a Campanha Avulsa de R$ 9,90 ou pacotes de 5 e 10 campanhas), que define o valor em reais, a quantidade de Campanhas incluídas e o limite de regenerações por inteligência artificial.
+_Avoid_: Assinatura recorrente, mensalidade, tarifa fixa
+
 **Campaign (Campanha)**:
-A unidade comercial adquirida pelo microempresário por R$ 9,90, composta pelo Card Publicitário gerado por IA nos dois formatos oficiais: Feed (1080×1350) e Story (1080×1920).
+A unidade comercial entregue ao microempresário dentro de um Plano de Campanha, composta pelo Card Publicitário gerado por IA nos dois formatos oficiais: Feed (1080×1350) e Story (1080×1920).
 _Avoid_: Assinatura, pacote mensal, arte única
 
 **Watermark (Marca d'Água)**:
@@ -49,11 +57,11 @@ A camada de proteção visual semitransparente aplicada sobre o Card Publicitár
 _Avoid_: Trava de tela, borrado total, logo de teste
 
 **Frozen Snapshot (Snapshot Congelado)**:
-O registro imutável do Briefing da Oferta, das imagens de insumo, do Card Publicitário aprovado e do preço contratado (R$ 9,90) no instante em que o pedido é criado.
+O registro imutável do Briefing da Oferta, das imagens de insumo, do Card Publicitário aprovado, do Plano de Campanha selecionado e do preço e direitos contratados no instante em que o pedido é criado.
 _Avoid_: Cópia do formulário, cache temporário
 
 **Order (Pedido)**:
-O registro transacional da compra de uma Campanha avulsa pelo microempresário via Pix, incluindo o direito a regenerações controladas pós-pagamento.
+O registro transacional da contratação de um Plano de Campanha pelo microempresário via Pix, vinculando o valor autoritativo cobrado e os direitos de regeneração pós-pagamento congelados na compra.
 _Avoid_: Fatura, compra solta, checkout
 
 **Payment Charge (Cobrança Pix)**:
