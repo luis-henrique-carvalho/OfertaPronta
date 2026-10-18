@@ -34,6 +34,14 @@ _Avoid_: Template fixo, máscara SVG, cópia literal
 Diretriz estética pré-definida por segmento (ex.: Encarte Vibrante de Supermercado, Sofisticação de Salão, Destaque Gourmet) utilizada pela inteligência artificial quando o microempresário não envia uma Imagem de Referência própria.
 _Avoid_: Tema CSS, layout engessado
 
+**Style Preset Gallery (Galeria de Estilos Visuais)**:
+O catálogo curado de referências estéticas organizadas por segmento comercial, permitindo ao microempresário selecionar em 1 toque a atmosfera visual, paleta e tipografia do Card Publicitário sem precisar carregar uma imagem própria.
+_Avoid_: Banco de imagens genérico, marketplace de templates, filtro de foto
+
+**Art Direction Directive (Diretriz de Direção de Arte)**:
+O conjunto aprofundado de instruções técnicas de design (iluminação, contraste, paleta cromática, tipografia e composição) derivado do Estilo Visual selecionado e injetado pelo servidor no prompt multimodal do AdCardGenerator.
+_Avoid_: Prompt genérico, texto livre do usuário, regras CSS brutas
+
 **Draft (Rascunho)**:
 O estado em construção contendo o Briefing da Oferta, as imagens de entrada (Produto e/ou Referência) e a prévia do Card Publicitário antes do fechamento do pedido.
 _Avoid_: Sessão, carrinho, proposta
