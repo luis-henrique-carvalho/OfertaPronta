@@ -3,8 +3,8 @@ import { serverEnv } from "@/config/server-env";
 import {
   type BusinessSegment,
   type CardAspectRatio,
-  SEGMENT_CATALOG,
 } from "../../data/offer-brief.schema";
+import { resolveArtDirectionDirective } from "../../data/style-presets-catalog";
 import { createServerLogger } from "@/server/logger";
 
 const log = createServerLogger("promotions.ai-card-generator");
@@ -385,23 +385,11 @@ function appendInlineInputPart(
   }
 }
 
-function resolvePresetDescription(
-  segment: BusinessSegment,
-  stylePresetId?: string | null,
-): string {
-  if (!stylePresetId) return "";
-  const catalogItem = SEGMENT_CATALOG[segment];
-  const preset = catalogItem?.stylePresets.find((p) => p.id === stylePresetId);
-  return preset
-    ? `Estilo visual selecionado: "${preset.label}" (${preset.description}).`
-    : "";
-}
-
 function buildPromptText(
   input: GenerateAdCardInput,
   segmentConfig: (typeof SEGMENT_ART_DIRECTIVES)[BusinessSegment],
 ): string {
-  const presetDescription = resolvePresetDescription(
+  const artDirectiveText = resolveArtDirectionDirective(
     input.businessSegment,
     input.stylePresetId,
   );
@@ -455,8 +443,9 @@ ${whatsappInstruction}
 --- DIRETRIZES DE DIREÇÃO DE ARTE E DESIGN GRÁFICO ---
 ${proportionDirectives}
 - Estilo Visual do Segmento: ${segmentConfig.visualStyle}
-- Clima e Atmosfera: ${segmentConfig.atmosphere}
-${productNote ? `${productNote}\n` : ""}${referenceNote ? `${referenceNote}\n` : ""}${presetDescription ? `- ${presetDescription}\n` : ""}${customInstructions ? `- ${customInstructions}` : ""}
+- Clima e Atmosfera Geral: ${segmentConfig.atmosphere}
+${artDirectiveText ? `\n${artDirectiveText}\n` : ""}
+${productNote ? `${productNote}\n` : ""}${referenceNote ? `${referenceNote}\n` : ""}${customInstructions ? `- ${customInstructions}` : ""}
 
 --- HIERARQUIA VISUAL OBRIGATÓRIA ---
 1. TÍTULO DA OFERTA ("${input.offerTitle}"): tipografia publicitária moderna, legível e nítida.

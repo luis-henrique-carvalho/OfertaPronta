@@ -26,7 +26,7 @@ describe("offer-brief.schema", () => {
       expect(CARD_ASPECT_RATIOS).toEqual(["feed", "story"]);
     });
 
-    it("should have catalog metadata and 3 style presets for each segment", () => {
+    it("should have catalog metadata and 4 style presets for each segment", () => {
       for (const segment of BUSINESS_SEGMENTS) {
         const item = SEGMENT_CATALOG[segment];
         expect(item).toBeDefined();
@@ -38,7 +38,7 @@ describe("offer-brief.schema", () => {
         expect(item.placeholders.offerTitle).toBeDefined();
         expect(item.placeholders.promoPrice).toBeDefined();
         expect(item.exampleOffers.length).toBeGreaterThan(0);
-        expect(item.stylePresets).toHaveLength(3);
+        expect(item.stylePresets).toHaveLength(4);
         for (const preset of item.stylePresets) {
           expect(preset.id).toBeDefined();
           expect(preset.label).toBeDefined();

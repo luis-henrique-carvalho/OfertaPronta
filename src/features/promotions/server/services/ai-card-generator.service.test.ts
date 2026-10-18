@@ -255,8 +255,65 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
       (c: unknown) => typeof c === "string",
     ) as string;
 
-    expect(promptText).toContain("Feira Fresca & Saudável");
+    expect(promptText).toContain(
+      '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Feira & Hortifrúti Natural" ---',
+    );
+    expect(promptText).toContain("Verde esmeralda");
+    expect(promptText).toContain("Luz natural difusa da manhã");
     expect(promptText).toContain("Usar iluminação solar suave de manhã cedo.");
+  });
+
+  it("deve injetar a seção estruturada de Direção de Arte de market-discount com amarelo e vermelho, selos de impacto e iluminação de varejo", async () => {
+    const fakeClient = createFakeGeminiClient();
+    const inputWithMarketDiscount: GenerateAdCardInput = {
+      ...baseInput,
+      businessSegment: "supermarket",
+      stylePresetId: "market-discount",
+    };
+
+    await generateAdCardImage(inputWithMarketDiscount, fakeClient);
+
+    const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+    const promptText = callArgs.contents.find(
+      (c: unknown) => typeof c === "string",
+    ) as string;
+
+    expect(promptText).toContain(
+      '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Super Encarte Amarelo & Vermelho" ---',
+    );
+    expect(promptText).toContain("Vermelho primário vibrante");
+    expect(promptText).toContain("Amarelo ouro");
+    expect(promptText).toContain("selos explosivos");
+    expect(promptText).toContain("Iluminação de estúdio comercial");
+  });
+
+  it("deve utilizar o fallback de direção de arte do segmento quando presetId for inválido ou inexistente sem lançar erro", async () => {
+    const fakeClient = createFakeGeminiClient();
+    const inputWithInvalidPreset: GenerateAdCardInput = {
+      ...baseInput,
+      businessSegment: "pizzeria",
+      stylePresetId: "estilo-pizza-fantasma",
+    };
+
+    const result = await generateAdCardImage(
+      inputWithInvalidPreset,
+      fakeClient,
+    );
+    expect(result.rawImageBuffer).toBeInstanceOf(Buffer);
+
+    const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+    const promptText = callArgs.contents.find(
+      (c: unknown) => typeof c === "string",
+    ) as string;
+
+    // Deve aplicar o fallback do primeiro preset de pizzaria: "Forno a Lenha Rústico"
+    expect(promptText).toContain(
+      '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Forno a Lenha Rústico" ---',
+    );
+    expect(promptText).toContain("Terracota queimado");
+    expect(promptText).toContain(
+      "Luz quente dourada emanando de forno a lenha",
+    );
   });
 
   it("deve encapsular erro 429 como RATE_LIMIT com mensagem amigável", async () => {

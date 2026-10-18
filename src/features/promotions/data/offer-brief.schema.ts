@@ -1,4 +1,18 @@
 import { z } from "zod";
+import {
+  getSegmentPresets,
+  type CuratedStylePreset,
+} from "./style-presets-catalog";
+
+export {
+  getSegmentPresets,
+  getPresetById,
+  resolveArtDirectionDirective,
+  type CuratedStylePreset,
+  type LayoutVariant,
+  type StyleMockupSpec,
+  type ArtDirectionDirective,
+} from "./style-presets-catalog";
 
 /**
  * 6 Segmentos Oficiais de Microempresários atendidos pelo OfertaPronta.
@@ -17,12 +31,7 @@ export type BusinessSegment = (typeof BUSINESS_SEGMENTS)[number];
 export const CARD_ASPECT_RATIOS = ["feed", "story"] as const;
 export type CardAspectRatio = (typeof CARD_ASPECT_RATIOS)[number];
 
-export interface StylePreset {
-  id: string;
-  label: string;
-  description: string;
-  previewBadgeColor: string;
-}
+export type StylePreset = CuratedStylePreset;
 
 export interface SegmentCatalogItem {
   id: BusinessSegment;
@@ -41,7 +50,12 @@ export interface SegmentCatalogItem {
     originalPrice?: string;
     stylePresetId: string;
   }>;
-  stylePresets: [StylePreset, StylePreset, StylePreset];
+  stylePresets: [
+    CuratedStylePreset,
+    CuratedStylePreset,
+    CuratedStylePreset,
+    CuratedStylePreset,
+  ];
 }
 
 export const SEGMENT_CATALOG: Record<BusinessSegment, SegmentCatalogItem> = {
@@ -71,28 +85,11 @@ export const SEGMENT_CATALOG: Record<BusinessSegment, SegmentCatalogItem> = {
         stylePresetId: "market-discount",
       },
     ],
-    stylePresets: [
-      {
-        id: "market-fresh",
-        label: "Feira Fresca & Saudável",
-        description:
-          "Tons verdes e terrosos, foco em frescor e procedência natural.",
-        previewBadgeColor: "#10B981",
-      },
-      {
-        id: "market-discount",
-        label: "Super Encarte Amarelo & Vermelho",
-        description:
-          "Estilo clássico de varejo agressivo com selo de super desconto.",
-        previewBadgeColor: "#EF4444",
-      },
-      {
-        id: "market-premium",
-        label: "Empório Gourmet & Carnes Nobres",
-        description:
-          "Estilo escuro sofisticado com iluminação cinematográfica.",
-        previewBadgeColor: "#1F2937",
-      },
+    stylePresets: getSegmentPresets("supermarket") as [
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
     ],
   },
   "beauty-salon": {
@@ -121,27 +118,11 @@ export const SEGMENT_CATALOG: Record<BusinessSegment, SegmentCatalogItem> = {
         stylePresetId: "barber-vintage",
       },
     ],
-    stylePresets: [
-      {
-        id: "salon-glamour",
-        label: "Glamour Rose Gold & Minimalista",
-        description:
-          "Estética delicada, tons pastéis, elegância e acabamento suave.",
-        previewBadgeColor: "#EC4899",
-      },
-      {
-        id: "barber-vintage",
-        label: "Barber Club Vintage & Couro",
-        description: "Tons amadeirados escuros, luz quente e toque retrô.",
-        previewBadgeColor: "#78350F",
-      },
-      {
-        id: "beauty-clean",
-        label: "Clean Moderno & Editorial",
-        description:
-          "Linhas finas, fundo claro clean e visual de revista de estética.",
-        previewBadgeColor: "#6366F1",
-      },
+    stylePresets: getSegmentPresets("beauty-salon") as [
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
     ],
   },
   pizzeria: {
@@ -170,28 +151,11 @@ export const SEGMENT_CATALOG: Record<BusinessSegment, SegmentCatalogItem> = {
         stylePresetId: "pizza-artisan-craft",
       },
     ],
-    stylePresets: [
-      {
-        id: "pizza-rustic-wood",
-        label: "Forno a Lenha Rústico",
-        description:
-          "Mesa de madeira rústica, queijo derretido, farinha e fogo de fundo.",
-        previewBadgeColor: "#D97706",
-      },
-      {
-        id: "pizza-artisan-craft",
-        label: "Forneria Artesanal Italiana",
-        description:
-          "Toalha xadrez ou ardósia preta, manjericão fresco e azeite.",
-        previewBadgeColor: "#DC2626",
-      },
-      {
-        id: "pizza-neon-night",
-        label: "Delivery Noturno Quente",
-        description:
-          "Contraste alto, luzes douradas, visual moderno e apetitoso.",
-        previewBadgeColor: "#EA580C",
-      },
+    stylePresets: getSegmentPresets("pizzeria") as [
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
     ],
   },
   "burger-shop": {
@@ -220,27 +184,11 @@ export const SEGMENT_CATALOG: Record<BusinessSegment, SegmentCatalogItem> = {
         stylePresetId: "burger-smash-fire",
       },
     ],
-    stylePresets: [
-      {
-        id: "burger-dark-bold",
-        label: "Dark Burger & Fumaça",
-        description:
-          "Fundo escuro dramático, fumaça quente e cheddar escorrendo.",
-        previewBadgeColor: "#111827",
-      },
-      {
-        id: "burger-smash-fire",
-        label: "Smash & Fire Na Chapa",
-        description: "Tons de chama, brasas, luz quente e apetite voraz.",
-        previewBadgeColor: "#B45309",
-      },
-      {
-        id: "burger-urban-pop",
-        label: "Urbano Pop & Grafite",
-        description:
-          "Estilo street food jovem com cores dinâmicas e tipografia ousada.",
-        previewBadgeColor: "#F59E0B",
-      },
+    stylePresets: getSegmentPresets("burger-shop") as [
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
     ],
   },
   restaurant: {
@@ -269,28 +217,11 @@ export const SEGMENT_CATALOG: Record<BusinessSegment, SegmentCatalogItem> = {
         stylePresetId: "restaurant-gourmet",
       },
     ],
-    stylePresets: [
-      {
-        id: "restaurant-homestyle",
-        label: "Comidinha Caseira & Aconchegante",
-        description:
-          "Panela de ferro, temperos frescos, aroma de fogão a lenha e acolhimento.",
-        previewBadgeColor: "#D97706",
-      },
-      {
-        id: "restaurant-gourmet",
-        label: "Bistrô & Empratado Fino",
-        description:
-          "Louça branca fina, talheres elegantes e iluminação difusa natural.",
-        previewBadgeColor: "#475569",
-      },
-      {
-        id: "restaurant-buffet",
-        label: "Prato Farto & Executivo do Dia",
-        description:
-          "Composição vibrante cheia de cor: salada fresca, feijão brilhante e carne suculenta.",
-        previewBadgeColor: "#059669",
-      },
+    stylePresets: getSegmentPresets("restaurant") as [
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
     ],
   },
   "local-retail": {
@@ -319,28 +250,11 @@ export const SEGMENT_CATALOG: Record<BusinessSegment, SegmentCatalogItem> = {
         stylePresetId: "retail-vibrant",
       },
     ],
-    stylePresets: [
-      {
-        id: "retail-vibrant",
-        label: "Varejo Vibrante & Amigável",
-        description:
-          "Cores alegres e nítidas, estilo convidativo e amigável ao cliente.",
-        previewBadgeColor: "#3B82F6",
-      },
-      {
-        id: "retail-clean-modern",
-        label: "Moderno & Tecnológico",
-        description:
-          "Geometrias limpas, fundo cinza claro/azul e tipografia tecnológica.",
-        previewBadgeColor: "#0EA5E9",
-      },
-      {
-        id: "retail-dynamic",
-        label: "Selo de Liquidação & Black Week",
-        description:
-          "Faixas de impacto, contraste preto e amarelo com urgência de compra.",
-        previewBadgeColor: "#EAB308",
-      },
+    stylePresets: getSegmentPresets("local-retail") as [
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
     ],
   },
 };

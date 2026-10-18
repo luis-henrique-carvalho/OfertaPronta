@@ -1,10 +1,10 @@
-// shadcn-ignore: componente container orquestrador que compõe SegmentSuggestionsCard, MediaUploadersCard e StylePresetsCard
+// shadcn-ignore: componente container orquestrador que compõe SegmentSuggestionsCard, ProductImageUploaderCard e StylePresetGallery
 import { useState, type ChangeEvent } from "react";
 import type { BusinessSegment } from "../data/offer-brief.schema";
 import { SEGMENT_CATALOG } from "../data/offer-brief.schema";
 import { SegmentSuggestionsCard } from "./segment-suggestions-card";
-import { StylePresetsCard } from "./style-presets-card";
-import { MediaUploadersCard } from "./media-uploaders-card";
+import { ProductImageUploaderCard } from "./product-image-uploader-card";
+import { StylePresetGallery } from "./style-preset-gallery";
 
 interface FlexibleVisualInputsProps {
   segment: BusinessSegment;
@@ -87,21 +87,23 @@ export function FlexibleVisualInputs({
         onApplyExample={onApplyExample}
       />
 
-      <MediaUploadersCard
+      <ProductImageUploaderCard
         productImageDataUrl={productImageDataUrl}
-        referenceImageDataUrl={referenceImageDataUrl}
-        activeImageError={activeImageError}
+        imageError={activeImageError}
         onProductImageChange={onProductImageChange}
-        onReferenceImageChange={onReferenceImageChange}
         onFileUpload={handleFileUpload}
       />
 
-      <StylePresetsCard
-        catalogItem={catalogItem}
+      <StylePresetGallery
+        segment={segment}
         stylePresetId={stylePresetId}
+        referenceImageDataUrl={referenceImageDataUrl}
         customStyleInstructions={customStyleInstructions}
+        imageError={activeImageError}
         onStylePresetChange={onStylePresetChange}
+        onReferenceImageChange={onReferenceImageChange}
         onCustomStyleInstructionsChange={onCustomStyleInstructionsChange}
+        onFileUpload={handleFileUpload}
       />
     </div>
   );

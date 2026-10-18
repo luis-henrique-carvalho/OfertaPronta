@@ -343,6 +343,87 @@ describe("OfferBriefWizard Component & AI Generation Flow", () => {
     });
   });
 
+  it("deve atualizar reativamente a galeria de estilos no Passo 2 e redefinir para o estilo padrão ao trocar de segmento no Passo 1", async () => {
+    render(
+      <OfferBriefWizard
+        saveDraftFn={mockSuccessfulSave}
+        generatePreviewFn={mockSuccessfulPreview}
+      />,
+    );
+
+    // Passo 1: Selecionar "Salão de Beleza & Barbearia"
+    const beautySegmentBtn = screen.getByRole("button", {
+      name: /Salão de Beleza & Barbearia/i,
+    });
+    fireEvent.click(beautySegmentBtn);
+
+    // Avançar para o Passo 2
+    fireEvent.click(
+      screen.getByRole("button", { name: /Avançar para dados da oferta/i }),
+    );
+
+    // Verificar se os estilos de beleza são exibidos e se 'Glamour Rose Gold & Editorial' está selecionado
+    await waitFor(() => {
+      expect(screen.getByText(/Glamour Rose Gold & Editorial/i)).toBeDefined();
+      expect(screen.getByText(/Barber Club Retrô & Couro/i)).toBeDefined();
+      expect(screen.getByText(/Clean Estética & Spa/i)).toBeDefined();
+      expect(screen.getByText(/Urban Fade & Neon Barber/i)).toBeDefined();
+    });
+
+    // O estilo padrão 'Glamour Rose Gold & Editorial' deve estar selecionado com aria-pressed="true"
+    const glamourCard = screen.getByRole("button", {
+      name: /Selecionar estilo Glamour Rose Gold & Editorial/i,
+    });
+    expect(glamourCard.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("deve persistir o stylePresetId selecionado na galeria ao gerar a prévia com IA", async () => {
+    const mockSaveWithStyle = vi
+      .fn()
+      .mockImplementation(async ({ data }: { data: SaveOfferDraftInput }) => ({
+        success: true,
+        draftId: "draft-123",
+        draft: createMockDraft({ stylePresetId: data.stylePresetId }),
+      }));
+
+    render(
+      <OfferBriefWizard
+        saveDraftFn={mockSaveWithStyle}
+        generatePreviewFn={mockSuccessfulPreview}
+      />,
+    );
+
+    // Avançar do Passo 1 para o Passo 2 (Supermercado)
+    fireEvent.click(
+      screen.getByRole("button", { name: /Avançar para dados da oferta/i }),
+    );
+
+    // No Passo 2, selecionar o estilo "Feira & Hortifrúti Natural"
+    await waitFor(() => {
+      expect(screen.getByText(/Feira & Hortifrúti Natural/i)).toBeDefined();
+    });
+
+    const freshStyleCard = screen.getByRole("button", {
+      name: /Selecionar estilo Feira & Hortifrúti Natural/i,
+    });
+    fireEvent.click(freshStyleCard);
+
+    // Clicar em "Gerar Prévia com IA"
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: /Gerar Prévia com IA/i }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(mockSaveWithStyle).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          stylePresetId: "market-fresh",
+        }),
+      });
+    });
+  });
+
   it("deve disparar initiateCheckoutFn na Etapa 3 e navegar para checkout com orderId", async () => {
     const mockInitiateCheckout = vi.fn().mockResolvedValue({
       orderId: "order-abc-123",

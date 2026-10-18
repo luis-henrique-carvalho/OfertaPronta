@@ -253,3 +253,123 @@ describe("useOfferBriefDraft Hook - targetAspectRatio & updateField", () => {
     });
   });
 });
+
+describe("useOfferBriefDraft Hook - Style Presets, Mutual Exclusivity and Reactive Segment Change", () => {
+  it("deve inicializar com o primeiro estilo padrão do segmento (supermarket -> market-discount)", () => {
+    const { result } = renderHook(() => useOfferBriefDraft());
+    expect(result.current.businessSegment).toBe("supermarket");
+    expect(result.current.stylePresetId).toBe("market-discount");
+  });
+
+  it("deve preservar stylePresetId existente quando fornecido em initialDraft", () => {
+    const { result } = renderHook(() =>
+      useOfferBriefDraft({
+        initialDraft: {
+          id: "draft-preserved",
+          businessSegment: "supermarket",
+          stylePresetId: "market-premium",
+        },
+      }),
+    );
+    expect(result.current.stylePresetId).toBe("market-premium");
+  });
+
+  it("deve redefinir reativamente o stylePresetId e limpar referenceImageDataUrl ao alterar o segmento comercial", () => {
+    const { result } = renderHook(() => useOfferBriefDraft());
+
+    act(() => {
+      result.current.setReferenceImageDataUrl(
+        "data:image/png;base64,sampleReference",
+      );
+    });
+
+    expect(result.current.referenceImageDataUrl).toBe(
+      "data:image/png;base64,sampleReference",
+    );
+    expect(result.current.stylePresetId).toBeUndefined();
+
+    // Trocar de 'supermarket' para 'beauty-salon'
+    act(() => {
+      result.current.setBusinessSegment("beauty-salon");
+    });
+
+    expect(result.current.businessSegment).toBe("beauty-salon");
+    expect(result.current.stylePresetId).toBe("salon-glamour");
+    expect(result.current.referenceImageDataUrl).toBeUndefined();
+
+    // Trocar de 'beauty-salon' para 'pizzeria'
+    act(() => {
+      result.current.setBusinessSegment("pizzeria");
+    });
+
+    expect(result.current.businessSegment).toBe("pizzeria");
+    expect(result.current.stylePresetId).toBe("pizza-rustic-wood");
+  });
+
+  it("deve aplicar regra de exclusividade mútua: setStylePresetId limpa referenceImageDataUrl", () => {
+    const { result } = renderHook(() => useOfferBriefDraft());
+
+    act(() => {
+      result.current.setReferenceImageDataUrl(
+        "data:image/png;base64,sampleReference",
+      );
+    });
+    expect(result.current.referenceImageDataUrl).toBe(
+      "data:image/png;base64,sampleReference",
+    );
+    expect(result.current.stylePresetId).toBeUndefined();
+
+    // Selecionar estilo pronto
+    act(() => {
+      result.current.setStylePresetId("market-fresh");
+    });
+    expect(result.current.stylePresetId).toBe("market-fresh");
+    expect(result.current.referenceImageDataUrl).toBeUndefined();
+  });
+
+  it("deve aplicar regra de exclusividade mútua: setReferenceImageDataUrl limpa stylePresetId", () => {
+    const { result } = renderHook(() => useOfferBriefDraft());
+
+    expect(result.current.stylePresetId).toBe("market-discount");
+
+    act(() => {
+      result.current.setReferenceImageDataUrl(
+        "data:image/png;base64,customRefImage",
+      );
+    });
+    expect(result.current.referenceImageDataUrl).toBe(
+      "data:image/png;base64,customRefImage",
+    );
+    expect(result.current.stylePresetId).toBeUndefined();
+  });
+
+  it("deve persistir stylePresetId no payload enviado para saveDraftFn", async () => {
+    const mockSaveWithPreset = vi.fn().mockImplementation(async () => ({
+      success: true,
+      draftId: "draft-preset-123",
+      draft: createMockDraft({ stylePresetId: "market-premium" }),
+    }));
+
+    const { result } = renderHook(() =>
+      useOfferBriefDraft({
+        saveDraftFn: mockSaveWithPreset,
+      }),
+    );
+
+    act(() => {
+      result.current.setStylePresetId("market-premium");
+    });
+
+    await act(async () => {
+      await result.current.saveDraft();
+    });
+
+    expect(mockSaveWithPreset).toHaveBeenCalledTimes(1);
+    expect(mockSaveWithPreset).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        stylePresetId: "market-premium",
+        referenceImageDataUrl: null,
+      }),
+    });
+  });
+});
