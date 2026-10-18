@@ -32,11 +32,20 @@ Organiza o ciclo de vida de qualquer demanda em camadas estritas de **pesquisa**
    - **Bloco 1 (Construção Paralela)**: Devido ao desacoplamento estrito (*Zero Shared Package*), builders que atuam em diretórios ou serviços isolados (ex: backend em Go/Python/Node e frontend em React/Next/TanStack) **PODEM e DEVEM ser disparados em paralelo** na mesma chamada de `invoke_subagent`.
    - **Bloco 2 (Validação & Auditoria Paralelas)**: Concluída a construção, `test-verifier` (execução da suíte de testes do projeto) e `implementation-validator` (auditoria do diff contra Spec e SOLID) **são disparados simultaneamente** em uma única chamada de `invoke_subagent`. O validador é estritamente read-only e o verificador executa testes em processo isolado, eliminando qualquer contenção de arquivos e reduzindo o tempo de verificação pela metade.
    - Serialização é reservada apenas para modificações em arquivos compartilhados da raiz (`docker-compose.yml`, configurações compartilhadas).
-7. **Estratégia de Workspace & Git Worktrees**:
-   - **Padrão Sequencial/Paralelo (`Workspace: inherit`)**: Usado no dia a dia da fábrica para que cada builder receba o código da etapa anterior sem atrito ou necessidade de merge.
-   - **Spikes & Provas de Conceito (`Workspace: branch`)**: Tarefas experimentais arriscadas criam automaticamente um Git Worktree temporário isolado, destruído com zero resíduo caso a abordagem seja descartada.
-   - **Fluxo de Branches de Feature**: O desenvolvimento ocorre em branch de feature (`feat/<nome-da-fase>`), preservando a branch principal sempre verde. O merge ocorre após o Gate 3 e a aprovação na suíte de testes.
-8. **Zero Pre-work no Planejamento (Padrão Boost)**:
+7. **Governança Nativa de Git Worktrees (Isolamento Físico de Features)**:
+   - Toda demanda complexa gerenciada pelo `/feature-factory` opera dentro de uma **Git Worktree dedicada** provisionada na Fase 0 (ex.: `.worktrees/<slug>` na branch `feat/<slug>`).
+   - Isso garante **isolamento total**: a pasta principal e a branch `main` nunca sofrem com arquivos intermediários quebrados, stashes ou sujeira de desenvolvimento enquanto a esteira autônoma roda.
+   - As dependências utilizam a store global do `pnpm` (hardlinks instantâneos sem consumo extra de disco).
+   - Após o Gate 3, o orquestrador realiza o merge na branch principal e remove a worktree (`git worktree remove`), deixando zero resíduos.
+8. **Matriz Canônica de Slash Commands Integrados**:
+   - **`/grill-me`**: Executado autonomamente pelo `product-manager` e `solution-architect` na Fase 2 para entrevistar o usuário via modal (`ask_question`) e eliminar lacunas antes do código.
+   - **`/plan`**: Formalização estruturada de `docs/specs/<slug>.md`, `docs/tickets/<slug>/` e emissão do artefato `implementation_plan.md`.
+   - **`/compact`**: Execução recomendada na transição do Gate 1 & 2 para higienizar o histórico da conversa e focar a context window na implementação.
+   - **`/goal` + `/boost`**: O motor autônomo da Fase 3 e 4. Mantém o `feature-orchestrator` focado até o objetivo ser cumprido com *extended thinking*, builders concorrentes, suíte de testes e loop de auto-cura (*self-healing*) sem pausas humanas intermediárias.
+   - **`/browser`**: Motor de auditoria visual dual do `test-verifier` na Fase 4 (Mobile 390px + Desktop 1440px).
+   - **`/schedule`**: Temporizador assíncrono para validação de fluxos com delay (webhooks Pix, jobs de IA do Gemini).
+   - **`/learn`**: Ritual de fechamento contínuo na Fase 5 para atualizar o `AGENTS.md`.
+9. **Zero Pre-work no Planejamento (Padrão Boost)**:
    - O planejamento utiliza o Grafo de Conhecimento (`graphify query`) e delega a descoberta de domínio e arquitetura aos subagentes `product-manager` e `solution-architect`.
 
 ---
@@ -47,11 +56,11 @@ Organiza o ciclo de vida de qualquer demanda em camadas estritas de **pesquisa**
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **1. `codebase-researcher`** | `codebase-researcher` | `flash` | Leitura | **`graphify`**, **`research`** | Mapeia o grafo de dependências, pontos de impacto e interfaces afetadas sem alterar código. |
 | **2. `product-manager`** | `product-manager` | `inherit` | Leitura / `ask_question` / Docs | **`domain-modeling`**, **`to-spec`**, **`to-tickets`**, **`roadmap-planning`** | Analisa `AGENTS.md`, `PRD.md` e `GLOSSARY.md`, entrevista o usuário via `ask_question` (`/grill-me`) para eliminar gaps de negócio, salva a Spec de Produto em `docs/specs/<slug>.md` e quebra em tickets verticais em `docs/tickets/<slug>/<NN>-<ticket>.md`. |
-| **3. `solution-architect`** | `solution-architect` | `inherit` | Leitura / `ask_question` / Docs | **`plan`**, **`codebase-design`**, **`improve-codebase-architecture`**, **`solid`**, **`ponytail`**, **`graphify`** | Avalia arquitetura (*Deep Modules*), qualidade, isolamento de camadas/fronteiras e segurança; entrevista o usuário via `ask_question` (`/grill-me`) sobre trade-offs técnicos e redige `docs/plans/<slug>.md`. |
+| **3. `solution-architect`** | `solution-architect` | `inherit` | Leitura / `ask_question` / Docs / Artifacts | **`plan`**, **`codebase-design`**, **`improve-codebase-architecture`**, **`solid`**, **`ponytail`**, **`graphify`** | Avalia arquitetura (*Deep Modules*), qualidade, isolamento de camadas/fronteiras e segurança; entrevista o usuário via `ask_question` (`/grill-me`), redige `docs/plans/<slug>.md` e emite o artefato interativo `implementation_plan.md` (`RequestFeedback: true`). |
 | **4. `backend-builder`** | `backend-builder` | `flash` | Escrita | **`tdd`**, **`solid`**, **`ponytail`**, **`codebase-design`**, **`domain-modeling`**, **`improve-codebase-architecture`** | Constrói regras de negócio, módulos profundos, dados e APIs guiado pelo `AGENTS.md` com ciclo estrito Red → Green, aplicando SOLID e Deep Modules balanceados com YAGNI radical. |
 | **5. `frontend-builder`** | `frontend-builder` | `flash` | Escrita | **`shadcn`**, **`frontend-design`**, **`modern-web-guidance`**, **`responsive-design`** | Constrói telas e componentes responsivos/mobile-first com o framework e design system definidos no `AGENTS.md` (ex.: React, Next.js, TanStack, Tailwind CSS, shadcn/ui) sem acoplar backend. |
-| **6. `test-verifier`** | `test-verifier` | `flash` | Escrita / Cmd | **`tdd`**, **`chrome-devtools`**, **`a11y-debugging`** | Executa a suíte de testes e o pipeline de verificação do `AGENTS.md`, valida critérios BDD dos tickets e verifica acessibilidade/performance onde aplicável. |
-| **7. `implementation-validator`** | `implementation-validator` | `flash` | Leitura | **`code-review`**, **`codebase-design`**, **`solid`**, **`ponytail-review`**, **`efficient-swe-workflow`** | Audita o diff final em três eixos (Spec/Plan/Tickets vs. Padrões do `AGENTS.md` e SOLID vs. Anti-Bloat `ponytail-review`), caçando code smells e complexidade desnecessária. |
+| **6. `test-verifier`** | `test-verifier` | `flash` | Escrita / Cmd | **`tdd`**, **`chrome-devtools`**, **`a11y-debugging`** | Executa a suíte de testes e o pipeline de verificação do `AGENTS.md`, valida critérios BDD dos tickets e realiza **validação visual dual obrigatória no navegador (Desktop e Mobile)** para assegurar responsividade, ausência de overflow e acessibilidade. |
+| **7. `implementation-validator`** | `implementation-validator` | `flash` | Leitura / Docs / Artifacts | **`code-review`**, **`codebase-design`**, **`solid`**, **`ponytail-review`**, **`efficient-swe-workflow`** | Audita o diff final em três eixos (Spec/Plan/Tickets vs. Padrões do `AGENTS.md` e SOLID vs. Anti-Bloat `ponytail-review`), caçando code smells e complexidade desnecessária; na Fase 5, gera o artefato de post-mortem **`execution_audit.md`** avaliando loops, eficiência e atrito da IA. |
 
 
 ---
@@ -60,20 +69,20 @@ Organiza o ciclo de vida de qualquer demanda em camadas estritas de **pesquisa**
 
 ```mermaid
 flowchart TD
-    START([Demanda da Feature]) --> FASE0[0. Leitura do AGENTS.md + Ativação de Skills com view_file]
+    START([Demanda da Feature]) --> FASE0["0. Leitura do AGENTS.md + Ativação de Skills\n+ Provisionamento Git Worktree (.worktrees/<slug>)"]
     FASE0 --> FASE1[1. Codebase Researcher: Modelo Flash + graphify]
     
     subgraph FASE2_DISCOVERY ["2. Produto, Arquitetura & Entrevista Autônoma (/grill-me + /plan)"]
         FASE1 --> PM["2.1. product-manager (model: inherit)\n/grill-me via ask_question -> docs/specs/<slug>.md + docs/tickets/<slug>/"]
         FASE1 --> ARCH["2.2. solution-architect (model: inherit)\nArquitetura, Qualidade, Segurança, Deep Modules + ask_question"]
-        PM --> SPEC["2.3. solution-architect\nRedige docs/plans/<slug>.md + Diagramas Mermaid"]
+        PM --> SPEC["2.3. solution-architect\nRedige docs/plans/<slug>.md\n+ Gera Artefato: implementation_plan.md (RequestFeedback: true)"]
         ARCH --> SPEC
     end
     
-    SPEC --> GATE1{Gate Humano 1 & 2: Aprovação do Plano?}
+    SPEC --> GATE1{Gate Humano 1 & 2: Aprovação do Plano?\nBotão interativo 'Proceed' no Artefato}
     GATE1 -- "Ajustes Solicitados" --> SPEC
     
-    GATE1 -- "Aprovado" --> ORCH["🤖 Invocação do Subagente feature-orchestrator"]
+    GATE1 -- "Aprovado" --> ORCH["🤖 Invocação do Subagente feature-orchestrator\n+ Gera e mantém Artefato vivo: task.md"]
     
     subgraph ORCH_SCOPE ["Escopo de Execução Autônoma (feature-orchestrator)"]
         subgraph FASE3 ["Fase 3: Bloco de Construção Concorrente (invoke_subagent)"]
@@ -81,11 +90,11 @@ flowchart TD
             ORCH --> FASE3_FE[3.2. Frontend Builder: Modelo Flash]
         end
         
-        FASE3_BE --> SYNC_BUILD[Sincronização dos Builders]
+        FASE3_BE --> SYNC_BUILD[Sincronização dos Builders\nAtualização do Artefato task.md]
         FASE3_FE --> SYNC_BUILD
         
         subgraph FASE4 ["Fase 4: Bloco de Validação & Auditoria Concorrentes (invoke_subagent)"]
-            SYNC_BUILD --> FASE4_TEST[4.1. Test Verifier: verify.sh + regressão]
+            SYNC_BUILD --> FASE4_TEST["4.1. Test Verifier: verify.sh + regressão\n+ Validação Dual no Navegador (Desktop & Mobile)"]
             SYNC_BUILD --> FASE4_VAL[4.2. Implementation Validator: code-review 2 eixos + SOLID]
         end
         
@@ -96,19 +105,26 @@ flowchart TD
         CHECK_FAIL -- "Sim (Auto-correção)" --> FASE3
     end
     
-    CHECK_FAIL -- "Não (Aprovado)" --> GATE3{Gate Humano 3: Homologação Final}
-    GATE3 -- "Aprovado" --> FASE5["5. Fechamento Contínuo (/learn) & Commit"]
+    CHECK_FAIL -- "Não (Aprovado)" --> GATE3{"Gate Humano 3: Homologação Final\nArtefato walkthrough.md (Carousels Desktop/Mobile)"}
+    GATE3 -- "Aprovado" --> FASE5["5. Fechamento Contínuo\n• Artefato execution_audit.md (Post-Mortem da Trajetória)\n• Merge na Base & Teardown da Worktree\n• /learn -> Artefato learning_proposal.md -> AGENTS.md"]
 ```
 
 ---
 
-### Fase 0: Inicialização de Contexto & Ativação de Skills do Chat Canvas
+### Fase 0: Inicialização de Contexto, Ativação de Skills & Provisionamento de Git Worktree
 Antes de qualquer interação:
 1. Localize e leia o arquivo `AGENTS.md` na raiz do projeto.
 2. **Ativação Obrigatória (Passo 0)**: O Chat Canvas DEVE carregar suas skills executando `view_file` nos caminhos resolvidos a partir da lista de `Available skills` do prompt (ou `<workspace_root>/.agents/skills/...`):
    - `<workspace_root>/.agents/skills/feature-factory/SKILL.md` (ou via `Available skills`)
    - `plan` (resolvido via `Available skills`)
    - `domain-modeling` (resolvido via `Available skills` ou `<workspace_root>/.agents/skills/domain-modeling/SKILL.md`)
+3. **Provisionamento Automático da Git Worktree (Isolamento Físico de Features)**:
+   - Toda feature complexa DEVE operar em uma Git Worktree isolada para garantir que o workspace principal e a branch `main` fiquem intocados:
+     ```bash
+     git worktree add .worktrees/<slug> -b feat/<slug>
+     ```
+   - Assegure que `.worktrees/` esteja registrado no `.gitignore`.
+   - Na pasta da worktree, vincule as dependências via store do pnpm (`pnpm install --prefer-offline`). Toda a construção e validação subsequente ocorrerá no diretório isolado da worktree.
 
 ---
 
@@ -143,13 +159,15 @@ Antes de qualquer interação:
     3. **Segurança por Design**: Validação de schemas nas bordas RPC/HTTP, verificação de assinaturas em webhooks, idempotência estrita, tokens/permissões com menor privilégio e sanitização de entradas.
     4. **Qualidade & Anti-Bloat**: SOLID equilibrado com `ponytail` (YAGNI).
   - Possui **autonomia direta com `ask_question` (`/grill-me`)** para alinhar decisões arquiteturais e de segurança com o usuário.
-  - Consolida as definições do `product-manager` e as respostas do usuário redigindo a especificação técnica completa em **`docs/plans/<slug>.md`** (e espelhando no artefato `implementation_plan.md` quando aplicável), com diagramas Mermaid obrigatórios.
+  - Consolida as definições do `product-manager` e as respostas do usuário redigindo a especificação técnica completa em **`docs/plans/<slug>.md`** e gerando obrigatoriamente o artefato interativo **`implementation_plan.md`** (com `ArtifactMetadata: { RequestFeedback: true, UserFacing: true, Summary: "..." }`) contendo diagramas Mermaid obrigatórios, modelos de dados, invariantes e interfaces públicas.
 
 ---
 
 ### 🛑 Gate Humano 1 & 2: Alinhamento de Requisitos e Arquitetura
-- **PARE**. Apresente a especificação detalhada (`docs/plans/<slug>.md`) ao usuário.
-- Não inicie nenhuma codificação até receber aprovação explícita ou solicitação de ajustes.
+- **PARE**. Apresente a especificação detalhada (`docs/plans/<slug>.md`) e o artefato interativo `implementation_plan.md` ao usuário.
+- O usuário avalia a proposta e aciona o botão nativo **"Proceed"** no artefato ou solicita ajustes via chat.
+- **Recomendação**: Antes de iniciar a Fase 3, execute o comando `/compact` para higienizar o histórico da conversa após a rodada de perguntas do `/grill-me`, focando o contexto nos artefatos aprovados.
+- Não inicie nenhuma codificação até receber aprovação explícita.
 
 ---
 
@@ -159,7 +177,7 @@ Aprovado o plano, o Chat Canvas invoca o subagente:
 - **TypeName**: `"feature-orchestrator"`
 - **Prompt**: Contém o plano aprovado verbatim, links para os documentos autoritativos e a ordem de comandar a esteira.
 
-O `feature-orchestrator` executa o **Passo 0 de Skills** (`view_file` em `feature-factory/SKILL.md`, `codebase-design/SKILL.md`, `solid/SKILL.md`) e despacha os dois blocos em paralelo:
+O `feature-orchestrator` executa o **Passo 0 de Skills** (`view_file` em `feature-factory/SKILL.md`, `codebase-design/SKILL.md`, `solid/SKILL.md`), **cria e mantém o artefato vivo `task.md`** com a lista de tickets verticais e seus checkboxes (`- [ ]` / `- [x]`) atualizados em tempo real conforme cada builder entrega, e despacha os blocos em paralelo:
 
 > [!IMPORTANT]
 > **Identificadores Canônicos de Subagentes (`TypeName`)**:
@@ -234,11 +252,23 @@ Concluída a construção, ambos os subagentes são disparados **simultaneamente
 - **Role**: `"Quality & Test Verifier"`
 - **Passo 0 Obrigatório**: Executar `view_file` nos caminhos resolvidos via `Available skills` do prompt ou `<workspace_root>/.agents/skills/...`:
   - `tdd` (resolvido via `Available skills`)
+  - `chrome-devtools` (resolvido via `Available skills`)
   - `a11y-debugging` (resolvido via `Available skills`)
 - **Diretrizes**:
-  - Execute a suíte de testes oficial do projeto alvo (`go test ./...`, `pytest`, `pnpm test`, `./scripts/verify.sh` se existir).
+  - Execute a suíte de testes oficial do projeto alvo (`go test ./...`, `pytest`, `pnpm test`, `./.agents/scripts/verify.sh` ou `./scripts/verify.sh` se existir).
   - Verifique typecheck, linter, thresholds de cobertura e testes de regressão.
-  - Onde aplicável (web), valide acessibilidade (a11y) e renderização no navegador.
+  - **Validação Dual Obrigatória no Navegador (Desktop e Mobile)**:
+    - Onde houver interfaces web, execute o servidor local (`pnpm dev`) e utilize a automação de navegador (`/browser` / Chrome DevTools) inspecionando duas resoluções distintas:
+      1. **Viewport Mobile (360px a 430px — padrão 390×844)**:
+         - Validar estritamente a ausência de estouro/scroll horizontal (`zero horizontal overflow`).
+         - Validar touch targets confortáveis (mínimo 44×44px para botões de ação e campos de formulário).
+         - Testar formulários e modais em telas compactas.
+      2. **Viewport Desktop (1280px a 1440px / 1920×1080)**:
+         - Validar grids responsivos, alinhamento visual, legibilidade e distribuição harmoniosa dos componentes shadcn/ui.
+         - Garantir que elementos não fiquem excessivamente esticados ou desalinhados em telas largas.
+      3. **Acessibilidade e Console**:
+         - Inspecionar a aba de Console para garantir **zero erros ou warnings de runtime**.
+         - Auditar contraste e semântica ARIA via `a11y-debugging`.
 
 #### 4.2. `implementation-validator` (Modelo: `flash` com High Effort / `inherit`)
 - **TypeName**: `"implementation-validator"`
@@ -259,15 +289,35 @@ Se o validador ou os testes apontarem divergências, falha de cobertura ou code 
 ---
 
 ### 🛑 Gate Humano 3: Homologação Final
-- Apresente o resumo das alterações, status dos testes e o relatório de validação no `walkthrough.md`.
-- Aguarde o aval do usuário para finalizar e commitar a alteração.
+- **Artefato Obrigatório**: Gere o artefato interativo **`walkthrough.md`** (com `ArtifactMetadata: { RequestFeedback: true, UserFacing: true, Summary: "..." }`) contendo:
+  - Resumo das alterações e arquivos modificados com links clicáveis `file://`.
+  - Prova de aprovação da suíte de testes e typecheck (`./.agents/scripts/verify.sh`).
+  - Snippets de carousels (`carousel`) comparando a renderização visual **Mobile (390px)** vs. **Desktop (1440px)**.
+- Aguarde o aval e aprovação do usuário para finalizar e commitar a alteração.
 
 ---
 
-### 🔄 Fase 5: Fechamento de Ciclo & Aprendizado Contínuo (`/learn`)
-- Ao concluir a homologação e realizar o commit:
-  - Dispare o protocolo do **`/learn`** para avaliar o que foi aprendido nesta entrega:
-    - Novas armadilhas técnicas superadas.
-    - Decisões arquiteturais ou de UX que devem virar regras perpétuas em `AGENTS.md`.
-    - Ajustes de playbooks e skills especializadas.
-  - Elabore a proposta de aprendizado em `learning_proposal.md` para validação humana, garantindo que o conhecimento nunca se perca entre sessões.
+### 🔄 Fase 5: Auditoria de Execução, Merge na Base, Teardown & Fechamento Contínuo (`/learn`)
+- Ao concluir a homologação no Gate 3 e realizar o commit final na branch `feat/<slug>`:
+  1. **Auditoria de Execução Post-Mortem (Artefato Obrigatório: `execution_audit.md`)**:
+     - O subagente **`implementation-validator`** realiza a auditoria profunda da trajetória do agente e do diff final, emitindo o artefato interativo **`execution_audit.md`** (com `ArtifactMetadata: { RequestFeedback: false, UserFacing: true, Summary: "..." }`) avaliando 4 eixos:
+       - **Eixo 1: Eficiência de Ferramentas & Trajetória**: Inspeciona os logs de execução (`transcript.jsonl`), contando ferramentas chamadas, detectando loops de erro, comandos redundantes de terminal ou tempo excessivo em correções de tipagem.
+       - **Eixo 2: Qualidade de Código & Anti-Bloat (`ponytail-review`)**: Caça complexidade acidental, duplicações de lógica, abstrações especulativas, helpers rasos e bibliotecas externas desnecessárias no diff.
+       - **Eixo 3: Governança do `AGENTS.md`**: Audita adesão a Deep Modules, tipagem estrita (zero `any`), ausência de comentários de supressão (`eslint-disable`, `@ts-ignore`) e uso exclusivo do CLI oficial (`pnpm add`).
+       - **Eixo 4: Oportunidades de Otimização do Processo**: Identifica pontos de atrito e formula recomendações acionáveis para tornar o próximo ciclo de desenvolvimento mais rápido, mais barato e mais autônomo.
+  2. **Merge na Branch Base**:
+     - Retorne ao repositório raiz e integre a branch da feature aprovada e auditada:
+       ```bash
+       git merge feat/<slug>
+       ```
+  3. **Teardown da Git Worktree**:
+     - Remova a pasta isolada da worktree sem deixar resíduos:
+       ```bash
+       git worktree remove .worktrees/<slug>
+       ```
+  4. **Ritual de Aprendizado & Fechamento Contínuo (`/learn`)**:
+     - Dispare o protocolo do **`/learn`** consumindo os achados e oportunidades do `execution_audit.md`:
+       - Novas armadilhas técnicas superadas.
+       - Decisões arquiteturais, visuais (Mobile/Desktop) ou de UX que devem virar regras perpétuas em `AGENTS.md`.
+       - Ajustes de playbooks e skills especializadas.
+     - Elabore a proposta de aprendizado no artefato **`learning_proposal.md`** para validação humana, garantindo que o conhecimento nunca se perca entre sessões.

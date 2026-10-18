@@ -6,6 +6,7 @@ tools:
   - grep_search
   - find_by_name
   - list_dir
+  - write_to_file
   - run_command
 subagent: true
 mainAgent: false
@@ -51,3 +52,5 @@ Your primary role is to perform an objective, independent read-only review of co
 5. **Actionable Feedback**:
    - Report findings in a structured, constructive format (`[CRITICAL]`, `[MAJOR]`, `[MINOR]`, or `LGTM`).
    - If defects or code smells exist, clearly specify the exact file, line, and fix so the builder can resolve it autonomously.
+6. **Phase 5 Execution Audit & Post-Mortem (`execution_audit.md`)**:
+   - In Phase 5, synthesize the agent's trajectory (`transcript.jsonl`) and final diff into an interactive artifact **`execution_audit.md`** evaluating Tool Efficiency (loops/retries), Code Quality & Anti-Bloat (`ponytail-review`), `AGENTS.md` Governance, and Process Optimization Opportunities to feed into `/learn`.
