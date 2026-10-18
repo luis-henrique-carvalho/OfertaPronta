@@ -24,14 +24,16 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
      - Invoca o subagente `feature-orchestrator` (`Role: "Feature Factory Orchestrator"`) com o plano aprovado.
      - Apresenta o resultado final no Gate 3 e dispara o fechamento `/learn`.
    - **Nível 2 — Subagente Orquestrador (`feature-orchestrator`)**:
-     - Ativa suas skills no Passo 0.
+     - Opera com carregamento cirúrgico de skills sob demanda (Just-in-Time), sem poluição de contexto.
      - Comanda a esteira técnica e gerencia os blocos de execução paralela respeitando a ordem de dependência (`Blocked by:`) dos tickets em `docs/tickets/<slug>/`.
      - Conduz o loop de auto-correção iterativo caso haja quebras de teste ou code smells.
      - Reporta o resultado consolidado ao Chat Canvas.
 
-2. **Passo 0 Mandatório de Ativação de Skills (Progressive Disclosure)**:
-   - Todo agente e subagente DEVE iniciar sua execução lendo os arquivos `SKILL.md` de seus respectivos playbooks através da ferramenta `view_file`.
-   - **Resolução Dinâmica**: O caminho absoluto deve ser obtido dinamicamente da seção `Available skills` do prompt do sistema ou resolvido a partir da raiz do workspace ativo: `<workspace_root>/.agents/skills/<skill>/SKILL.md` (onde `<workspace_root>` é a URI do workspace atual). Nunca utilize caminhos absolutos fixos nos playbooks.
+2. **Carregamento Cirúrgico e Just-in-Time de Skills (Anti-Bloat & Progressive Disclosure Real)**:
+   - **Proibição de Carga em Massa Upfront**: É TERMINANTEMENTE PROIBIDO injetar listas de 3 ou mais skills para leitura obrigatória em bloco no início do prompt de qualquer subagente. Essa prática consome dezenas de milhares de tokens desnecessários, dispersa a atenção do modelo (*Lost in the Middle*), introduz latência estéril e causa conflito entre diretrizes.
+   - **Princípio da Divulgação Progressiva**: A lista `Available skills` do prompt de sistema já fornece o sumário de indexação (nome e descrição curta). O agente só deve invocar `view_file` no arquivo `SKILL.md` específico **sob demanda**, no exato momento em que surgir uma necessidade técnica real ou dúvida sobre uma API específica.
+   - **Foco Único por Despacho (No Máximo 1 Skill Primária)**: Ao despachar um worker especializado, o orquestrador pode indicar **no máximo 1 skill primária** indispensável ao escopo daquele ticket (ex.: `tanstack-start` para rotas/Server Functions, `shadcn` para UI). Demais playbooks devem ser consultados estritamente sob demanda pelo próprio worker se necessário.
+   - **Resolução Dinâmica**: Quando uma skill precisar ser lida, o caminho absoluto deve ser obtido da seção `Available skills` do prompt do sistema ou resolvido a partir da raiz do workspace ativo: `<workspace_root>/.agents/skills/<skill>/SKILL.md`.
 
 3. **Paralelismo Duplo Inteligente (Construção e Validação)**:
    - **Bloco 1 — Construção Concorrente**: Devido ao desacoplamento arquitetural entre camadas, `backend-builder` (serviços, banco de dados, módulos profundos, rotas de API/RPC) e `frontend-builder` (rotas, telas, componentes de UI acessíveis e responsivos) **PODEM e DEVEM ser despachados em paralelo** dentro de uma única chamada de `invoke_subagent` sempre que atuarem em diretórios desacoplados.
@@ -58,10 +60,10 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
    ```markdown
    **Task**: [Instrução do usuário verbatim]
 
-   **Passo 0: Ativação Obrigatória de Skills (MANDATÓRIO)**:
-   Antes de executar qualquer comando ou criar/modificar arquivos, você DEVE carregar seus playbooks invocando `view_file` nos caminhos resolvidos a partir da lista de `Available skills` do prompt do sistema (ou `<workspace_root>/.agents/skills/<skill>/SKILL.md`):
-   - `<workspace_root>/.agents/skills/<skill_1>/SKILL.md` (ou via `Available skills`)
-   - `<workspace_root>/.agents/skills/<skill_2>/SKILL.md` (ou via `Available skills`)
+   **Skill Primária de Referência (Opcional — Máximo 1, Just-in-Time)**:
+   Se estritamente necessário para consulta da API ou padrão do ticket, consulte a skill primária:
+   - `<workspace_root>/.agents/skills/<skill_primaria>/SKILL.md` (ou via `Available skills`)
+   *Nota: Proibido carregar skills em bloco. Demais playbooks da lista `Available skills` devem ser consultados estritamente sob demanda se surgir dúvida técnica pontual.*
 
    **Additional Context**:
    - Repositório/Subprojeto: <caminho> | Branch: <branch>
