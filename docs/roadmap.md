@@ -78,21 +78,21 @@ Com o OfertaPronta, o microempresário informa os dados da promoção (**Briefin
 ### Fase 2: Refinamento, Conversão & Retenção (Em Execução 🚀)
 
 #### Épico 5: Galeria de Estilos Visuais e Referências por Segmento (`StylePresetGallery`)
-- **Status:** 🎯 **Prioridade 1 — Pronto para Início de Especificação**
+- **Status:** ✅ **Concluído**
 - **Hipótese:** Acreditamos que oferecer uma galeria visual com cards de referência reais pré-curados para nichos específicos (Supermercados/Hortifrúti, Barbearias/Salões, Gastronomia/Pizzaria/Hamburgueria, Varejo/Comércio Local) selecionáveis em 1 toque aumentará a confiança do microempresário sem material próprio, reduzindo o tempo de criação e elevando a conversão de entrada.
 - **Métrica de Sucesso:** Taxa de conversão Visitante → Prévia Gerada ≥ 70%; ≥ 50% dos rascunhos utilizando presets visuais curados; tempo até a prévia ≤ 60s.
 - **Tamanho:** Médio (M) — 1 a 2 semanas.
 - **Outcome:** Aceleração do Topo de Funil & Qualidade Visual Percebida.
 
 #### Épico 6: Ajuste Conversacional Guiado Pós-Compra (`ConversationalCardRefinement`)
-- **Status:** 📋 **Prioridade 2 — Em Planejamento**
+- **Status:** 🎯 **Prioridade Ativa — Pronto para Especificação**
 - **Hipótese:** Acreditamos que substituir o formulário genérico de texto livre pós-compra por Quick Chips de intenção cirúrgica de 1 toque ("Destacar mais o preço", "Mudar fundo para escuro/premium", "Ajustar chamada para WhatsApp", "Aumentar contraste") com preservação estrita da arte base e histórico de versões com rollback aumentará a taxa de sucesso das 3 regenerações e a satisfação final do cliente.
 - **Métrica de Sucesso:** ≥ 85% dos usuários que utilizam regeneração aplicando ao menos 1 Quick Chip; taxa de aprovação final do card ≥ 92%; satisfação líquida com o resultado pós-ajuste ≥ 90%.
 - **Tamanho:** Médio (M) — 1 a 2 semanas.
 - **Outcome:** Satisfação Pós-Venda, Redução de Fricção e Prevenção de Churn.
 
 #### Épico 7: Persistência Local, Recuperação de Sessão & Analytics de Funil (`SessionRecovery & Analytics`)
-- **Status:** 📋 **Prioridade 3 — Em Planejamento**
+- **Status:** 📋 **Prioridade 2 — Em Planejamento**
 - **Hipótese:** Acreditamos que persistir rascunhos e pedidos em andamento/pagos no `localStorage` do celular e exibir um banner de recuperação inteligente na página inicial ("Você tem um card pago pronto para download!"), somado a uma telemetria transparente do funil (sem cookies invasivos), zerará a perda acidental de pedidos por fechamento de aba e fornecerá visibilidade de gargalos de conversão.
 - **Métrica de Sucesso:** 100% dos pedidos pagos recuperáveis na reabertura do browser no mesmo celular; taxa de chamados por 'perdi meu link' < 0,5%; telemetria completa de 6 etapas do funil.
 - **Tamanho:** Pequeno-Médio (S-M) — 1 semana.
@@ -104,22 +104,22 @@ Com o OfertaPronta, o microempresário informa os dados da promoção (**Briefin
 
 ```mermaid
 flowchart TD
-    subgraph CONCLUIDO["FASE 1 (MVP Core Loop — Concluído ✅)"]
+    subgraph CONCLUIDO["FASE 1 & 2 (Concluído ✅)"]
         direction TB
         E1["✅ Épico 1: Briefing Multisegmento & Insumos Visuais"]
         E2["✅ Épico 2: Motor AdCardGenerator (Gemini Multimodal)"]
         E3["✅ Épico 3: Checkout Pix Dinâmico via Pushin Pay"]
         E3B["✅ Refinamento: CampaignCatalog & Preços Dinâmicos"]
         E4["✅ Épico 4: Entrega Alta Resolução & Ajustes IA"]
-        E1 --> E2 --> E3 --> E3B --> E4
+        E5["✅ Épico 5: Galeria de Estilos e Referências por Segmento"]
+        E1 --> E2 --> E3 --> E3B --> E4 --> E5
     end
 
     subgraph NOW["FASE 2 (Refinamento & Conversão — EM EXECUÇÃO 🚀)"]
         direction TB
-        E5["🎯 Épico 5: Galeria de Estilos e Referências por Segmento<br/>(Presets curados com 1 toque para Mercados, Beleza, Gastronomia, Varejo)"]
-        E6["📋 Épico 6: Ajuste Conversacional Guiado Pós-Compra<br/>(Quick Chips cirúrgicos, histórico de versões e rollback de arte)"]
+        E6["🎯 Épico 6: Ajuste Conversacional Guiado Pós-Compra<br/>(Quick Chips cirúrgicos, histórico de versões e rollback de arte)"]
         E7["📋 Épico 7: Persistência Local, Recuperação de Sessão & Analytics<br/>(Banner de recuperação no-login em localStorage + Telemetria de funil)"]
-        E5 --> E6 --> E7
+        E6 --> E7
     end
 
     subgraph LATER["FASE 3 (Escala & Recorrência)"]
@@ -151,8 +151,8 @@ flowchart TD
 
 | Etapa / Épico | Foco de Entrega | Entregáveis Técnicos | Status |
 |---|---|---|:---:|
-| **Épico 5** | Galeria de Estilos e Referências por Segmento | - Módulo profundo `src/features/promotions/data/style-presets-catalog.ts` com presets visuais curados por segmento.<br/>- Componente visual `StylePresetGallery` na rota `/criar` com seleção de 1 toque, cards de referência e preview.<br/>- Injeção contextual no prompt do `AdCardGenerator` com direcionamento estético de agência por nicho. | 🎯 **Prioridade 1 (Em início)** |
-| **Épico 6** | Ajuste Conversacional Guiado Pós-Compra | - Componente de Quick Chips de ajustes cirúrgicos na rota `/pedido/$orderId`.<br/>- Histórico visual de até 3 versões geradas com alternância/rollback de download.<br/>- Refinamento do prompt cirúrgico de regeneração multimodal com instruções estruturadas. | 📋 **Prioridade 2** |
-| **Épico 7** | Persistência Local, Recuperação de Sessão & Analytics | - Hook e serviço cliente de sincronização de rascunhos e pedidos em `localStorage`.<br/>- Banner de recuperação na Landing Page (`/`) com link direto para o pedido ativo.<br/>- Módulo leve de analytics de funil em Server Function / cliente respeitando privacidade. | 📋 **Prioridade 3** |
+| **Épico 5** | Galeria de Estilos e Referências por Segmento | - Módulo profundo `src/features/promotions/data/style-presets-catalog.ts` com 24 presets visuais curados por segmento.<br/>- Componentes `ProductImageUploaderCard` e `StylePresetGallery` na rota `/criar` com seleção de 1 toque e miniaturas vetoriais SVG locais.<br/>- Injeção profunda de Direção de Arte de Agência estruturada no prompt do `AdCardGenerator`. | ✅ **Concluído** |
+| **Épico 6** | Ajuste Conversacional Guiado Pós-Compra | - Componente de Quick Chips de ajustes cirúrgicos na rota `/pedido/$orderId`.<br/>- Histórico visual de até 3 versões geradas com alternância/rollback de download.<br/>- Refinamento do prompt cirúrgico de regeneração multimodal com instruções estruturadas. | 🎯 **Prioridade Ativa** |
+| **Épico 7** | Persistência Local, Recuperação de Sessão & Analytics | - Hook e serviço cliente de sincronização de rascunhos e pedidos em `localStorage`.<br/>- Banner de recuperação na Landing Page (`/`) com link direto para o pedido ativo.<br/>- Módulo leve de analytics de funil em Server Function / cliente respeitando privacidade. | 📋 **Prioridade 2** |
 
 
