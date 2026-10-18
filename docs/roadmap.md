@@ -1,8 +1,8 @@
 # Roadmap Estratégico — OfertaPronta
 
-**Versão:** 2.0  
-**Data:** 15/10/2026  
-**Status:** Aprovado para Ciclo MVP (Core: Geração de Cards Publicitários por IA para Microempresários)  
+**Versão:** 2.1  
+**Data:** 18/10/2026  
+**Status:** Em Execução no Ciclo MVP (Épicos 1 a 3 Concluídos; Épico 4 Pronto para Início)  
 **Horizonte:** Q4 2026 — Q1 2027  
 **Alinhamento Estratégico:** PRD v2.0, GLOSSARY.md, ADR 0001 e ADR 0002
 
@@ -31,31 +31,41 @@ Com o OfertaPronta, o microempresário informa os dados da promoção (**Briefin
 - **Interface Mobile-First:** Tailwind CSS v4 + componentes primitivos shadcn/ui (viewport primário 360px–430px).
 - **Motor Central de IA (`AdCardGenerator`):** Geração completa do Card Publicitário via Google Gemini Multimodal (`gemini-nano-banana-2.1` / `gemini-3-pro-image` com SDK `@google/genai`), fundindo Briefing da Oferta + Imagem do Produto (opcional) + Imagem de Referência (opcional).
 - **Proteção de Prévia e Exportação (`ExportEngine`):** Aplicação server-side de marca d'água na prévia gratuita e exportação limpa em alta resolução nos formatos Feed (1080×1350) e Story (1080×1920) pós-confirmação Pix.
-- **Preços Autoritativos e Idempotência:** Preço fixado no backend (R$ 9,90) com `Frozen Snapshot` em banco (`PostgreSQL + Drizzle`) e webhooks Pix protegidos por HMAC.
+- **Catálogo de Preços e Conciliação Dinâmica (`CampaignCatalog`):** Módulo profundo isomórfico como fonte única da verdade para planos (`single_campaign`, pacotes de 5 e 10), precificação autoritativa, snapshots congelados e conciliação Pix via Pushin Pay.
 
 ---
 
 ## 2. Definição de Épicos & Hipóteses de Negócio
 
 ### Épico 1: Briefing Multisegmento & Upload Flexível (Produto + Referência + Estilo)
+- **Status:** ✅ **Concluído**
 - **Hipótese:** Acreditamos que permitir a qualquer microempresário (supermercado, salão, pizzaria, hamburgueria, restaurante) preencher o Briefing da Oferta e enviar opcionalmente a foto do seu produto e/ou uma imagem de referência (ou escolher um Estilo Visual do seu segmento) em menos de 90 segundos sem login elevará a chegada à prévia para mais de 65%.
 - **Métrica de Sucesso:** Taxa de conclusão do briefing (Visitante → Geração de Prévia) ≥ 65%; tempo médio ≤ 90s.
 - **Tamanho:** Médio (M) — 2 semanas.
 - **Outcome:** Ativação Multisegmento / Topo de Funil.
 
 ### Épico 2: Motor de Geração de Card Publicitário por IA Multimodal (`AdCardGenerator` & `ExportEngine`)
+- **Status:** ✅ **Concluído**
 - **Hipótese:** Acreditamos que gerar o Card Publicitário completo via IA multimodal (`gemini-nano-banana-2.1` / `gemini-3-pro-image`) integrando o produto enviado, a direção visual da referência e os textos/preços da promoção nos formatos Feed (1080×1350) e Story (1080×1920) entregará percepção de valor de nível de agência por R$ 9,90.
 - **Métrica de Sucesso:** Taxa de conversão da Prévia com Marca d'Água para o Checkout ≥ 35%; tempo de geração do card ≤ 10s.
 - **Tamanho:** Grande (L) — 2 a 3 semanas.
 - **Outcome:** Core Value / Diferencial Competitivo do Produto.
 
 ### Épico 3: Checkout Pix Dinâmico & Confirmação em Tempo Real (`PixCheckout`)
-- **Hipótese:** Acreditamos que oferecer cobrança instantânea via Pix dinâmico (QR Code + Pix Copia e Cola) a R$ 9,90 com polling em tempo real e webhook idempotente alcançará conversão de pagamento superior a 65% dos checkouts iniciados no celular.
+- **Status:** ✅ **Concluído**
+- **Hipótese:** Acreditamos que oferecer cobrança instantânea via Pix dinâmico (QR Code + Pix Copia e Cola) via Pushin Pay com polling em tempo real e webhook idempotente alcançará conversão de pagamento superior a 65% dos checkouts iniciados no celular.
 - **Métrica de Sucesso:** Taxa de conclusão de pagamento (Checkout → Pago) ≥ 65%; detecção pós-pagamento ≤ 4s.
 - **Tamanho:** Médio (M) — 2 semanas.
 - **Outcome:** Faturamento / Receita.
 
+### Refinamento Arquitetural: Catálogo de Preços & Conciliação Dinâmica (`CampaignCatalog`)
+- **Status:** ✅ **Concluído**
+- **Hipótese:** Centralizar as regras comerciais em um módulo profundo isomórfico eliminará acoplamento e hardcoded values ("R$ 9,90"), viabilizando overrides em staging e pacotes futuros sem risco de spoofing ou inconsistência em transações.
+- **Tamanho:** Pequeno (S) — 1 semana.
+- **Outcome:** Segurança Financeira & Escalabilidade do Catálogo.
+
 ### Épico 4: Entrega Sem Marca d'Água & Regeneração Controlada Pós-Compra (Fulfillment)
+- **Status:** ⏳ **Pendente / Próximo Passo do MVP**
 - **Hipótese:** Acreditamos que liberar imediatamente os PNGs em alta resolução (Feed e Story) sem marca d'água após o Pix e oferecer direito a até 3 regenerações/ajustes com IA no mesmo pedido garantirá satisfação máxima sem risco de abuso de custo da API.
 - **Métrica de Sucesso:** Taxa de download bem-sucedido ≥ 98%; custo médio de IA por pedido < 8% do ticket (R$ 9,90).
 - **Tamanho:** Pequeno (S) — 1 a 2 semanas.
@@ -69,11 +79,12 @@ Com o OfertaPronta, o microempresário informa os dados da promoção (**Briefin
 flowchart TD
     subgraph NOW["NOW (Fase 1: MVP Core Loop — Card por IA + Pix)"]
         direction TB
-        E1["Épico 1: Briefing Multisegmento & Insumos Visuais<br/>(Supermercado, Salão, Restaurante + Foto Produto + Referência)"]
-        E2["Épico 2: Motor AdCardGenerator (Gemini Multimodal)<br/>(Geração do Card Completo + Marca d'Água na Prévia)"]
-        E3["Épico 3: Checkout Pix Dinâmico (R$ 9,90)<br/>(Woovi/OpenPix + Polling + Webhook HMAC)"]
-        E4["Épico 4: Entrega Alta Resolução & Ajustes IA<br/>(Download Feed/Story + Até 3 Regenerações Pós-Pix)"]
-        E1 --> E2 --> E3 --> E4
+        E1["✅ Épico 1: Briefing Multisegmento & Insumos Visuais<br/>(Concluído — Rota /criar, Schemas Zod e Uploads)"]
+        E2["✅ Épico 2: Motor AdCardGenerator (Gemini Multimodal)<br/>(Concluído — Geração Completa + Marca d'Água)"]
+        E3["✅ Épico 3: Checkout Pix Dinâmico via Pushin Pay<br/>(Concluído — Rota /checkout/$orderId, Polling e Webhook)"]
+        E3B["✅ Refinamento: CampaignCatalog & Preços Dinâmicos<br/>(Concluído — Módulo Profundo, Drizzle e Zero Hardcoded)"]
+        E4["⏳ Épico 4: Entrega Alta Resolução & Ajustes IA<br/>(Próximo — Rota /pedido/$orderId + 3 Regenerações)"]
+        E1 --> E2 --> E3 --> E3B --> E4
     end
 
     subgraph NEXT["NEXT (Fase 2: Refinamento & Conversão)"]
@@ -86,7 +97,7 @@ flowchart TD
 
     subgraph LATER["LATER (Fase 3: Escala & Recorrência)"]
         direction TB
-        E8["Pacotes de Créditos<br/>(5 campanhas por R$ 29,90 / 10 por R$ 49,90)"]
+        E8["Pacotes de Créditos Ativos no Checkout<br/>(5 campanhas por R$ 29,90 / 10 por R$ 49,90)"]
         E9["Identidade Visual Salva (Brand Kit)<br/>(Logo, cores e WhatsApp salvos para 1 clique)"]
         E10["Encartes Multiprodutos para Supermercados<br/>(Cards e tabloides com 3 a 6 itens em oferta)"]
     end
@@ -98,9 +109,11 @@ flowchart TD
 
 ## 4. Cronograma e Entregáveis da Fase 1 (MVP)
 
-| Etapa | Foco de Entrega | Entregáveis Técnicos |
-|---|---|---|
-| **Etapa 1** | Briefing Multisegmento & Insumos Visuais | - Rota `/criar` mobile-first adaptada para múltiplos segmentos (Supermercado, Salão/Cabeleireiro, Pizzaria, Hamburgueria, Restaurante).<br/>- Upload combinável e opcional de **Imagem do Produto (`Product Image`)** e **Imagem de Referência (`Reference Image`)**, além de seletor de **Estilo Visual (`Style Preset`)**. |
-| **Etapa 2** | Motor `AdCardGenerator` & Prévia Protegida | - Módulo profundo `src/features/promotions/server/ai-card-generator.ts` integrando `@google/genai` (`gemini-nano-banana-2.1` / `gemini-3-pro-image`).<br/>- Módulo `ExportEngine` aplicando marca d'água protetora na prévia gratuita (cota de 1 geração grátis antes do Pix) nos formatos Feed (1080×1350) e Story (1080×1920). |
-| **Etapa 3** | Checkout Pix Dinâmico | - Módulo profundo `PixCheckout` com `Frozen Snapshot` (R$ 9,90).<br/>- Rota `/checkout/$orderId` com QR Code, Pix Copia e Cola e polling automático. |
-| **Etapa 4** | Webhook, Entrega e Regeneração IA | - Rota `/api/webhooks/pix` com validação HMAC e idempotência.<br/>- Rota `/pedido/$orderId` liberando os PNGs limpos em alta resolução e permitindo até 3 regenerações/ajustes por IA pós-pagamento. |
+| Etapa / Épico | Foco de Entrega | Entregáveis Técnicos | Status |
+|---|---|---|:---:|
+| **Etapa 1** | Briefing Multisegmento & Insumos Visuais | - Rota `/criar` mobile-first adaptada para múltiplos segmentos.<br/>- Upload combinável e opcional de **Imagem do Produto** e **Imagem de Referência**, além de seletor de **Estilo Visual**. | ✅ **Concluído** |
+| **Etapa 2** | Motor `AdCardGenerator` & Prévia Protegida | - Módulo profundo `src/features/promotions/server/ai-card-generator.ts` integrando `@google/genai`.<br/>- Módulo `ExportEngine` aplicando marca d'água protetora na prévia gratuita nos formatos Feed (1080×1350) e Story (1080×1920). | ✅ **Concluído** |
+| **Etapa 3** | Checkout Pix Dinâmico | - Módulo profundo `PixCheckout` com Pushin Pay e `Frozen Snapshot`.<br/>- Rota `/checkout/$orderId` com QR Code, Pix Copia e Cola e polling automático.<br/>- Rota `/api/webhooks/pix` com validação de secret e idempotência. | ✅ **Concluído** |
+| **Refinamento** | Aprofundamento do Catálogo (`CampaignCatalog`) | - Módulo profundo `src/lib/campaign-catalog.ts` para planos canônicos e override de ambiente.<br/>- Conciliação dinâmica no checkout contra `charge.amountCents`.<br/>- UI 100% desacoplada sem strings de preço hardcoded. | ✅ **Concluído** |
+| **Etapa 4** | Entrega Alta Resolução e Regeneração IA | - Rota `/pedido/$orderId` liberando os PNGs limpos em alta resolução.<br/>- Módulo profundo `delivery.service.ts` com validação de token e liberação de downloads privados.<br/>- Painel para até 3 regenerações/ajustes por IA pós-pagamento. | ⏳ **Pendente (Próximo)** |
+
