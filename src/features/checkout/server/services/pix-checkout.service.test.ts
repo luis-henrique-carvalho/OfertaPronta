@@ -133,6 +133,8 @@ describe("PixCheckoutService Deep Module", () => {
       expect(orderRow.aiRegenerationCount).toBe(0);
       expect(orderRow.paidAt).toBeNull();
 
+      expect(orderRow.planId).toBe("single_campaign");
+
       // Verify immutable frozenSnapshot
       const snapshot = orderRow.frozenSnapshot as Record<string, unknown>;
       expect(snapshot).toBeDefined();
@@ -143,6 +145,10 @@ describe("PixCheckoutService Deep Module", () => {
       expect(snapshot.promoPrice).toBe("R$ 34,90");
       expect(snapshot.originalPrice).toBe("R$ 44,90");
       expect(snapshot.previewCardImageUrl).toBe(watermarkedPreview);
+      expect(snapshot.planId).toBe("single_campaign");
+      expect(snapshot.planName).toBe("Campanha Avulsa");
+      expect(snapshot.amountCents).toBe(990);
+      expect(snapshot.maxPostPaymentRegenerations).toBe(3);
       expect(snapshot.frozenAt).toBeDefined();
       expect(String(snapshot.frozenAt) >= beforeCall).toBe(true);
 
@@ -159,6 +165,74 @@ describe("PixCheckoutService Deep Module", () => {
       expect(chargeRow.copiaECola).toContain("br.gov.bcb.pix");
       expect(chargeRow.qrCodeImageUrl).toContain("data:image/png;base64,");
       expect(chargeRow.expiresAt.getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it("should reject checkout when plan is not active in MVP (e.g. pack_5_campaigns)", async () => {
+      const draft = await saveOfferDraft({
+        businessSegment: "pizzeria",
+        businessName: "Pizzaria Teste",
+        offerTitle: "Pizza Especial",
+        promoPrice: "R$ 49,90",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewPack5",
+      );
+
+      await expect(
+        service.initiateCheckout({
+          draftId: draft.id,
+          planId: "pack_5_campaigns",
+        }),
+      ).rejects.toThrow(
+        'O plano "Pacote 5 Campanhas" (pack_5_campaigns) ainda não está habilitado para compra avulsa no MVP',
+      );
+    });
+
+    it("should support dynamic pricing from catalogEnv for single_campaign and freeze resolved amount", async () => {
+      const customEnvService = new PixCheckoutService(
+        fakePushinPay as unknown as PushinPayService,
+        db,
+        { CAMPAIGN_SINGLE_PRICE_CENTS: 1490 },
+      );
+
+      const draft = await saveOfferDraft({
+        businessSegment: "beauty-salon",
+        businessName: "Espaço Beauty",
+        offerTitle: "Penteado Noiva",
+        promoPrice: "R$ 150,00",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewCustomPrice",
+      );
+
+      const result = await customEnvService.initiateCheckout({
+        draftId: draft.id,
+        planId: "single_campaign",
+      });
+
+      const [orderRow] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, result.orderId));
+
+      expect(orderRow.amountCents).toBe(1490);
+      expect(orderRow.planId).toBe("single_campaign");
+
+      const snapshot = orderRow.frozenSnapshot as Record<string, unknown>;
+      expect(snapshot.planId).toBe("single_campaign");
+      expect(snapshot.planName).toBe("Campanha Avulsa");
+      expect(snapshot.amountCents).toBe(1490);
+      expect(snapshot.maxPostPaymentRegenerations).toBe(3);
+
+      const [chargeRow] = await db
+        .select()
+        .from(paymentCharges)
+        .where(eq(paymentCharges.orderId, result.orderId));
+
+      expect(chargeRow.amountCents).toBe(1490);
+      expect(fakePushinPay.chargesCreated.at(-1)?.valueCents).toBe(1490);
     });
   });
 
@@ -361,6 +435,81 @@ describe("PixCheckoutService Deep Module", () => {
         }
       }
     });
+
+    it("should process webhook dynamically matching charge.amountCents for custom price (1490)", async () => {
+      const customEnvService = new PixCheckoutService(
+        fakePushinPay as unknown as PushinPayService,
+        db,
+        { CAMPAIGN_SINGLE_PRICE_CENTS: 1490 },
+      );
+
+      const draft = await saveOfferDraft({
+        businessSegment: "restaurant",
+        businessName: "Gourmet",
+        offerTitle: "Jantar Especial",
+        promoPrice: "R$ 90,00",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewCustomWebhook",
+      );
+
+      const { orderId } = await customEnvService.initiateCheckout({
+        draftId: draft.id,
+      });
+      const details = await customEnvService.getCheckoutDetails(orderId);
+      const txId = details.charge!.txId;
+
+      const webhookResult = await customEnvService.handleWebhookPayment({
+        id: txId,
+        status: "paid",
+        value: 1490,
+      });
+
+      expect(webhookResult.processed).toBe(true);
+      expect(webhookResult.orderId).toBe(orderId);
+
+      const [orderRow] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId));
+      expect(orderRow.status).toBe("PAID");
+    });
+
+    it("should reject webhook when value diverges from custom charge.amountCents (e.g. 990 received vs 1490 expected)", async () => {
+      const customEnvService = new PixCheckoutService(
+        fakePushinPay as unknown as PushinPayService,
+        db,
+        { CAMPAIGN_SINGLE_PRICE_CENTS: 1490 },
+      );
+
+      const draft = await saveOfferDraft({
+        businessSegment: "restaurant",
+        businessName: "Gourmet Rejection",
+        offerTitle: "Almoço",
+        promoPrice: "R$ 40,00",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewDivergence",
+      );
+
+      const { orderId } = await customEnvService.initiateCheckout({
+        draftId: draft.id,
+      });
+      const details = await customEnvService.getCheckoutDetails(orderId);
+      const txId = details.charge!.txId;
+
+      await expect(
+        customEnvService.handleWebhookPayment({
+          id: txId,
+          status: "paid",
+          value: 990,
+        }),
+      ).rejects.toThrow(
+        "Valor recebido (990) divergente do esperado (1490 centavos)",
+      );
+    });
   });
 
   describe("checkPaymentStatus (Active Reconciliation via Polling)", () => {
@@ -449,6 +598,91 @@ describe("PixCheckoutService Deep Module", () => {
         .where(eq(paymentCharges.orderId, orderId));
       expect(chargeRow.status).toBe("EXPIRED");
     });
+
+    it("should actively reconcile payment with dynamic charge.amountCents (1490)", async () => {
+      const customEnvService = new PixCheckoutService(
+        fakePushinPay as unknown as PushinPayService,
+        db,
+        { CAMPAIGN_SINGLE_PRICE_CENTS: 1490 },
+      );
+
+      const draft = await saveOfferDraft({
+        businessSegment: "supermarket",
+        businessName: "Mercado Top",
+        offerTitle: "Azeite Extra Virgem",
+        promoPrice: "R$ 39,90",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewReconcileCustom",
+      );
+
+      const { orderId } = await customEnvService.initiateCheckout({
+        draftId: draft.id,
+      });
+      const details = await customEnvService.getCheckoutDetails(orderId);
+      const txId = details.charge!.txId;
+
+      fakePushinPay.nextStatusResult = {
+        txId,
+        status: "paid",
+        valueCents: 1490,
+        paidAt: new Date("2026-10-17T12:00:00.000Z"),
+      };
+
+      const check = await customEnvService.checkPaymentStatus(orderId);
+      expect(check.status).toBe("PAID");
+      expect(check.isPaid).toBe(true);
+
+      const [orderRow] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId));
+      expect(orderRow.status).toBe("PAID");
+    });
+
+    it("should not reconcile if remote Pushin Pay value diverges from charge.amountCents", async () => {
+      const customEnvService = new PixCheckoutService(
+        fakePushinPay as unknown as PushinPayService,
+        db,
+        { CAMPAIGN_SINGLE_PRICE_CENTS: 1490 },
+      );
+
+      const draft = await saveOfferDraft({
+        businessSegment: "supermarket",
+        businessName: "Mercado Top 2",
+        offerTitle: "Azeite",
+        promoPrice: "R$ 39,90",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewReconcileDiverge",
+      );
+
+      const { orderId } = await customEnvService.initiateCheckout({
+        draftId: draft.id,
+      });
+      const details = await customEnvService.getCheckoutDetails(orderId);
+      const txId = details.charge!.txId;
+
+      // Remote returns status "paid" but value 990 instead of expected 1490
+      fakePushinPay.nextStatusResult = {
+        txId,
+        status: "paid",
+        valueCents: 990,
+        paidAt: new Date(),
+      };
+
+      const check = await customEnvService.checkPaymentStatus(orderId);
+      expect(check.status).toBe("PENDING");
+      expect(check.isPaid).toBe(false);
+
+      const [orderRow] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId));
+      expect(orderRow.status).toBe("PENDING");
+    });
   });
 
   describe("regenerateExpiredCharge", () => {
@@ -514,6 +748,58 @@ describe("PixCheckoutService Deep Module", () => {
       await expect(service.regenerateExpiredCharge(orderId)).rejects.toThrow(
         "Pedido já está pago; não é possível reemitir cobrança",
       );
+    });
+
+    it("should preserve order.amountCents when regenerating expired charge even if catalog pricing changes", async () => {
+      // 1. Order created with 1490
+      const initialService = new PixCheckoutService(
+        fakePushinPay as unknown as PushinPayService,
+        db,
+        { CAMPAIGN_SINGLE_PRICE_CENTS: 1490 },
+      );
+
+      const draft = await saveOfferDraft({
+        businessSegment: "pizzeria",
+        businessName: "Pizza Promo",
+        offerTitle: "Pizza Família",
+        promoPrice: "R$ 55,00",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewRegeneratePreserve",
+      );
+
+      const { orderId } = await initialService.initiateCheckout({
+        draftId: draft.id,
+      });
+      const initialDetails = await initialService.getCheckoutDetails(orderId);
+      const initialTxId = initialDetails.charge!.txId;
+
+      await db
+        .update(paymentCharges)
+        .set({ status: "EXPIRED" })
+        .where(eq(paymentCharges.txId, initialTxId));
+
+      // 2. Service now operates with default price (990) or another price (2990)
+      const laterService = new PixCheckoutService(
+        fakePushinPay as unknown as PushinPayService,
+        db,
+        { CAMPAIGN_SINGLE_PRICE_CENTS: 2990 },
+      );
+
+      const regenerated = await laterService.regenerateExpiredCharge(orderId);
+      expect(regenerated.amountCents).toBe(1490);
+      expect(fakePushinPay.chargesCreated.at(-1)?.valueCents).toBe(1490);
+
+      const charges = await db
+        .select()
+        .from(paymentCharges)
+        .where(eq(paymentCharges.orderId, orderId));
+
+      const newCharge = charges.find(
+        (c) => c.txId === regenerated.charge?.txId,
+      );
+      expect(newCharge?.amountCents).toBe(1490);
     });
   });
 

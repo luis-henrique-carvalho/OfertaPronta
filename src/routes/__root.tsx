@@ -11,6 +11,8 @@ import appCss from "@/styles/index.css?url";
 import { RootErrorComponent } from "@/components/shared/root-error-component";
 import { RootNotFoundComponent } from "@/components/shared/root-not-found-component";
 
+import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
+
 export interface MyRouterContext {
   queryClient: QueryClient;
 }
@@ -30,8 +32,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
       {
         name: "description",
-        content:
-          "Sua promoção pronta para postar no Instagram em menos de 90 segundos. R$ 9,90 via Pix, sem cadastro.",
+        content: `Sua promoção pronta para postar no Instagram em menos de 90 segundos. ${getDefaultCampaignPlan().formattedPrice} via Pix, sem cadastro.`,
       },
     ],
     links: [

@@ -8,8 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { CheckCircle2, QrCode, ShieldCheck } from "lucide-react";
+import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
 
 export function LandingPricingSection() {
+  const defaultPlan = getDefaultCampaignPlan();
+
   return (
     <section
       className="px-4 py-16 sm:px-6 max-w-4xl mx-auto text-center"
@@ -21,27 +24,26 @@ export function LandingPricingSection() {
             Preço Avulso & Justo
           </Badge>
           <Typography variant="h2" className="mb-2">
-            Apenas R$ 9,90 por campanha completa
+            Apenas {defaultPlan.formattedPrice} por campanha completa
           </Typography>
           <Typography variant="muted" className="max-w-md mx-auto">
-            1 card publicitário entregue nos dois formatos: Feed (1080×1350) e
-            Story (1080×1920).
+            {defaultPlan.description}
           </Typography>
         </CardHeader>
 
         <CardContent className="p-0 mb-8 flex flex-col items-center">
           <div className="flex items-baseline justify-center gap-1 mb-4">
             <Typography variant="muted" className="text-2xl font-semibold">
-              R$
+              {defaultPlan.priceParts.currencySymbol}
             </Typography>
             <Typography
               variant="h1"
               className="text-5xl sm:text-6xl text-primary font-black"
             >
-              9,90
+              {defaultPlan.priceParts.formattedDecimal}
             </Typography>
             <Typography variant="muted" className="text-sm">
-              / avulso
+              / {defaultPlan.shortLabel}
             </Typography>
           </div>
 
@@ -67,7 +69,8 @@ export function LandingPricingSection() {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="size-4 text-secondary shrink-0" />
               <Typography variant="muted">
-                Até 3 regenerações por IA inclusas
+                Até {defaultPlan.maxPostPaymentRegenerations} regenerações por
+                IA inclusas
               </Typography>
             </div>
           </div>

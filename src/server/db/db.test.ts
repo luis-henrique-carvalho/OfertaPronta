@@ -50,6 +50,7 @@ describe("Database Schema & Module", () => {
       expect(columns.id).toBeDefined();
       expect(columns.campaignId).toBeDefined();
       expect(columns.draftId).toBeDefined();
+      expect(columns.planId).toBeDefined();
       expect(columns.status).toBeDefined();
       expect(columns.amountCents).toBeDefined();
       expect(columns.frozenSnapshot).toBeDefined();

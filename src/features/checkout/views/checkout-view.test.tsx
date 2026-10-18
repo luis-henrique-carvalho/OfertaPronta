@@ -129,4 +129,44 @@ describe("CheckoutView Component", () => {
 
     expect(screen.getByText("Pagamento Pix Confirmado!")).toBeDefined();
   });
+
+  it("renders custom dynamic amountCents across summary, copia e cola, and qr code", () => {
+    const customDetails: CheckoutDetailsResult = {
+      ...mockCheckoutDetails,
+      amountCents: 1490,
+      frozenSnapshot: {
+        ...mockCheckoutDetails.frozenSnapshot,
+        planName: "Campanha Promocional Especial",
+        maxPostPaymentRegenerations: 5,
+      },
+    };
+
+    render(<CheckoutView initialDetails={customDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    // Resumo do pedido
+    expect(screen.getByText("Campanha Promocional Especial")).toBeDefined();
+    expect(
+      screen.getByText(
+        /Direito a até 5 ajustes ou regenerações com IA pós-compra/,
+      ),
+    ).toBeDefined();
+
+    // Valor formatado no resumo e no passo 3 do Copia e Cola
+    const priceElements = screen.getAllByText(/R\$\s*14,90/);
+    expect(priceElements.length).toBeGreaterThanOrEqual(2);
+
+    // Abrir o QR Code colapsado para expor a imagem
+    const toggleQrBtn = screen.getByRole("button", {
+      name: /mostrar qr code/i,
+    });
+    fireEvent.click(toggleQrBtn);
+
+    // Alt do QR Code
+    const qrImg = screen.getByRole("img", {
+      name: /QR Code Pix Dinâmico para Pagamento de R\$\s*14,90/i,
+    });
+    expect(qrImg).toBeDefined();
+  });
 });

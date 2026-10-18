@@ -14,17 +14,24 @@ import {
   CollapsibleContent,
 } from "@/components/ui/collapsible";
 import { QrCode, ChevronDown, ChevronUp } from "lucide-react";
+import { formatBRL } from "@/lib/utils";
+import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
 
 export interface PixQrCodeCardProps {
   qrCodeBase64?: string | null;
   defaultOpen?: boolean;
+  amountCents?: number;
 }
 
 export function PixQrCodeCard({
   qrCodeBase64,
   defaultOpen = false,
+  amountCents,
 }: PixQrCodeCardProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const formattedPrice = formatBRL(
+    amountCents ?? getDefaultCampaignPlan().amountCents,
+  );
 
   const formattedQrCodeSrc = qrCodeBase64
     ? qrCodeBase64.startsWith("data:")
@@ -71,7 +78,7 @@ export function PixQrCodeCard({
                 {/* shadcn-ignore: QR code image tag */}
                 <img
                   src={formattedQrCodeSrc}
-                  alt="QR Code Pix Dinâmico para Pagamento de R$ 9,90"
+                  alt={`QR Code Pix Dinâmico para Pagamento de ${formattedPrice}`}
                   className="size-48 max-w-full object-contain"
                 />
               </div>

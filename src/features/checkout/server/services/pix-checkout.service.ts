@@ -9,6 +9,11 @@ import {
   type CheckoutDetailsResult,
   type PushinPayWebhookPayload,
 } from "../../data/checkout.schemas";
+import {
+  getCampaignPlanById,
+  type CampaignCatalogEnv,
+  type CampaignPlan,
+} from "../../data/campaign-catalog";
 import { PushinPayService, type PixChargeResult } from "./pushin-pay.service";
 import { createServerLogger } from "../../../../server/logger";
 
@@ -23,10 +28,12 @@ export class PixCheckoutService {
   constructor(
     private readonly pushinPay: PushinPayService = new PushinPayService(),
     private readonly database: AppDatabase = db,
+    private readonly catalogEnv?: CampaignCatalogEnv,
   ) {}
 
   private buildFrozenSnapshot(
     draft: Draft,
+    plan: CampaignPlan,
     customerWhatsapp?: string,
   ): Record<string, unknown> {
     return {
@@ -44,6 +51,10 @@ export class PixCheckoutService {
       stylePresetId: draft.stylePresetId,
       customStyleInstructions: draft.customStyleInstructions,
       previewCardImageUrl: draft.previewCardImageUrl,
+      planId: plan.id,
+      planName: plan.name,
+      amountCents: plan.amountCents,
+      maxPostPaymentRegenerations: plan.maxPostPaymentRegenerations,
       frozenAt: new Date().toISOString(),
     };
   }
@@ -100,6 +111,17 @@ export class PixCheckoutService {
     const validated = initiateCheckoutSchema.parse(input);
     log.info("Iniciando checkout Pix", { draftId: validated.draftId });
 
+    const plan = getCampaignPlanById(
+      validated.planId ?? "single_campaign",
+      this.catalogEnv,
+    );
+
+    if (!plan.isActiveInMvp) {
+      throw new Error(
+        `O plano "${plan.name}" (${plan.id}) ainda não está habilitado para compra avulsa no MVP`,
+      );
+    }
+
     const [draft] = await this.database
       .select()
       .from(drafts)
@@ -136,6 +158,7 @@ export class PixCheckoutService {
 
     const frozenSnapshot = this.buildFrozenSnapshot(
       draft,
+      plan,
       validated.customerWhatsapp,
     );
     log.info(
@@ -145,7 +168,7 @@ export class PixCheckoutService {
       },
     );
     const chargeResult = await this.pushinPay.createCashInCharge({
-      valueCents: 990,
+      valueCents: plan.amountCents,
     });
     log.info("Cobrança Pix emitida com sucesso pela Pushin Pay", {
       draftId: draft.id,
@@ -154,6 +177,7 @@ export class PixCheckoutService {
 
     const orderId = await this.persistOrderAndCharge(
       draft.id,
+      plan,
       frozenSnapshot,
       chargeResult,
       validated.customerWhatsapp || draft.whatsapp || null,
@@ -213,7 +237,7 @@ export class PixCheckoutService {
 
   /**
    * Processa a notificação de webhook da Pushin Pay com idempotência estrita
-   * e validação de segurança de valor recebido (990 centavos).
+   * e validação de segurança de valor recebido (charge.amountCents).
    */
   async handleWebhookPayment(
     payload: PushinPayWebhookPayload,
@@ -263,18 +287,18 @@ export class PixCheckoutService {
     }
 
     if (payload.status === "paid") {
-      if (Number(payload.value) !== 990) {
+      if (Number(payload.value) !== charge.amountCents) {
         log.error(
           "Valor recebido divergente do esperado em webhook",
           undefined,
           {
             txId: payload.id,
             receivedValue: payload.value,
-            expectedValue: 990,
+            expectedValue: charge.amountCents,
           },
         );
         throw new Error(
-          `Valor recebido (${payload.value}) divergente do esperado (990 centavos)`,
+          `Valor recebido (${payload.value}) divergente do esperado (${charge.amountCents} centavos)`,
         );
       }
 
@@ -338,7 +362,10 @@ export class PixCheckoutService {
       // Reconciliação ativa com a API da Pushin Pay
       try {
         const remoteTx = await this.pushinPay.getTransactionStatus(charge.txId);
-        if (remoteTx.status === "paid" && remoteTx.valueCents === 990) {
+        if (
+          remoteTx.status === "paid" &&
+          remoteTx.valueCents === charge.amountCents
+        ) {
           const now = remoteTx.paidAt || new Date();
           await this.markOrderAndChargePaid(
             charge.id,
@@ -385,7 +412,7 @@ export class PixCheckoutService {
     }
 
     const newCharge = await this.pushinPay.createCashInCharge({
-      valueCents: 990,
+      valueCents: order.amountCents,
     });
 
     await this.database.transaction(async (tx) => {
@@ -405,7 +432,7 @@ export class PixCheckoutService {
         status: "PENDING",
         qrCodeImageUrl: newCharge.qrCodeBase64,
         copiaECola: newCharge.copiaECola,
-        amountCents: 990,
+        amountCents: order.amountCents,
         expiresAt: newCharge.expiresAt,
         rawPayload: newCharge as unknown as Record<string, unknown>,
       });
@@ -439,6 +466,7 @@ export class PixCheckoutService {
 
   private async persistOrderAndCharge(
     draftId: string,
+    plan: CampaignPlan,
     frozenSnapshot: Record<string, unknown>,
     chargeResult: PixChargeResult,
     customerWhatsapp: string | null,
@@ -449,8 +477,9 @@ export class PixCheckoutService {
         .insert(orders)
         .values({
           draftId,
+          planId: plan.id,
           status: "PENDING",
-          amountCents: 990,
+          amountCents: plan.amountCents,
           frozenSnapshot,
           customerWhatsapp,
           customerEmail,
@@ -464,7 +493,7 @@ export class PixCheckoutService {
         status: "PENDING",
         qrCodeImageUrl: chargeResult.qrCodeBase64,
         copiaECola: chargeResult.copiaECola,
-        amountCents: 990,
+        amountCents: plan.amountCents,
         expiresAt: chargeResult.expiresAt,
         rawPayload: chargeResult as unknown as Record<string, unknown>,
       });

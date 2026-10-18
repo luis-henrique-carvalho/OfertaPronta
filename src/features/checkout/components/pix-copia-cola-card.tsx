@@ -8,18 +8,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { Copy, Check, Smartphone } from "lucide-react";
+import { formatBRL } from "@/lib/utils";
+import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
 
 export interface PixCopiaEColaCardProps {
   copiaECola: string;
   isCopied: boolean;
   onCopy: (code: string) => void;
+  amountCents?: number;
 }
 
 export function PixCopiaEColaCard({
   copiaECola,
   isCopied,
   onCopy,
+  amountCents,
 }: PixCopiaEColaCardProps) {
+  const formattedPrice = formatBRL(
+    amountCents ?? getDefaultCampaignPlan().amountCents,
+  );
+
   const handleCopy = () => {
     onCopy(copiaECola);
   };
@@ -96,7 +104,7 @@ export function PixCopiaEColaCard({
             </Typography>
             <Typography variant="muted" className="text-[11px]">
               3. Cole o código copiado e confirme o valor de{" "}
-              <strong>R$ 9,90</strong>.
+              <strong>{formattedPrice}</strong>.
             </Typography>
             <Typography variant="muted" className="text-[11px]">
               4. A liberação do card ocorre automaticamente em segundos nesta

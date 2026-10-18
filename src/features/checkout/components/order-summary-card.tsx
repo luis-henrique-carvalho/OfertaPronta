@@ -8,6 +8,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Typography } from "@/components/ui/typography";
 import { Check, Sparkles, Image as ImageIcon } from "lucide-react";
+import { formatBRL } from "@/lib/utils";
+import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
 
 export interface OrderSummaryCardProps {
   amountCents?: number;
@@ -15,19 +17,24 @@ export interface OrderSummaryCardProps {
   businessName?: string | null;
   previewCardImageUrl?: string | null;
   targetAspectRatio?: string | null;
+  planName?: string | null;
+  maxRegenerations?: number | null;
 }
 
 export function OrderSummaryCard({
-  amountCents = 990,
+  amountCents,
   offerTitle,
   businessName,
   previewCardImageUrl,
   targetAspectRatio = "feed",
+  planName,
+  maxRegenerations,
 }: OrderSummaryCardProps) {
-  const formattedPrice = (amountCents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
+  const defaultPlan = getDefaultCampaignPlan();
+  const resolvedAmountCents = amountCents ?? defaultPlan.amountCents;
+  const resolvedMaxRegenerations =
+    maxRegenerations ?? defaultPlan.maxPostPaymentRegenerations;
+  const formattedPrice = formatBRL(resolvedAmountCents);
 
   return (
     <Card className="w-full border-border bg-card shadow-sm">
@@ -38,7 +45,7 @@ export function OrderSummaryCard({
             className="gap-1 text-xs font-semibold px-2.5 py-0.5"
           >
             <Sparkles className="size-3 text-primary" />
-            Campanha Completa
+            {planName || "Campanha Completa"}
           </Badge>
           <Badge
             variant="outline"
@@ -115,7 +122,8 @@ export function OrderSummaryCard({
           <div className="flex items-center gap-1.5">
             <Check className="size-3.5 text-primary shrink-0" />
             <Typography variant="muted" className="text-xs">
-              Direito a até 3 ajustes ou regenerações com IA pós-compra
+              Direito a até {resolvedMaxRegenerations} ajustes ou regenerações
+              com IA pós-compra
             </Typography>
           </div>
         </div>

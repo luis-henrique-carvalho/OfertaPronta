@@ -93,6 +93,8 @@ export function CheckoutView({
     previewCardImageUrl?: string;
     targetAspectRatio?: string;
     whatsapp?: string;
+    planName?: string | null;
+    maxPostPaymentRegenerations?: number | null;
   };
 
   const offerTitle = frozen.offerTitle || "Oferta Especial";
@@ -173,6 +175,8 @@ export function CheckoutView({
         businessName={businessName}
         previewCardImageUrl={previewCardImageUrl}
         targetAspectRatio={targetAspectRatio}
+        planName={frozen.planName}
+        maxRegenerations={frozen.maxPostPaymentRegenerations}
       />
 
       {/* Indicador de Status / Polling em Tempo Real */}
@@ -188,6 +192,7 @@ export function CheckoutView({
       {/* Copia e Cola Pix */}
       {!isExpired && details.charge?.copiaECola && (
         <PixCopiaEColaCard
+          amountCents={details.amountCents}
           copiaECola={details.charge.copiaECola}
           isCopied={isCopied}
           onCopy={copyPixCode}
@@ -197,6 +202,7 @@ export function CheckoutView({
       {/* QR Code Visual Pix */}
       {!isExpired && details.charge?.qrCodeBase64 && (
         <PixQrCodeCard
+          amountCents={details.amountCents}
           qrCodeBase64={details.charge.qrCodeBase64}
           defaultOpen={false}
         />

@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { campaignPlanIdSchema } from "./campaign-catalog";
 
 export const initiateCheckoutSchema = z.object({
   draftId: z.string().min(1, "draftId é obrigatório"),
+  planId: campaignPlanIdSchema.optional(),
   customerWhatsapp: z.string().optional(),
   customerEmail: z.string().email("E-mail inválido").optional(),
 });

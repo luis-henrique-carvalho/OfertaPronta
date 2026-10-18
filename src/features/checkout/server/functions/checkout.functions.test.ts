@@ -66,6 +66,42 @@ describe("Checkout Server Functions (RPC & Server-Only Boundaries)", () => {
         });
         expect(invalid.success).toBe(false);
       });
+
+      it("valida planId opcional ou válido pertencente ao catálogo", () => {
+        const withoutPlan = initiateCheckoutSchema.safeParse({
+          draftId: "draft-xyz-123",
+        });
+        expect(withoutPlan.success).toBe(true);
+
+        const withSingle = initiateCheckoutSchema.safeParse({
+          draftId: "draft-xyz-123",
+          planId: "single_campaign",
+        });
+        expect(withSingle.success).toBe(true);
+        if (withSingle.success) {
+          expect(withSingle.data.planId).toBe("single_campaign");
+        }
+
+        const withPack5 = initiateCheckoutSchema.safeParse({
+          draftId: "draft-xyz-123",
+          planId: "pack_5_campaigns",
+        });
+        expect(withPack5.success).toBe(true);
+
+        const withPack10 = initiateCheckoutSchema.safeParse({
+          draftId: "draft-xyz-123",
+          planId: "pack_10_campaigns",
+        });
+        expect(withPack10.success).toBe(true);
+      });
+
+      it("rejeita planId desconhecido ou inválido", () => {
+        const invalidPlan = initiateCheckoutSchema.safeParse({
+          draftId: "draft-123",
+          planId: "invalid_plan_id",
+        });
+        expect(invalidPlan.success).toBe(false);
+      });
     });
 
     describe("orderIdSchema", () => {

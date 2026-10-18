@@ -195,14 +195,14 @@ src/
 
 Para novas fases, funcionalidades ou refatorações:
 
-1. **Context Discovery (`codebase-researcher`)**: Mapeie dependências, pontos de entrada e impacto com `graphify query` (`model: flash`) e inspecione `PRD.md`, `GLOSSARY.md` e `src/` antes de propor alterações.
+1. **Context Discovery & Worktree Provisioning (`codebase-researcher`)**: Mapeie dependências com `graphify query` (`model: flash`), inspecione `PRD.md`, `GLOSSARY.md` e provisione obrigatoriamente a worktree isolada da feature via `git worktree add .worktrees/<slug> -b feat/<slug>` antes de iniciar qualquer ciclo de planejamento ou construção.
 2. **Gate 0 — Produto & Regras de Negócio (`product-manager`, `model: inherit`)**: Despache o `product-manager` para analisar `PRD.md` e `GLOSSARY.md`, caçar lacunas de negócio, casos de borda e fluxos mobile-first, entrevistando o usuário diretamente via `ask_question` (`/grill-me`) até eliminar todos os gaps, salvando a Spec de Produto em `docs/specs/<slug>.md` (`to-spec`) e os tickets verticais em `docs/tickets/<slug>/<NN>-<ticket>.md` (`to-tickets`).
 3. **Gate 0 Técnico & Planejamento (`solution-architect`, `model: inherit`)**: Despache o `solution-architect` para auditar Arquitetura (*Deep Modules*), Isolamento Client/Server, Segurança (Zod nas bordas, HMAC, idempotência, preços autoritativos) e Qualidade (SOLID + `ponytail`), entrevistando o usuário via `ask_question` sobre trade-offs técnicos e redigindo a especificação em `docs/plans/<slug>.md` (e `implementation_plan.md`) com diagramas Mermaid obrigatórios.
 4. **Construção Paralela Inteligente (`feature-orchestrator`)**:
    - Despache `backend-builder` (`model: flash`) para serviços de backend (Server Functions, Drizzle schemas, `AdCardGenerator` Gemini, Webhooks Pix, `ExportEngine` Sharp/S3).
    - Despache `frontend-builder` (`model: flash`) para rotas TanStack Start, componentes de briefing multisegmento, uploaders de produto/referência, preview de card e telas mobile-first.
 5. **Validação & Auditoria Paralelas**:
-   - Despache `test-verifier` (`model: flash`) para rodar o pipeline completo de qualidade do projeto via `./.agents/scripts/verify.sh` (ou `./scripts/verify.sh`), checagem estrita de tipos (`pnpm typecheck`), conformidade Shadcn UI, Vitest (`pnpm test`) e regressões.
+   - Despache `test-verifier` (`model: flash`) para rodar o pipeline completo de qualidade do projeto via `./.agents/scripts/verify.sh` (ou `./scripts/verify.sh`), checagem estrita de tipos (`pnpm typecheck`), conformidade Shadcn UI, Vitest (`pnpm test`), regressões e o **Dual Browser Audit** (Mobile 390×844 e Desktop 1440×900 no dev server ativo).
    - Despache `implementation-validator` (`model: flash`) para auditar o diff contra a Spec, SOLID e anti-bloat (`ponytail-review`).
 6. **Fechamento**: Apresente o resultado no Gate 3 e registre aprendizados relevantes no ritual `/learn`.
 

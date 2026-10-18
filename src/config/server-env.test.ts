@@ -69,6 +69,33 @@ describe("serverEnv", () => {
     expect(customEnv.PUSHIN_PAY_WEBHOOK_SECRET).toBe("my_secret_token");
   });
 
+  it("should parse and validate CAMPAIGN_SINGLE_PRICE_CENTS", () => {
+    const envDefault = parseServerEnv({});
+    expect(envDefault.CAMPAIGN_SINGLE_PRICE_CENTS).toBeUndefined();
+
+    const envWithNumber = parseServerEnv({
+      CAMPAIGN_SINGLE_PRICE_CENTS: 1490,
+    });
+    expect(envWithNumber.CAMPAIGN_SINGLE_PRICE_CENTS).toBe(1490);
+
+    const envWithString = parseServerEnv({
+      CAMPAIGN_SINGLE_PRICE_CENTS: "1990",
+    });
+    expect(envWithString.CAMPAIGN_SINGLE_PRICE_CENTS).toBe(1990);
+
+    expect(() =>
+      parseServerEnv({
+        CAMPAIGN_SINGLE_PRICE_CENTS: -100,
+      }),
+    ).toThrow();
+
+    expect(() =>
+      parseServerEnv({
+        CAMPAIGN_SINGLE_PRICE_CENTS: "invalid",
+      }),
+    ).toThrow();
+  });
+
   it("should export schema for runtime validation", () => {
     expect(serverEnvSchema).toBeDefined();
   });

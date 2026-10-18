@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { CheckCircle2, Layers, QrCode, ArrowLeft, Loader2 } from "lucide-react";
+import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
 
 export interface PreviewCheckoutActionCardProps {
   onPrevStep: () => void;
@@ -22,6 +23,8 @@ export function PreviewCheckoutActionCard({
   isQuotaExceeded = false,
   isLoading = false,
 }: PreviewCheckoutActionCardProps) {
+  const defaultPlan = getDefaultCampaignPlan();
+
   return (
     <>
       {/* Informações de Entrega e CTA de Pagamento Pix */}
@@ -40,18 +43,18 @@ export function PreviewCheckoutActionCard({
             Gostou da prévia? Libere em Alta Resolução
           </CardTitle>
           <CardDescription>
-            Pague apenas R$ 9,90 via Pix Dinâmico e baixe os arquivos nítidos
-            sem marca d&apos;água imediatamente.
+            Pague apenas {defaultPlan.formattedPrice} via Pix Dinâmico e baixe
+            os arquivos nítidos sem marca d&apos;água imediatamente.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 pt-0">
           <div className="flex items-center justify-between rounded-xl bg-muted/40 p-3 text-xs font-semibold">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <Layers className="size-4 text-primary" />
-              Feed (1080×1350) + Story (1080×1920)
+              {defaultPlan.formatsLabel}
             </span>
             <span className="text-primary font-black text-sm">
-              R$ 9,90 avulso
+              {defaultPlan.formattedPrice} {defaultPlan.shortLabel}
             </span>
           </div>
         </CardContent>
@@ -76,8 +79,8 @@ export function PreviewCheckoutActionCard({
               <QrCode className="size-5 mr-1.5 shrink-0" />
               <span>
                 {isQuotaExceeded
-                  ? "Pagar com Pix (R$ 9,90)"
-                  : "Liberar em HD sem marca d'água (R$ 9,90)"}
+                  ? `Pagar com Pix (${defaultPlan.formattedPrice})`
+                  : `Liberar em HD sem marca d'água (${defaultPlan.formattedPrice})`}
               </span>
             </>
           )}

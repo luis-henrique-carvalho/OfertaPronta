@@ -1,7 +1,10 @@
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Sparkles } from "lucide-react";
+import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
 
 export function AiQuotaExceededAlert() {
+  const defaultPlan = getDefaultCampaignPlan();
+
   return (
     <Alert className="border-amber-500/40 bg-amber-500/10 text-foreground">
       <Sparkles className="size-4 text-amber-500 shrink-0" />
@@ -10,8 +13,9 @@ export function AiQuotaExceededAlert() {
       </AlertTitle>
       <AlertDescription className="text-xs text-muted-foreground leading-relaxed mt-1">
         Você já gerou sua prévia gratuita deste rascunho. Para gerar novas
-        variações ou refinar com IA, conclua o pagamento Pix (R$ 9,90) — com
-        direito a até 3 regenerações pós-compra!
+        variações ou refinar com IA, conclua o pagamento Pix (
+        {defaultPlan.formattedPrice}) — com direito a até{" "}
+        {defaultPlan.maxPostPaymentRegenerations} regenerações pós-compra!
       </AlertDescription>
     </Alert>
   );

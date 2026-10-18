@@ -27,21 +27,14 @@ describe("cn utility", () => {
 
 describe("formatBRL utility", () => {
   it("formats cents into standard BRL currency representation", () => {
-    const formatted = formatBRL(990);
-    // Replace non-breaking space if Intl uses NBSP
-    const normalized = formatted.replace(/\u00a0/g, " ");
-    expect(normalized).toBe("R$ 9,90");
+    expect(formatBRL(990)).toBe("R$ 9,90");
   });
 
   it("formats zero cents", () => {
-    const formatted = formatBRL(0);
-    const normalized = formatted.replace(/\u00a0/g, " ");
-    expect(normalized).toBe("R$ 0,00");
+    expect(formatBRL(0)).toBe("R$ 0,00");
   });
 
   it("formats large amounts", () => {
-    const formatted = formatBRL(125050);
-    const normalized = formatted.replace(/\u00a0/g, " ");
-    expect(normalized).toBe("R$ 1.250,50");
+    expect(formatBRL(125050)).toBe("R$ 1.250,50");
   });
 });

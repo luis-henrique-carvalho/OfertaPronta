@@ -4,7 +4,7 @@ import { createServerLogger } from "../../../../server/logger";
 const log = createServerLogger("checkout.pushin-pay");
 
 export interface CreatePixChargeInput {
-  valueCents: number; // fixo em 990 para o MVP (R$ 9,90)
+  valueCents: number; // valor dinâmico em centavos resolvido pelo CampaignCatalog
   webhookUrl?: string;
 }
 

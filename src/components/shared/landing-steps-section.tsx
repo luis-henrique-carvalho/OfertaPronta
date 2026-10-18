@@ -7,8 +7,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Typography } from "@/components/ui/typography";
+import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
 
 export function LandingStepsSection() {
+  const defaultPlan = getDefaultCampaignPlan();
+
   return (
     <section
       className="bg-card-subtle px-4 py-16 sm:px-6 border-y border-border"
@@ -77,13 +80,14 @@ export function LandingStepsSection() {
               </div>
               <CardTitle className="pt-2">Pix e Download HD</CardTitle>
               <CardDescription>
-                Pague R$ 9,90 no Pix e receba os PNGs nítidos sem marca
-                d&apos;água em segundos.
+                Pague {defaultPlan.formattedPrice} no Pix e receba os PNGs
+                nítidos sem marca d&apos;água em segundos.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Typography variant="muted">
-                Confirmação instantânea com direito a até 3 regenerações por IA
+                Confirmação instantânea com direito a até{" "}
+                {defaultPlan.maxPostPaymentRegenerations} regenerações por IA
                 pós-compra.
               </Typography>
             </CardContent>

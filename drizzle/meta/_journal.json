@@ -29,6 +29,13 @@
       "when": 1792183113589,
       "tag": "0003_yielding_prodigy",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792339546006,
+      "tag": "0004_lovely_guardian",
+      "breakpoints": true
     }
   ]
 }

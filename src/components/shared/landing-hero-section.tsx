@@ -2,8 +2,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { Sparkles, Bolt, CheckCircle2 } from "lucide-react";
+import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
 
 export function LandingHeroSection() {
+  const defaultPlan = getDefaultCampaignPlan();
+
   return (
     <section className="relative px-4 pt-10 pb-16 sm:px-6 sm:pt-16 sm:pb-20 text-center">
       <div className="mx-auto flex max-w-3xl flex-col items-center">
@@ -37,7 +40,7 @@ export function LandingHeroSection() {
           >
             <a href="/criar" className="gap-2">
               <Bolt className="size-5" data-icon="inline-start" />
-              Criar meu card agora (R$ 9,90 via Pix)
+              Criar meu card agora ({defaultPlan.formattedPrice} via Pix)
             </a>
           </Button>
 
