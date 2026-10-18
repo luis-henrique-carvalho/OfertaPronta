@@ -10,6 +10,7 @@ export {
   checkPaymentStatusFn,
   updateOrderWhatsappFn,
   regenerateExpiredChargeFn,
+  simulateDevPaymentFn,
 } from "./functions/checkout.functions";
 
 export {

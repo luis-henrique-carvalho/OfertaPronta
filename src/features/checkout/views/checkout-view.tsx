@@ -3,8 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Typography } from "@/components/ui/typography";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ShieldCheck, CheckCircle2, ArrowLeft, Store } from "lucide-react";
+import { ShieldCheck, ArrowLeft, Store } from "lucide-react";
 import type { CheckoutDetailsResult } from "../data/checkout.schemas";
 import { useOrderPolling } from "../hooks/use-order-polling";
 import { usePixCheckout } from "../hooks/use-pix-checkout";
@@ -13,6 +12,8 @@ import { PixCopiaEColaCard } from "../components/pix-copia-cola-card";
 import { PixQrCodeCard } from "../components/pix-qr-code-card";
 import { PaymentPollingIndicator } from "../components/payment-polling-indicator";
 import { OrderWhatsappRecoveryCard } from "../components/order-whatsapp-recovery-card";
+import { DevPaymentSimulatorCard } from "../components/dev-payment-simulator-card";
+import { CheckoutPaidSuccessCard } from "../components/checkout-paid-success-card";
 
 export interface CheckoutViewProps {
   initialDetails: CheckoutDetailsResult;
@@ -68,9 +69,23 @@ export function CheckoutView({
     isUpdatingWhatsapp,
     regenerateCharge,
     isRegenerating,
+    simulatePayment,
+    isSimulatingPayment,
+    simulatePaymentError,
   } = usePixCheckout({
     orderId: details.orderId,
   });
+
+  const handleSimulatePayment = async () => {
+    try {
+      const result = await simulatePayment();
+      if (result?.success) {
+        handleDeliveryNavigation(details.orderId);
+      }
+    } catch {
+      // Falha tratada pelo hook
+    }
+  };
 
   const handleRegenerate = async () => {
     try {
@@ -104,32 +119,7 @@ export function CheckoutView({
   const initialWhatsapp = details.customerWhatsapp || frozen.whatsapp || null;
 
   if (isPaid || isSuccessPaid) {
-    return (
-      <div className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center px-4 py-12 text-center">
-        <Card className="w-full border-primary/20 bg-card p-6 shadow-lg">
-          <CardContent className="flex flex-col items-center gap-4 p-0">
-            <div className="flex size-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-              <CheckCircle2 className="size-10 text-emerald-500" />
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <Typography variant="h3" className="text-xl font-black">
-                Pagamento Pix Confirmado!
-              </Typography>
-              <Typography variant="muted" className="text-xs">
-                Seu card em alta definição sem marca d&apos;água está sendo
-                liberado...
-              </Typography>
-            </div>
-
-            <Badge variant="secondary" className="gap-1.5 px-3 py-1 text-xs">
-              <ShieldCheck className="size-3.5 text-primary" />
-              Redirecionando para seu pedido
-            </Badge>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <CheckoutPaidSuccessCard />;
   }
 
   return (
@@ -167,6 +157,15 @@ export function CheckoutView({
           Checkout Seguro Pix
         </Badge>
       </div>
+
+      {/* Modo de Desenvolvimento: Simulação de Pagamento Pix */}
+      {details.isDevMode && !isPaid && !isSuccessPaid && (
+        <DevPaymentSimulatorCard
+          onSimulatePayment={handleSimulatePayment}
+          isSimulating={isSimulatingPayment}
+          error={simulatePaymentError}
+        />
+      )}
 
       {/* Resumo do Pedido */}
       <OrderSummaryCard

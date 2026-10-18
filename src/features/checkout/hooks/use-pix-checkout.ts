@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   updateOrderWhatsappFn,
   regenerateExpiredChargeFn,
+  simulateDevPaymentFn,
 } from "../server/functions/checkout.functions";
 import type { CheckoutDetailsResult } from "../data/checkout.schemas";
 
@@ -14,14 +15,12 @@ export interface UsePixCheckoutOptions {
   regenerateFn?: (args: {
     data: { orderId: string };
   }) => Promise<CheckoutDetailsResult>;
+  simulatePaymentFn?: (args: {
+    data: { orderId: string };
+  }) => Promise<{ success: boolean; orderId: string }>;
 }
 
-export function usePixCheckout({
-  orderId,
-  updateWhatsappFn = updateOrderWhatsappFn,
-  regenerateFn = regenerateExpiredChargeFn,
-}: UsePixCheckoutOptions) {
-  const queryClient = useQueryClient();
+function usePixClipboard() {
   const [isCopied, setIsCopied] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,6 +51,18 @@ export function usePixCheckout({
     }
   }, []);
 
+  return { isCopied, copyPixCode };
+}
+
+export function usePixCheckout({
+  orderId,
+  updateWhatsappFn = updateOrderWhatsappFn,
+  regenerateFn = regenerateExpiredChargeFn,
+  simulatePaymentFn = simulateDevPaymentFn,
+}: UsePixCheckoutOptions) {
+  const queryClient = useQueryClient();
+  const { isCopied, copyPixCode } = usePixClipboard();
+
   const updateWhatsappMutation = useMutation({
     mutationFn: async (whatsapp: string) => {
       return updateWhatsappFn({ data: { orderId, whatsapp } });
@@ -77,6 +88,20 @@ export function usePixCheckout({
     },
   });
 
+  const simulatePaymentMutation = useMutation({
+    mutationFn: async () => {
+      return simulatePaymentFn({ data: { orderId } });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["order-payment-status", orderId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["order-checkout-details", orderId],
+      });
+    },
+  });
+
   return {
     copyPixCode,
     isCopied,
@@ -86,5 +111,8 @@ export function usePixCheckout({
     regenerateCharge: regenerateChargeMutation.mutateAsync,
     isRegenerating: regenerateChargeMutation.isPending,
     regenerateError: regenerateChargeMutation.error,
+    simulatePayment: simulatePaymentMutation.mutateAsync,
+    isSimulatingPayment: simulatePaymentMutation.isPending,
+    simulatePaymentError: simulatePaymentMutation.error,
   };
 }

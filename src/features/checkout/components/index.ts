@@ -19,3 +19,10 @@ export {
   OrderWhatsappRecoveryCard,
   type OrderWhatsappRecoveryCardProps,
 } from "./order-whatsapp-recovery-card";
+
+export {
+  DevPaymentSimulatorCard,
+  type DevPaymentSimulatorCardProps,
+} from "./dev-payment-simulator-card";
+
+export { CheckoutPaidSuccessCard } from "./checkout-paid-success-card";

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { db } from "../../../../server/db";
 import { orders, paymentCharges } from "../../../../server/db/schema/orders";
 import { eq } from "drizzle-orm";
@@ -830,6 +830,83 @@ describe("PixCheckoutService Deep Module", () => {
         .where(eq(orders.id, orderId));
 
       expect(orderRow.customerWhatsapp).toBe("11977776666");
+    });
+  });
+
+  describe("simulateDevPayment (Local Development Mode)", () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalBypass = process.env.DEV_BYPASS_PAYMENT;
+
+    beforeEach(() => {
+      process.env.NODE_ENV = "test";
+      process.env.DEV_BYPASS_PAYMENT = "true";
+    });
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalNodeEnv;
+      process.env.DEV_BYPASS_PAYMENT = originalBypass;
+    });
+
+    it("should simulate dev payment successfully, updating order and charges to PAID", async () => {
+      const draft = await saveOfferDraft({
+        businessSegment: "restaurant",
+        businessName: "Restaurante Dev",
+        offerTitle: "Prato Executivo",
+        promoPrice: "R$ 29,90",
+      });
+      await updateDraftPreviewCard(draft.id, "data:image/webp;base64,preview");
+      const { orderId } = await service.initiateCheckout({ draftId: draft.id });
+
+      const result = await service.simulateDevPayment(orderId);
+      expect(result.success).toBe(true);
+      expect(result.orderId).toBe(orderId);
+
+      const [orderRow] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId));
+
+      expect(orderRow.status).toBe("PAID");
+      expect(orderRow.paidAt).toBeInstanceOf(Date);
+
+      const [chargeRow] = await db
+        .select()
+        .from(paymentCharges)
+        .where(eq(paymentCharges.orderId, orderId));
+
+      expect(chargeRow.status).toBe("PAID");
+    });
+
+    it("should reject simulation if DEV_BYPASS_PAYMENT is false", async () => {
+      process.env.DEV_BYPASS_PAYMENT = "false";
+      const draft = await saveOfferDraft({
+        businessSegment: "restaurant",
+        businessName: "Restaurante Dev",
+        offerTitle: "Prato Executivo",
+        promoPrice: "R$ 29,90",
+      });
+      await updateDraftPreviewCard(draft.id, "data:image/webp;base64,preview");
+      const { orderId } = await service.initiateCheckout({ draftId: draft.id });
+
+      await expect(service.simulateDevPayment(orderId)).rejects.toThrow(
+        "Simulação de pagamento desabilitada neste ambiente",
+      );
+    });
+
+    it("should reject simulation if NODE_ENV is production", async () => {
+      process.env.NODE_ENV = "production";
+      const draft = await saveOfferDraft({
+        businessSegment: "restaurant",
+        businessName: "Restaurante Dev",
+        offerTitle: "Prato Executivo",
+        promoPrice: "R$ 29,90",
+      });
+      await updateDraftPreviewCard(draft.id, "data:image/webp;base64,preview");
+      const { orderId } = await service.initiateCheckout({ draftId: draft.id });
+
+      await expect(service.simulateDevPayment(orderId)).rejects.toThrow(
+        "Simulação de pagamento desabilitada neste ambiente",
+      );
     });
   });
 });

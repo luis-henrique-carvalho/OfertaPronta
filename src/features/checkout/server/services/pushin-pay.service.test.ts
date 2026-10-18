@@ -132,6 +132,7 @@ describe("PushinPayService Deep Module", () => {
       const service = new PushinPayService({
         token: "",
         baseUrl: mockBaseUrl,
+        bypassPayment: false,
       });
 
       await expect(
@@ -222,6 +223,52 @@ describe("PushinPayService Deep Module", () => {
       await expect(service.getTransactionStatus("tx_unknown")).rejects.toThrow(
         PushinPayError,
       );
+    });
+
+    it("should return simulated status when DEV_BYPASS_PAYMENT is enabled for mock txId", async () => {
+      const origEnv = process.env.DEV_BYPASS_PAYMENT;
+      const origNodeEnv = process.env.NODE_ENV;
+      try {
+        process.env.DEV_BYPASS_PAYMENT = "true";
+        process.env.NODE_ENV = "development";
+
+        const service = new PushinPayService({
+          token: "",
+          baseUrl: mockBaseUrl,
+        });
+
+        const status = await service.getTransactionStatus("mock_dev_tx_12345");
+        expect(status.status).toBe("created");
+        expect(status.txId).toBe("mock_dev_tx_12345");
+      } finally {
+        process.env.DEV_BYPASS_PAYMENT = origEnv;
+        process.env.NODE_ENV = origNodeEnv;
+      }
+    });
+  });
+
+  describe("createCashInCharge with DEV_BYPASS_PAYMENT", () => {
+    it("should return a simulated Pix charge when token is missing and DEV_BYPASS_PAYMENT is true in dev mode", async () => {
+      const origEnv = process.env.DEV_BYPASS_PAYMENT;
+      const origNodeEnv = process.env.NODE_ENV;
+      try {
+        process.env.DEV_BYPASS_PAYMENT = "true";
+        process.env.NODE_ENV = "development";
+
+        const service = new PushinPayService({
+          token: "",
+          baseUrl: mockBaseUrl,
+        });
+
+        const charge = await service.createCashInCharge({ valueCents: 990 });
+        expect(charge.txId).toMatch(/^mock_dev_tx_/);
+        expect(charge.copiaECola).toContain("mock-pix-dev-bypass");
+        expect(charge.qrCodeBase64).toContain("data:image/svg+xml");
+        expect(charge.status).toBe("created");
+      } finally {
+        process.env.DEV_BYPASS_PAYMENT = origEnv;
+        process.env.NODE_ENV = origNodeEnv;
+      }
     });
   });
 });

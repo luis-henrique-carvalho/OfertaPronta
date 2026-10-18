@@ -63,3 +63,14 @@ export async function executeRegenerateExpiredCharge(
   const s = service ?? new PixCheckoutService();
   return s.regenerateExpiredCharge(data.orderId);
 }
+
+/**
+ * Função executora pura para simulação de pagamento Pix em desenvolvimento.
+ */
+export async function executeSimulateDevPayment(
+  data: OrderIdInput,
+  service?: PixCheckoutService,
+): Promise<{ success: boolean; orderId: string }> {
+  const s = service ?? new PixCheckoutService();
+  return s.simulateDevPayment(data.orderId);
+}

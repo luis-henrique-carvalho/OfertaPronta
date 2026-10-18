@@ -169,4 +169,36 @@ describe("CheckoutView Component", () => {
     });
     expect(qrImg).toBeDefined();
   });
+
+  it("renders DevPaymentSimulatorCard when isDevMode is true", () => {
+    const devDetails: CheckoutDetailsResult = {
+      ...mockCheckoutDetails,
+      isDevMode: true,
+    };
+
+    render(<CheckoutView initialDetails={devDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(screen.getByText("Modo Desenvolvimento")).toBeDefined();
+    expect(
+      screen.getByText("Teste Local: Simulação de Pagamento"),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("button", {
+        name: /simular pagamento pix aprovado/i,
+      }),
+    ).toBeDefined();
+  });
+
+  it("does NOT render DevPaymentSimulatorCard when isDevMode is false or omitted", () => {
+    render(<CheckoutView initialDetails={mockCheckoutDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(screen.queryByText("Modo Desenvolvimento")).toBeNull();
+    expect(
+      screen.queryByText("Teste Local: Simulação de Pagamento"),
+    ).toBeNull();
+  });
 });

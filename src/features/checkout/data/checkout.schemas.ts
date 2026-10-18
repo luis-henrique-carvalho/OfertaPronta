@@ -35,6 +35,7 @@ export const checkoutDetailsOutputSchema = z.object({
   amountCents: z.number().int(),
   customerWhatsapp: z.string().optional(),
   customerEmail: z.string().optional(),
+  isDevMode: z.boolean().optional(),
   frozenSnapshot: z.record(
     z.union([z.string(), z.number(), z.boolean(), z.null()]),
   ),

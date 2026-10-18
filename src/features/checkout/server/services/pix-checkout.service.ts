@@ -19,6 +19,15 @@ import { createServerLogger } from "../../../../server/logger";
 
 const log = createServerLogger("checkout.pix-checkout");
 
+function isDevPaymentBypassActive(): boolean {
+  const isDev = (process.env.NODE_ENV ?? serverEnv.NODE_ENV) !== "production";
+  if (!isDev) return false;
+  if (process.env.DEV_BYPASS_PAYMENT !== undefined) {
+    return process.env.DEV_BYPASS_PAYMENT === "true";
+  }
+  return Boolean(serverEnv.DEV_BYPASS_PAYMENT);
+}
+
 /**
  * Módulo profundo PixCheckoutService.
  * Orquestra a máquina de estados transacional de pedidos e cobranças Pix,
@@ -225,6 +234,7 @@ export class PixCheckoutService {
       customerEmail: order.customerEmail || undefined,
       frozenSnapshot:
         order.frozenSnapshot as CheckoutDetailsResult["frozenSnapshot"],
+      isDevMode: isDevPaymentBypassActive(),
       charge: latestCharge
         ? {
             txId: latestCharge.txId,
@@ -539,5 +549,58 @@ export class PixCheckoutService {
         txId,
       },
     );
+  }
+
+  /**
+   * Simula a confirmação imediata de um pagamento Pix em ambiente de desenvolvimento.
+   * ESTREITAMENTE BLOQUEADO em produção (lança erro fatal caso invocado em production ou sem DEV_BYPASS_PAYMENT).
+   */
+  async simulateDevPayment(
+    orderId: string,
+  ): Promise<{ success: boolean; orderId: string }> {
+    if (!isDevPaymentBypassActive()) {
+      log.error("Tentativa de simular pagamento em ambiente não autorizado", {
+        orderId,
+        nodeEnv: serverEnv.NODE_ENV,
+        devBypass: serverEnv.DEV_BYPASS_PAYMENT,
+      });
+      throw new Error("Simulação de pagamento desabilitada neste ambiente");
+    }
+
+    const [order] = await this.database
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (!order) {
+      throw new Error("Pedido não encontrado");
+    }
+
+    if (order.status === "PAID") {
+      return { success: true, orderId };
+    }
+
+    const [charge] = await this.database
+      .select()
+      .from(paymentCharges)
+      .where(eq(paymentCharges.orderId, orderId))
+      .orderBy(desc(paymentCharges.createdAt))
+      .limit(1);
+
+    const now = new Date();
+    if (charge) {
+      await this.markOrderAndChargePaid(charge.id, order.id, charge.txId, now);
+    } else {
+      await this.database
+        .update(orders)
+        .set({ status: "PAID", paidAt: now, updatedAt: now })
+        .where(eq(orders.id, orderId));
+    }
+
+    log.info("[DEV_MODE] Pagamento Pix simulado com sucesso para pedido", {
+      orderId,
+    });
+    return { success: true, orderId };
   }
 }

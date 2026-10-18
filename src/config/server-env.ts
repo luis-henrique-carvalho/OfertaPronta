@@ -15,6 +15,7 @@ export const serverEnvSchema = z.object({
   PUSHIN_PAY_WEBHOOK_URL: z.string().url().optional(),
   PUSHIN_PAY_WEBHOOK_SECRET: z.string().optional(),
   CAMPAIGN_SINGLE_PRICE_CENTS: z.coerce.number().int().positive().optional(),
+  DEV_BYPASS_PAYMENT: z.coerce.boolean().default(false),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

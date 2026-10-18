@@ -27,6 +27,7 @@ export interface PushinPayServiceConfig {
   token?: string;
   baseUrl?: string;
   fetchFn?: typeof fetch;
+  bypassPayment?: boolean;
 }
 
 export class PushinPayError extends Error {
@@ -48,6 +49,7 @@ export class PushinPayService {
   private readonly token: string;
   private readonly baseUrl: string;
   private readonly fetchFn: typeof fetch;
+  private readonly bypassPayment?: boolean;
 
   constructor(config: PushinPayServiceConfig = {}) {
     this.token =
@@ -64,6 +66,19 @@ export class PushinPayService {
     this.baseUrl = rawBaseUrl.replace(/\/$/, "");
 
     this.fetchFn = config.fetchFn ?? globalThis.fetch;
+    this.bypassPayment = config.bypassPayment;
+  }
+
+  private isBypassActive(): boolean {
+    if (this.bypassPayment !== undefined) {
+      return this.bypassPayment;
+    }
+    const isDev = (process.env.NODE_ENV ?? serverEnv.NODE_ENV) !== "production";
+    if (!isDev) return false;
+    if (process.env.DEV_BYPASS_PAYMENT !== undefined) {
+      return process.env.DEV_BYPASS_PAYMENT === "true";
+    }
+    return Boolean(serverEnv.DEV_BYPASS_PAYMENT);
   }
 
   /**
@@ -74,6 +89,22 @@ export class PushinPayService {
     input: CreatePixChargeInput,
   ): Promise<PixChargeResult> {
     if (!this.token) {
+      if (this.isBypassActive()) {
+        log.info(
+          "[DEV_MODE] PUSHIN_PAY_TOKEN não configurado. Gerando cobrança Pix simulada (DEV_BYPASS_PAYMENT=true)",
+        );
+        const txId = `mock_dev_tx_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const formattedAmount = (input.valueCents / 100).toFixed(2);
+        return {
+          txId,
+          copiaECola: `00020126580014br.gov.bcb.pix0136mock-pix-dev-bypass520400005303986540${formattedAmount}5802BR5913OfertaPronta6009Sao Paulo62070503***6304DEV1`,
+          qrCodeBase64:
+            "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' width='200' height='200'><rect width='200' height='200' fill='%23f1f5f9'/><text x='100' y='95' font-family='sans-serif' font-size='14' font-weight='bold' text-anchor='middle' fill='%23334155'>[DEV MODE]</text><text x='100' y='120' font-family='sans-serif' font-size='12' text-anchor='middle' fill='%2364748b'>Pix Simulado</text></svg>",
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+          status: "created",
+        };
+      }
+
       log.error("PUSHIN_PAY_TOKEN não configurado no ambiente de execução");
       throw new PushinPayError(
         "PUSHIN_PAY_TOKEN não configurado no ambiente de execução. Defina PUSHIN_PAY_TOKEN em .env.local",
@@ -145,14 +176,38 @@ export class PushinPayService {
 
   /**
    * Consulta o status pontual de uma transação na Pushin Pay por txId.
+   */
+  private getDevBypassStatus(txId: string): TransactionStatusResult | null {
+    if (!this.token || txId.startsWith("mock_dev_tx_")) {
+      if (this.isBypassActive() && txId.startsWith("mock_dev_tx_")) {
+        log.info("[DEV_MODE] Consulta de status para transação simulada", {
+          txId,
+        });
+        return {
+          txId,
+          status: "created",
+          valueCents: 0,
+        };
+      }
+
+      if (!this.token) {
+        log.error("PUSHIN_PAY_TOKEN não configurado no ambiente de execução");
+        throw new PushinPayError(
+          "PUSHIN_PAY_TOKEN não configurado no ambiente de execução. Defina PUSHIN_PAY_TOKEN em .env.local",
+        );
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Consulta o status de uma transação diretamente na Pushin Pay.
    * Utilizado para reconciliação ativa em caso de atraso na entrega de webhooks.
    */
   async getTransactionStatus(txId: string): Promise<TransactionStatusResult> {
-    if (!this.token) {
-      log.error("PUSHIN_PAY_TOKEN não configurado no ambiente de execução");
-      throw new PushinPayError(
-        "PUSHIN_PAY_TOKEN não configurado no ambiente de execução. Defina PUSHIN_PAY_TOKEN em .env.local",
-      );
+    const devStatus = this.getDevBypassStatus(txId);
+    if (devStatus) {
+      return devStatus;
     }
 
     log.info("Consultando status da transação na Pushin Pay", { txId });

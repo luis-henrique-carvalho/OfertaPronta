@@ -12,6 +12,7 @@ describe("Checkout Server Isolation (Zero Server Code Leaks)", () => {
       "checkPaymentStatusFn",
       "updateOrderWhatsappFn",
       "regenerateExpiredChargeFn",
+      "simulateDevPaymentFn",
       "initiateCheckoutSchema",
       "orderIdSchema",
       "updateOrderWhatsappSchema",

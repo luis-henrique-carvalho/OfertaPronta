@@ -15,6 +15,7 @@ import {
   executeCheckPaymentStatus,
   executeUpdateOrderWhatsapp,
   executeRegenerateExpiredCharge,
+  executeSimulateDevPayment,
 } from "../services/checkout-runners.service";
 
 /**
@@ -65,4 +66,13 @@ export const regenerateExpiredChargeFn = createServerFn({ method: "POST" })
   .validator((input: unknown): OrderIdInput => orderIdSchema.parse(input))
   .handler(async ({ data }): Promise<CheckoutDetailsResult> => {
     return executeRegenerateExpiredCharge(data);
+  });
+
+/**
+ * Server Function RPC: Simula confirmação imediata de pagamento em ambiente de desenvolvimento.
+ */
+export const simulateDevPaymentFn = createServerFn({ method: "POST" })
+  .validator((input: unknown): OrderIdInput => orderIdSchema.parse(input))
+  .handler(async ({ data }): Promise<{ success: boolean; orderId: string }> => {
+    return executeSimulateDevPayment(data);
   });
