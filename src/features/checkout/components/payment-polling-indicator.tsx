@@ -110,7 +110,7 @@ export function PaymentPollingIndicator({
 
           <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono">
             <Clock className="size-3.5 text-muted-foreground" />
-            <span>{formattedCountdown}</span>
+            <span suppressHydrationWarning>{formattedCountdown}</span>
           </div>
         </div>
 

@@ -65,6 +65,7 @@ export function RegenerationCountdownTimer({
         <Typography
           variant="muted"
           className="text-xs font-bold text-foreground"
+          suppressHydrationWarning
         >
           {formatRemainingTime(remainingMs)} restantes
         </Typography>
