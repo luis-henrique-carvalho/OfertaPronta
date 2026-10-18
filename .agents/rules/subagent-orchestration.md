@@ -79,3 +79,16 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
 
 5. **Ritual de Fechamento com `/learn`**:
    - Concluída a entrega e aprovado o Gate 3, o Chat Canvas deve invocar o protocolo `/learn` para consolidar lições aprendidas e atualizar o `AGENTS.md`.
+
+6. **Proibição Estrita de Polling Ativo e Espionagem de Subagentes (`Zero-Polling & Anti-Spy Invariant`)**:
+   - **Zero-Polling (Confiança no Reactive Wakeup)**: É TERMINANTEMENTE PROIBIDO utilizar a ferramenta `schedule` ou invocar `manage_subagents(Action="list")` em loop para "monitorar" ou "esperar" o progresso de subagentes. O sistema Antigravity já retoma a execução reativamente quando o subagente responde. Após despachar um worker ou orquestrador, o agente DEVE PARAR imediatamente de chamar ferramentas.
+   - **Zero-Spying (Proibição de `tail` em Transcripts)**: É TERMINANTEMENTE PROIBIDO executar comandos bash (`tail`, `grep`, `cat` ou scripts Python) para ler arquivos `.system_generated/logs/transcript.jsonl` de subagentes em execução. Isso incha o contexto com centenas de KB de JSON Lines desnecessárias e queima milhões de tokens de cache à toa.
+   - **WaitMsBeforeAsync Adequado**: Em comandos demorados (`verify.sh`, suítes completas de testes), configure `WaitMsBeforeAsync` de até 10000ms para evitar criação excessiva de background tasks e logs massivos truncados.
+
+7. **Padrão Mandatório do Relatório de Auditoria Operacional do Agente (Telemetria & Eficiência)**:
+   - Sempre que o usuário solicitar "Relatório de Auditoria de Execução", análise de desempenho do agente ou profiling de tokens, o agente NÃO deve limitar-se a testes de software (BDD/SOLID). Ele DEVE obrigatoriamente executar `./.agents/scripts/audit_agent_execution.py <conversation_id>` e apresentar a telemetria completa:
+     1. **Dashboard Geral de Telemetria e Consumo** (Duração total, steps, invocações LLM, tool calls, background tasks, tokens input/output/cache e pico de contexto por step).
+     2. **Detalhamento de Ferramentas (Tool Breakdown)** (contagem exata e % de cada ferramenta).
+     3. **Diagnóstico de Gargalos & Fontes de Desperdício** (loops de polling, tasks em background fúteis, reedição repetida de arquivos e logs massivos).
+     4. **Tabela de Desperdício / Consumo por Turno** (steps, duração aproximada, tokens e diagnóstico por turno).
+     5. **Scoreboard de Eficiência Operacional** (Nota de 0 a 100 com avaliação de A a F).

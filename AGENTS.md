@@ -204,7 +204,7 @@ Para novas fases, funcionalidades ou refatorações:
 5. **Validação & Auditoria Paralelas**:
    - Despache `test-verifier` (`model: flash`) para rodar o pipeline completo de qualidade do projeto via `./.agents/scripts/verify.sh` (ou `./scripts/verify.sh`), checagem estrita de tipos (`pnpm typecheck`), conformidade Shadcn UI, Vitest (`pnpm test`), regressões e o **Dual Browser Audit** (Mobile 390×844 e Desktop 1440×900 no dev server ativo).
    - Despache `implementation-validator` (`model: flash`) para auditar o diff contra a Spec, SOLID e anti-bloat (`ponytail-review`).
-6. **Fechamento**: Apresente o resultado no Gate 3 e registre aprendizados relevantes no ritual `/learn`.
+6. **Fechamento & Auditoria de Execução**: Apresente o resultado no Gate 3, gere a telemetria operacional via `./.agents/scripts/audit_agent_execution.py <conversation_id>` e registre aprendizados no ritual `/learn`.
 
 ---
 
@@ -215,6 +215,7 @@ Para novas fases, funcionalidades ou refatorações:
 ./.agents/scripts/verify.sh          # Executa todo o pipeline (Shadcn UI + Typecheck + ESLint + Vitest + Build)
 ./.agents/scripts/verify.sh --quick  # Executa sem build (feedback rápido para TDD)
 ./.agents/scripts/verify.sh --shadcn # Validação isolada de conformidade Shadcn UI / Typography
+./.agents/scripts/audit_agent_execution.py <conv_id> # Auditoria operacional, telemetria de tokens e gargalos do agente
 
 # Instalação e Desenvolvimento
 pnpm install            # Instala dependências do monorepo / app
