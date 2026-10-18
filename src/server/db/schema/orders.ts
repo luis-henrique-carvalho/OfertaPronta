@@ -15,6 +15,7 @@ export const orders = pgTable("orders", {
   planId: text("plan_id").notNull().default("single_campaign"),
   status: text("status").notNull().default("PENDING"),
   amountCents: integer("amount_cents").notNull(),
+  cleanMasterImageDataUrl: text("clean_master_image_data_url"),
   frozenSnapshot: jsonb("frozen_snapshot").notNull(),
   customerEmail: text("customer_email"),
   customerWhatsapp: text("customer_whatsapp"),

@@ -59,6 +59,7 @@ export interface GeneratePreviewDependencies {
   updateDraftPreview?: (
     draftId: string,
     previewUrl: string,
+    cleanMasterDataUrl?: string | null,
   ) => Promise<OfferDraft | null>;
   database?: AppDatabase;
   geminiClient?: GoogleGenAIClient;
@@ -78,8 +79,13 @@ function resolveDependencies(deps: GeneratePreviewDependencies) {
 
   const updateDraft =
     deps.updateDraftPreview ??
-    ((id: string, previewUrl: string) =>
-      updateDraftPreviewCard(id, previewUrl, deps.database));
+    ((id: string, previewUrl: string, cleanMasterDataUrl?: string | null) =>
+      updateDraftPreviewCard(
+        id,
+        previewUrl,
+        deps.database,
+        cleanMasterDataUrl,
+      ));
 
   return { getDraft, generateAdCard, watermark, updateDraft };
 }
@@ -117,7 +123,7 @@ async function generateAndWatermarkAdCard(
   generateAdCard: (input: GenerateAdCardInput) => Promise<GenerateAdCardResult>,
   watermark: (buffer: Buffer) => Promise<{ dataUrl: string }>,
 ): Promise<
-  | { success: true; dataUrl: string }
+  | { success: true; dataUrl: string; cleanMasterDataUrl: string }
   | { success: false; response: GeneratePreviewResponse }
 > {
   try {
@@ -131,12 +137,19 @@ async function generateAndWatermarkAdCard(
       imageSizeBytes: aiResult.rawImageBuffer.length,
     });
 
+    const mimeType = aiResult.mimeType || "image/png";
+    const cleanMasterDataUrl = `data:${mimeType};base64,${aiResult.rawImageBuffer.toString("base64")}`;
+
     log.info("Aplicando marca d'água no ExportEngine (Sharp)...", {
       draftId: draft.id,
     });
     const watermarkResult = await watermark(aiResult.rawImageBuffer);
     log.info("Marca d'água aplicada com sucesso", { draftId: draft.id });
-    return { success: true, dataUrl: watermarkResult.dataUrl };
+    return {
+      success: true,
+      dataUrl: watermarkResult.dataUrl,
+      cleanMasterDataUrl,
+    };
   } catch (err: unknown) {
     log.error("FALHA na síntese ou aplicação de marca d'água", err, {
       draftId: draft.id,
@@ -217,7 +230,11 @@ export async function executeGeneratePreview(
   log.info("Persistindo prévia e atualizando cota no PostgreSQL...", {
     draftId: draft.id,
   });
-  const updatedDraft = await updateDraft(draft.id, generated.dataUrl);
+  const updatedDraft = await updateDraft(
+    draft.id,
+    generated.dataUrl,
+    generated.cleanMasterDataUrl,
+  );
   if (!updatedDraft) {
     log.warn("Falha na atualização atômica de cota", {
       draftId: draft.id,

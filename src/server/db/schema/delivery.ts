@@ -10,7 +10,7 @@ export const deliveryExports = pgTable("exports", {
   storyUrl: text("story_url").notNull(),
   feedAssetKey: text("feed_asset_key"),
   storyAssetKey: text("story_asset_key"),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
   downloadCount: integer("download_count").notNull().default(0),
   lastDownloadedAt: timestamp("last_downloaded_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })

@@ -51,6 +51,7 @@ export class PixCheckoutService {
       stylePresetId: draft.stylePresetId,
       customStyleInstructions: draft.customStyleInstructions,
       previewCardImageUrl: draft.previewCardImageUrl,
+      cleanMasterImageDataUrl: draft.cleanMasterImageDataUrl,
       planId: plan.id,
       planName: plan.name,
       amountCents: plan.amountCents,
@@ -182,6 +183,7 @@ export class PixCheckoutService {
       chargeResult,
       validated.customerWhatsapp || draft.whatsapp || null,
       validated.customerEmail || null,
+      draft.cleanMasterImageDataUrl,
     );
 
     log.info("Pedido e cobrança persistidos com sucesso no PostgreSQL", {
@@ -471,6 +473,7 @@ export class PixCheckoutService {
     chargeResult: PixChargeResult,
     customerWhatsapp: string | null,
     customerEmail: string | null,
+    cleanMasterImageDataUrl?: string | null,
   ): Promise<string> {
     return this.database.transaction(async (tx) => {
       const [newOrder] = await tx
@@ -480,6 +483,7 @@ export class PixCheckoutService {
           planId: plan.id,
           status: "PENDING",
           amountCents: plan.amountCents,
+          cleanMasterImageDataUrl: cleanMasterImageDataUrl ?? null,
           frozenSnapshot,
           customerWhatsapp,
           customerEmail,

@@ -38,6 +38,7 @@ export async function saveOfferDraft(
       referenceImageDataUrl: validated.referenceImageDataUrl ?? null,
       stylePresetId: validated.stylePresetId ?? null,
       customStyleInstructions: validated.customStyleInstructions ?? null,
+      cleanMasterImageDataUrl: validated.cleanMasterImageDataUrl ?? null,
       previewCardImageUrl: validated.previewCardImageUrl ?? null,
       aiGenerationCount: 0,
       createdAt: now,
@@ -58,6 +59,7 @@ export async function saveOfferDraft(
         referenceImageDataUrl: validated.referenceImageDataUrl ?? null,
         stylePresetId: validated.stylePresetId ?? null,
         customStyleInstructions: validated.customStyleInstructions ?? null,
+        cleanMasterImageDataUrl: validated.cleanMasterImageDataUrl ?? null,
         previewCardImageUrl: validated.previewCardImageUrl ?? null,
         updatedAt: now,
       },
@@ -95,19 +97,26 @@ export async function updateDraftPreviewCard(
   id: string,
   previewCardImageUrl: string,
   database: AppDatabase = db,
+  cleanMasterImageDataUrl?: string | null,
 ): Promise<OfferDraft | null> {
   if (!id || id.trim().length === 0) {
     return null;
   }
 
   const now = new Date();
+  const updatePayload: Record<string, unknown> = {
+    previewCardImageUrl,
+    aiGenerationCount: 1,
+    updatedAt: now,
+  };
+
+  if (cleanMasterImageDataUrl !== undefined) {
+    updatePayload.cleanMasterImageDataUrl = cleanMasterImageDataUrl;
+  }
+
   const [updated] = await database
     .update(drafts)
-    .set({
-      previewCardImageUrl,
-      aiGenerationCount: 1,
-      updatedAt: now,
-    })
+    .set(updatePayload)
     .where(and(eq(drafts.id, id), eq(drafts.aiGenerationCount, 0)))
     .returning();
 

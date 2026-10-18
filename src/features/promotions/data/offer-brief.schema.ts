@@ -430,6 +430,7 @@ export const saveOfferDraftSchema = z.object({
   referenceImageDataUrl: imageDataUrlSchema.optional().nullable(),
   stylePresetId: z.string().optional().nullable(),
   customStyleInstructions: z.string().optional().nullable(),
+  cleanMasterImageDataUrl: z.string().optional().nullable(),
   previewCardImageUrl: z.string().optional().nullable(),
 });
 

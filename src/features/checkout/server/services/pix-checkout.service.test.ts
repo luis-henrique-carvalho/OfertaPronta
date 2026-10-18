@@ -106,7 +106,13 @@ describe("PixCheckoutService Deep Module", () => {
 
       const watermarkedPreview =
         "data:image/webp;base64,mockWatermarkedCardPreview";
-      await updateDraftPreviewCard(draft.id, watermarkedPreview);
+      const cleanMasterUrl = "data:image/png;base64,mockCleanMasterArtPure";
+      await updateDraftPreviewCard(
+        draft.id,
+        watermarkedPreview,
+        undefined,
+        cleanMasterUrl,
+      );
 
       const beforeCall = new Date().toISOString();
       const result = await service.initiateCheckout({
@@ -128,6 +134,7 @@ describe("PixCheckoutService Deep Module", () => {
       expect(orderRow.draftId).toBe(draft.id);
       expect(orderRow.status).toBe("PENDING");
       expect(orderRow.amountCents).toBe(990);
+      expect(orderRow.cleanMasterImageDataUrl).toBe(cleanMasterUrl);
       expect(orderRow.customerWhatsapp).toBe("11999998888");
       expect(orderRow.customerEmail).toBe("cliente@teste.com");
       expect(orderRow.aiRegenerationCount).toBe(0);
@@ -144,6 +151,7 @@ describe("PixCheckoutService Deep Module", () => {
       expect(snapshot.offerTitle).toBe("Combo Duplo Cheddar + Batata");
       expect(snapshot.promoPrice).toBe("R$ 34,90");
       expect(snapshot.originalPrice).toBe("R$ 44,90");
+      expect(snapshot.cleanMasterImageDataUrl).toBe(cleanMasterUrl);
       expect(snapshot.previewCardImageUrl).toBe(watermarkedPreview);
       expect(snapshot.planId).toBe("single_campaign");
       expect(snapshot.planName).toBe("Campanha Avulsa");

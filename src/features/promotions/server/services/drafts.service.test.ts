@@ -198,15 +198,30 @@ describe("Drafts Service (Deep Domain Module)", () => {
       expect(fetched?.aiGenerationCount).toBe(1);
     });
 
-    it("returns null when empty or non-existent ID is passed", async () => {
-      const empty = await updateDraftPreviewCard("", "data:url");
-      expect(empty).toBeNull();
+    it("persists cleanMasterImageDataUrl when updating preview card", async () => {
+      const created = await saveOfferDraft({
+        businessSegment: "supermarket",
+        businessName: "Super Box",
+        offerTitle: "Café Torrado 500g",
+        promoPrice: "R$ 14,90",
+      });
 
-      const nonExistent = await updateDraftPreviewCard(
-        "non-existent-uuid",
-        "data:url",
+      const previewUrl = "data:image/webp;base64,watermarkedPreview";
+      const cleanUrl = "data:image/png;base64,cleanMasterImage";
+
+      const updated = await updateDraftPreviewCard(
+        created.id,
+        previewUrl,
+        undefined,
+        cleanUrl,
       );
-      expect(nonExistent).toBeNull();
+
+      expect(updated).not.toBeNull();
+      expect(updated?.previewCardImageUrl).toBe(previewUrl);
+      expect(updated?.cleanMasterImageDataUrl).toBe(cleanUrl);
+
+      const fetched = await getOfferDraft(created.id);
+      expect(fetched?.cleanMasterImageDataUrl).toBe(cleanUrl);
     });
   });
 });

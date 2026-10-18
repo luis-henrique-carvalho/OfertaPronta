@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CriarRouteImport } from './routes/criar'
 import { Route as CheckoutOrderIdRouteImport } from './routes/checkout.$orderId'
+import { Route as PedidoOrderIdRouteImport } from './routes/pedido.$orderId'
+import { Route as ApiDeliveryDownloadRouteImport } from './routes/api.delivery.download'
 import { Route as ApiWebhooksPixRouteImport } from './routes/api.webhooks.pix'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +31,16 @@ const CheckoutOrderIdRoute = CheckoutOrderIdRouteImport.update({
   path: '/checkout/$orderId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PedidoOrderIdRoute = PedidoOrderIdRouteImport.update({
+  id: '/pedido/$orderId',
+  path: '/pedido/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDeliveryDownloadRoute = ApiDeliveryDownloadRouteImport.update({
+  id: '/api/delivery/download',
+  path: '/api/delivery/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksPixRoute = ApiWebhooksPixRouteImport.update({
   id: '/api/webhooks/pix',
   path: '/api/webhooks/pix',
@@ -39,12 +51,16 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/criar': typeof CriarRoute
   '/checkout/$orderId': typeof CheckoutOrderIdRoute
+  '/pedido/$orderId': typeof PedidoOrderIdRoute
+  '/api/delivery/download': typeof ApiDeliveryDownloadRoute
   '/api/webhooks/pix': typeof ApiWebhooksPixRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/criar': typeof CriarRoute
   '/checkout/$orderId': typeof CheckoutOrderIdRoute
+  '/pedido/$orderId': typeof PedidoOrderIdRoute
+  '/api/delivery/download': typeof ApiDeliveryDownloadRoute
   '/api/webhooks/pix': typeof ApiWebhooksPixRoute
 }
 export interface FileRoutesById {
@@ -52,20 +68,43 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/criar': typeof CriarRoute
   '/checkout/$orderId': typeof CheckoutOrderIdRoute
+  '/pedido/$orderId': typeof PedidoOrderIdRoute
+  '/api/delivery/download': typeof ApiDeliveryDownloadRoute
   '/api/webhooks/pix': typeof ApiWebhooksPixRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/criar' | '/checkout/$orderId' | '/api/webhooks/pix'
+  fullPaths:
+    | '/'
+    | '/criar'
+    | '/checkout/$orderId'
+    | '/pedido/$orderId'
+    | '/api/delivery/download'
+    | '/api/webhooks/pix'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/criar' | '/checkout/$orderId' | '/api/webhooks/pix'
-  id: '__root__' | '/' | '/criar' | '/checkout/$orderId' | '/api/webhooks/pix'
+  to:
+    | '/'
+    | '/criar'
+    | '/checkout/$orderId'
+    | '/pedido/$orderId'
+    | '/api/delivery/download'
+    | '/api/webhooks/pix'
+  id:
+    | '__root__'
+    | '/'
+    | '/criar'
+    | '/checkout/$orderId'
+    | '/pedido/$orderId'
+    | '/api/delivery/download'
+    | '/api/webhooks/pix'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CriarRoute: typeof CriarRoute
   CheckoutOrderIdRoute: typeof CheckoutOrderIdRoute
+  PedidoOrderIdRoute: typeof PedidoOrderIdRoute
+  ApiDeliveryDownloadRoute: typeof ApiDeliveryDownloadRoute
   ApiWebhooksPixRoute: typeof ApiWebhooksPixRoute
 }
 
@@ -92,6 +131,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pedido/$orderId': {
+      id: '/pedido/$orderId'
+      path: '/pedido/$orderId'
+      fullPath: '/pedido/$orderId'
+      preLoaderRoute: typeof PedidoOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/delivery/download': {
+      id: '/api/delivery/download'
+      path: '/api/delivery/download'
+      fullPath: '/api/delivery/download'
+      preLoaderRoute: typeof ApiDeliveryDownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/pix': {
       id: '/api/webhooks/pix'
       path: '/api/webhooks/pix'
@@ -106,6 +159,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CriarRoute: CriarRoute,
   CheckoutOrderIdRoute: CheckoutOrderIdRoute,
+  PedidoOrderIdRoute: PedidoOrderIdRoute,
+  ApiDeliveryDownloadRoute: ApiDeliveryDownloadRoute,
   ApiWebhooksPixRoute: ApiWebhooksPixRoute,
 }
 export const routeTree = rootRouteImport

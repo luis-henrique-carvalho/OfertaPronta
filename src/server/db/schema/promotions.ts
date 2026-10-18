@@ -14,6 +14,7 @@ export const drafts = pgTable("drafts", {
   referenceImageDataUrl: text("reference_image_data_url"),
   stylePresetId: text("style_preset_id"),
   customStyleInstructions: text("custom_style_instructions"),
+  cleanMasterImageDataUrl: text("clean_master_image_data_url"),
   previewCardImageUrl: text("preview_card_image_url"),
   aiGenerationCount: integer("ai_generation_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })

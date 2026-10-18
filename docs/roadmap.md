@@ -65,7 +65,7 @@ Com o OfertaPronta, o microempresário informa os dados da promoção (**Briefin
 - **Outcome:** Segurança Financeira & Escalabilidade do Catálogo.
 
 ### Épico 4: Entrega Sem Marca d'Água & Regeneração Controlada Pós-Compra (Fulfillment)
-- **Status:** ⏳ **Pendente / Próximo Passo do MVP**
+- **Status:** 🟡 **Em Especificação & Planejamento (Spec & Tickets Criados)**
 - **Hipótese:** Acreditamos que liberar imediatamente os PNGs em alta resolução (Feed e Story) sem marca d'água após o Pix e oferecer direito a até 3 regenerações/ajustes com IA no mesmo pedido garantirá satisfação máxima sem risco de abuso de custo da API.
 - **Métrica de Sucesso:** Taxa de download bem-sucedido ≥ 98%; custo médio de IA por pedido < 8% do ticket (R$ 9,90).
 - **Tamanho:** Pequeno (S) — 1 a 2 semanas.
@@ -83,7 +83,7 @@ flowchart TD
         E2["✅ Épico 2: Motor AdCardGenerator (Gemini Multimodal)<br/>(Concluído — Geração Completa + Marca d'Água)"]
         E3["✅ Épico 3: Checkout Pix Dinâmico via Pushin Pay<br/>(Concluído — Rota /checkout/$orderId, Polling e Webhook)"]
         E3B["✅ Refinamento: CampaignCatalog & Preços Dinâmicos<br/>(Concluído — Módulo Profundo, Drizzle e Zero Hardcoded)"]
-        E4["⏳ Épico 4: Entrega Alta Resolução & Ajustes IA<br/>(Próximo — Rota /pedido/$orderId + 3 Regenerações)"]
+        E4["🟡 Épico 4: Entrega Alta Resolução & Ajustes IA<br/>(Em Andamento — Spec e Tickets Prontos)"]
         E1 --> E2 --> E3 --> E3B --> E4
     end
 
@@ -115,5 +115,6 @@ flowchart TD
 | **Etapa 2** | Motor `AdCardGenerator` & Prévia Protegida | - Módulo profundo `src/features/promotions/server/ai-card-generator.ts` integrando `@google/genai`.<br/>- Módulo `ExportEngine` aplicando marca d'água protetora na prévia gratuita nos formatos Feed (1080×1350) e Story (1080×1920). | ✅ **Concluído** |
 | **Etapa 3** | Checkout Pix Dinâmico | - Módulo profundo `PixCheckout` com Pushin Pay e `Frozen Snapshot`.<br/>- Rota `/checkout/$orderId` com QR Code, Pix Copia e Cola e polling automático.<br/>- Rota `/api/webhooks/pix` com validação de secret e idempotência. | ✅ **Concluído** |
 | **Refinamento** | Aprofundamento do Catálogo (`CampaignCatalog`) | - Módulo profundo `src/lib/campaign-catalog.ts` para planos canônicos e override de ambiente.<br/>- Conciliação dinâmica no checkout contra `charge.amountCents`.<br/>- UI 100% desacoplada sem strings de preço hardcoded. | ✅ **Concluído** |
-| **Etapa 4** | Entrega Alta Resolução e Regeneração IA | - Rota `/pedido/$orderId` liberando os PNGs limpos em alta resolução.<br/>- Módulo profundo `delivery.service.ts` com validação de token e liberação de downloads privados.<br/>- Painel para até 3 regenerações/ajustes por IA pós-pagamento. | ⏳ **Pendente (Próximo)** |
+| **Etapa 4** | Entrega Alta Resolução e Regeneração IA | - Rota `/pedido/$orderId` liberando os PNGs limpos em alta resolução.<br/>- Módulo profundo `delivery.service.ts` com validação de token e liberação de downloads privados.<br/>- Painel para até 3 regenerações/ajustes por IA pós-pagamento. | 🟡 **Em Andamento (Spec/Tickets Prontos)** |
+
 
