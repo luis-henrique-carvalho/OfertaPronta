@@ -129,6 +129,7 @@ function updateSegmentPlaceholders(
   return {
     ...prev,
     stylePresetId: SEGMENT_CATALOG[newSegment].stylePresets[0].id,
+    referenceImageDataUrl: undefined,
     businessName:
       prev.businessName === prevPl.businessName
         ? newPl.businessName
@@ -204,9 +205,17 @@ function useDraftFormFields(
     setProductImageDataUrl: (v?: string) =>
       setFields((p) => ({ ...p, productImageDataUrl: v })),
     setReferenceImageDataUrl: (v?: string) =>
-      setFields((p) => ({ ...p, referenceImageDataUrl: v })),
+      setFields((p) => ({
+        ...p,
+        referenceImageDataUrl: v,
+        ...(v ? { stylePresetId: undefined } : {}),
+      })),
     setStylePresetId: (v?: string) =>
-      setFields((p) => ({ ...p, stylePresetId: v })),
+      setFields((p) => ({
+        ...p,
+        stylePresetId: v,
+        ...(v ? { referenceImageDataUrl: undefined } : {}),
+      })),
     setCustomStyleInstructions: (v: string) =>
       setFields((p) => ({ ...p, customStyleInstructions: v })),
   };
