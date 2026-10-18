@@ -32,11 +32,11 @@ export function StylePresetDetailsDialog({
           size="icon"
           onClick={(e) => e.stopPropagation()}
           data-testid={`preset-info-button-${preset.id}`}
-          className="size-11 min-w-[44px] min-h-[44px] rounded-full bg-background/85 text-muted-foreground hover:text-foreground hover:bg-background shadow-xs backdrop-blur-xs"
+          className="size-11 min-w-[44px] min-h-[44px] rounded-full bg-black/45 hover:bg-black/70 text-white hover:text-white shadow-xs backdrop-blur-xs flex items-center justify-center transition-colors border border-white/20"
           aria-label={`Ver detalhes do estilo ${preset.label}`}
           title={`Detalhes do estilo ${preset.label}`}
         >
-          <Info className="size-4" />
+          <Info className="size-4 stroke-[2.2]" />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto rounded-2xl p-5 sm:p-6">

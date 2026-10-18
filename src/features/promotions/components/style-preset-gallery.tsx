@@ -7,7 +7,6 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Palette } from "lucide-react";
 import type { BusinessSegment } from "../data/offer-brief.schema";
 import {
@@ -73,45 +72,37 @@ export function StylePresetGallery({
       data-testid="style-preset-gallery-card"
       className="border-border bg-card shadow-xs"
     >
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Badge
-            variant="secondary"
-            className="gap-1.5 text-xs shrink-0 font-medium"
-          >
-            <Palette className="size-3.5 text-primary" />
-            Direção de Arte e Estilo
-          </Badge>
-          <Badge
-            variant="outline"
-            className="text-[11px] px-2 py-0.5 text-muted-foreground"
-          >
-            Escolha 1 Toque
-          </Badge>
+      <CardHeader className="pb-3.5">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+            <Palette className="size-4" />
+          </div>
+          <div>
+            <CardTitle className="text-base sm:text-lg font-bold text-foreground">
+              Visual & Atmosfera do Card
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Escolha um estilo curado para seu nicho ou envie sua própria arte
+              de inspiração.
+            </CardDescription>
+          </div>
         </div>
-        <CardTitle className="pt-2 text-lg font-bold sm:text-xl">
-          Visual e Atmosfera do Card
-        </CardTitle>
-        <CardDescription className="text-xs sm:text-sm">
-          Escolha um estilo visual curado para seu nicho ou envie sua própria
-          arte de referência para inspirar a IA.
-        </CardDescription>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4 pt-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 h-auto p-1 bg-muted/60 rounded-xl">
+          <TabsList className="grid w-full grid-cols-2 h-auto p-1 bg-muted/70 border border-border/40 rounded-xl">
             <TabsTrigger
               value="presets"
               data-testid="tab-presets"
-              className="min-h-[44px] py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+              className="min-h-[44px] py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs transition-all"
             >
               Estilos Prontos (Galeria)
             </TabsTrigger>
             <TabsTrigger
               value="custom-reference"
               data-testid="tab-custom-reference"
-              className="min-h-[44px] py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+              className="min-h-[44px] py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs transition-all"
             >
               Enviar Arte Própria
             </TabsTrigger>

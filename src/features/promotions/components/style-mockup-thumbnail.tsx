@@ -54,7 +54,8 @@ export function StyleMockupThumbnail({
     >
       <svg
         viewBox="0 0 200 250"
-        className="size-full"
+        className="w-full h-full block max-w-none"
+        style={{ width: "100%", height: "100%", display: "block" }}
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
@@ -678,66 +679,73 @@ function renderRusticWood(mockup: StyleMockupSpec, id: string) {
  * 5. Clean Minimal (Spa & estética, design moderno, óticas, bistrô editorial refinado)
  */
 function renderCleanMinimal(mockup: StyleMockupSpec, id: string) {
+  const gradId = `clean-grad-${id}`;
   const circleGradId = `clean-circle-${id}`;
   const bg = mockup.bgColor || "#F8FAFC";
-  const text = mockup.textColor || "#0F172A";
-  const accent = mockup.accentColor || "#64748B";
+  const isDarkBg =
+    bg.startsWith("#8") ||
+    bg.startsWith("#3") ||
+    bg.startsWith("#1") ||
+    bg.startsWith("#0") ||
+    bg.startsWith("#2");
+  const text = mockup.textColor || (isDarkBg ? "#FFFFFF" : "#0F172A");
+  const accent = mockup.accentColor || (isDarkBg ? "#EC4899" : "#64748B");
+  const badgeBg = isDarkBg ? "rgba(255,255,255,0.18)" : "#FFFFFF";
+  const badgeBorder = isDarkBg ? accent : "#CBD5E1";
+  const frameStroke = isDarkBg ? accent : "#E2E8F0";
 
   return (
     <>
       <defs>
-        <radialGradient id={circleGradId} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor={accent} stopOpacity="0.22" />
+        <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={bg} />
+          <stop offset="100%" stopColor={isDarkBg ? "#4C0519" : "#F1F5F9"} />
+        </linearGradient>
+        <radialGradient id={circleGradId} cx="50%" cy="45%" r="55%">
+          <stop
+            offset="0%"
+            stopColor={accent}
+            stopOpacity={isDarkBg ? "0.35" : "0.22"}
+          />
           <stop offset="100%" stopColor={bg} stopOpacity="0" />
         </radialGradient>
       </defs>
 
-      {/* Fundo Arejado e Minimalista */}
-      <rect width="200" height="250" fill={bg} />
+      {/* Fundo Arejado e Minimalista com Glow */}
+      <rect width="200" height="250" fill={`url(#${gradId})`} />
+      <rect width="200" height="250" fill={`url(#${circleGradId})`} />
 
       {/* Moldura Interna de Linhas Finas Elegantes */}
       <rect
-        x="15"
-        y="15"
-        width="170"
-        height="220"
+        x="14"
+        y="14"
+        width="172"
+        height="222"
+        rx="8"
         fill="none"
-        stroke="#E2E8F0"
-        strokeWidth="1"
+        stroke={frameStroke}
+        strokeWidth="1.2"
+        strokeOpacity={isDarkBg ? "0.6" : "0.8"}
       />
 
-      {/* Forma Abstrata Pastel / Círculo Central Suave */}
-      <circle cx="100" cy="112" r="54" fill={`url(#${circleGradId})`} />
-
-      {/* Linhas Arquiteturais Delicadas */}
-      <line
-        x1="30"
-        y1="75"
-        x2="170"
-        y2="75"
-        stroke="#E2E8F0"
-        strokeWidth="0.8"
-      />
-      <line x1="100" y1="60" x2="100" y2="90" stroke={accent} strokeWidth="1" />
-
-      {/* Selo Minimalista Superior com Sombra Discreta */}
-      <g transform="translate(100, 38)">
+      {/* Selo Minimalista Superior com Contraste Perfeito */}
+      <g transform="translate(100, 36)">
         <rect
-          x="-50"
-          y="-11"
-          width="100"
-          height="22"
-          rx="11"
-          fill="#FFFFFF"
-          stroke="#CBD5E1"
-          strokeWidth="1"
+          x="-55"
+          y="-12"
+          width="110"
+          height="24"
+          rx="12"
+          fill={badgeBg}
+          stroke={badgeBorder}
+          strokeWidth="1.2"
         />
         <text
           x="0"
-          y="4"
+          y="4.5"
           textAnchor="middle"
           fontSize="8"
-          fontWeight="600"
+          fontWeight="700"
           fill={text}
           letterSpacing="1.5"
         >
@@ -745,46 +753,60 @@ function renderCleanMinimal(mockup: StyleMockupSpec, id: string) {
         </text>
       </g>
 
-      {/* Elemento de Design Editorial Central (Arco Fino) */}
-      <g transform="translate(100, 115)">
-        <path
-          d="M-28,24 C-28,-14 28,-14 28,24"
-          fill="none"
+      {/* Elemento de Design Editorial Central (Arco Fino e Ponto Focal) */}
+      <g transform="translate(100, 114)">
+        <circle
+          cx="0"
+          cy="0"
+          r="40"
+          fill={isDarkBg ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)"}
           stroke={accent}
           strokeWidth="1.5"
+          strokeDasharray="4 3"
         />
-        <circle cx="0" cy="4" r="3" fill={accent} />
-        <line
-          x1="-35"
-          y1="24"
-          x2="35"
-          y2="24"
-          stroke="#CBD5E1"
-          strokeWidth="1"
+        <path
+          d="M-26,20 C-26,-16 26,-16 26,20"
+          fill="none"
+          stroke={accent}
+          strokeWidth="1.8"
+        />
+        <circle cx="0" cy="2" r="3.5" fill={accent} />
+        {/* Estrelas sutis de beleza / brilho */}
+        <polygon
+          points="0,-28 2,-22 8,-20 2,-18 0,-12 -2,-18 -8,-20 -2,-22"
+          fill={accent}
         />
       </g>
 
       {/* Bloco Tipográfico Editorial na Base */}
-      <g transform="translate(100, 188)">
+      <g transform="translate(100, 192)">
         <text
           x="0"
           y="0"
           textAnchor="middle"
           fontSize="11"
-          fontWeight="300"
+          fontWeight="600"
           fill={text}
-          letterSpacing="4"
+          letterSpacing="3"
         >
           EDITORIAL
         </text>
-        <line x1="-20" y1="8" x2="20" y2="8" stroke={accent} strokeWidth="1" />
+        <line
+          x1="-28"
+          y1="8"
+          x2="28"
+          y2="8"
+          stroke={accent}
+          strokeWidth="1"
+          strokeOpacity="0.8"
+        />
         <text
           x="0"
           y="22"
           textAnchor="middle"
           fontSize="7.5"
           fontWeight="500"
-          fill="#64748B"
+          fill={isDarkBg ? "rgba(255,255,255,0.8)" : "#64748B"}
           letterSpacing="2"
         >
           CONCEITO & EQUILÍBRIO
