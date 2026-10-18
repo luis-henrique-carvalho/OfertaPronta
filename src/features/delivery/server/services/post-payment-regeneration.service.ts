@@ -174,14 +174,16 @@ export class PostPaymentRegenerationService {
         ? validated.callToAction
         : (snapshot.callToAction as string | null | undefined);
 
-    let combinedCustomInstructions =
-      (snapshot.customStyleInstructions as string) || "";
-    if (validated.customAdjustmentPrompt?.trim()) {
-      const adjustment = validated.customAdjustmentPrompt.trim();
-      combinedCustomInstructions = combinedCustomInstructions
-        ? `${combinedCustomInstructions}. Ajuste solicitado pelo cliente: ${adjustment}`
-        : `Ajuste solicitado pelo cliente: ${adjustment}`;
-    }
+    const baseCardImageDataUrl =
+      (order.cleanMasterImageDataUrl as string | undefined) ||
+      (snapshot.cleanMasterImageDataUrl as string | undefined) ||
+      undefined;
+
+    const currentAdjustment = validated.customAdjustmentPrompt?.trim();
+    const combinedCustomInstructions = resolveRegenerationStyleInstructions(
+      snapshot.customStyleInstructions as string | undefined,
+      currentAdjustment,
+    );
 
     const generateInput: GenerateAdCardInput = {
       businessSegment:
@@ -201,6 +203,7 @@ export class PostPaymentRegenerationService {
         (snapshot.productImageDataUrl as string | undefined) || undefined,
       referenceImageDataUrl:
         (snapshot.referenceImageDataUrl as string | undefined) || undefined,
+      baseCardImageDataUrl,
       stylePresetId:
         (snapshot.stylePresetId as string | undefined) || undefined,
       customStyleInstructions: combinedCustomInstructions || undefined,
@@ -267,4 +270,27 @@ export class PostPaymentRegenerationService {
 
     return this.deliveryService.getDeliveryDetails(orderId);
   }
+}
+
+/**
+ * Isola o ajuste atual do cliente sem acumular diretrizes conflitantes de rodadas anteriores,
+ * preservando eventuais instruções originais de estilo definidas no briefing inicial.
+ */
+function resolveRegenerationStyleInstructions(
+  originalStyleInstructions: string | undefined,
+  currentAdjustmentPrompt: string | undefined,
+): string | undefined {
+  if (!currentAdjustmentPrompt) {
+    return originalStyleInstructions;
+  }
+
+  const cleanOriginal = originalStyleInstructions
+    ? originalStyleInstructions
+        .replace(/\.?\s*Ajuste solicitado pelo cliente:.*$/i, "")
+        .trim()
+    : "";
+
+  return cleanOriginal
+    ? `${cleanOriginal}. Ajuste solicitado pelo cliente: ${currentAdjustmentPrompt}`
+    : `Ajuste solicitado pelo cliente: ${currentAdjustmentPrompt}`;
 }

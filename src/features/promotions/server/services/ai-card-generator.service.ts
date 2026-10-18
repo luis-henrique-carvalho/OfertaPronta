@@ -9,6 +9,8 @@ import { createServerLogger } from "@/server/logger";
 
 const log = createServerLogger("promotions.ai-card-generator");
 
+export const GEMINI_IMAGE_MODEL = "gemini-nano-banana-2.1";
+
 export interface GenerateAdCardInput {
   businessSegment: BusinessSegment;
   targetAspectRatio?: CardAspectRatio;
@@ -20,6 +22,7 @@ export interface GenerateAdCardInput {
   whatsapp?: string | null;
   productImageDataUrl?: string | null;
   referenceImageDataUrl?: string | null;
+  baseCardImageDataUrl?: string | null;
   stylePresetId?: string | null;
   customStyleInstructions?: string | null;
 }
@@ -147,7 +150,7 @@ export async function generateAdCardImage(
   const targetAspectRatio: CardAspectRatio = input.targetAspectRatio ?? "feed";
   const geminiAspectRatio = targetAspectRatio === "story" ? "9:16" : "4:5";
 
-  log.info("Enviando requisição para gemini-3.1-flash-image", {
+  log.info(`Enviando requisição para ${GEMINI_IMAGE_MODEL}`, {
     segment: input.businessSegment,
     targetAspectRatio,
     geminiAspectRatio,
@@ -157,12 +160,13 @@ export async function generateAdCardImage(
     promptPartsCount: promptParts.length,
     hasProductImage: !!input.productImageDataUrl,
     hasReferenceImage: !!input.referenceImageDataUrl,
+    hasBaseCardImage: !!input.baseCardImageDataUrl,
     hasStylePreset: !!input.stylePresetId,
   });
 
   try {
     const response = await geminiClient.models.generateContent({
-      model: "gemini-3.1-flash-image",
+      model: GEMINI_IMAGE_MODEL,
       contents: promptParts,
       config: {
         responseModalities: ["image"],
@@ -178,7 +182,7 @@ export async function generateAdCardImage(
     log.info("Resposta recebida da API Gemini com sucesso");
     return extractCandidateImage(response);
   } catch (error) {
-    log.error("Erro ao chamar gemini-3.1-flash-image", error);
+    log.error(`Erro ao chamar ${GEMINI_IMAGE_MODEL}`, error);
     handleGeminiApiError(error);
   }
 }
@@ -290,6 +294,26 @@ function buildMultimodalPromptParts(
   input: GenerateAdCardInput,
 ): Array<string | InlineDataPart> {
   const parts: Array<string | InlineDataPart> = [];
+
+  if (input.baseCardImageDataUrl) {
+    parts.push(buildSurgicalEditPromptText(input));
+    appendInlineInputPart(
+      parts,
+      input.baseCardImageDataUrl,
+      "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA): Use esta imagem como base gráfica principal. Mantenha rigorosamente todos os elementos visuais idênticos, aplicando EXCLUSIVAMENTE a alteração solicitada.",
+    );
+
+    if (input.productImageDataUrl) {
+      appendInlineInputPart(
+        parts,
+        input.productImageDataUrl,
+        "FOTO DO PRODUTO REAL ORIGINAL: Mantenha a fidelidade absoluta a este produto exatamente como renderizado na imagem base.",
+      );
+    }
+
+    return parts;
+  }
+
   const segmentConfig =
     SEGMENT_ART_DIRECTIVES[input.businessSegment] ??
     SEGMENT_ART_DIRECTIVES.supermarket;
@@ -313,6 +337,35 @@ function buildMultimodalPromptParts(
   }
 
   return parts;
+}
+
+function buildSurgicalEditPromptText(input: GenerateAdCardInput): string {
+  const isStory = input.targetAspectRatio === "story";
+  const proportionDirectives = isStory
+    ? "- Proporção Obrigatória: 9:16 vertical (master 1080x1920)."
+    : "- Proporção Obrigatória: 4:5 vertical (master 1080x1350).";
+
+  const requestedAdjustment = input.customStyleInstructions?.trim()
+    ? input.customStyleInstructions.trim()
+    : "Atualizar os dados da oferta preservando a identidade visual.";
+
+  return `
+Você é um diretor de arte e designer gráfico sênior executando uma EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE.
+Uma IMAGEM BASE DO CARD PUBLICITÁRIO já aprovada pelo cliente está anexa.
+
+--- DIRETRIZ FUNDAMENTAL: PRESERVAÇÃO ESTRITA ---
+1. PRESERVAÇÃO TOTAL DO DESIGN: Mantenha 100% da estrutura, cenário, iluminação, produto anunciado, acompanhamentos, paleta de cores, tipografia, fontes, faixas e posições da IMAGEM BASE rigorosamente inalterados.
+2. PROIBIDO REINVENTAR: É TERMINANTEMENTE PROIBIDO gerar um novo cenário, mudar a aparência do produto, trocar recipientes/bandejas ou recriar a estrutura do anúncio do zero.
+3. AJUSTE CIRÚRGICO SOLICITADO: Modifique EXCLUSIVAMENTE o elemento pontual especificado a seguir:
+"${requestedAdjustment}"
+4. DADOS DA OFERTA A MANTER:
+- Estabelecimento: "${input.businessName}"
+- Título da Oferta: "${input.offerTitle}"
+- Preço Promocional: "${input.promoPrice}"${input.originalPrice ? ` (De: "${input.originalPrice}")` : ""}${input.callToAction ? `\n- Chamada para Ação: "${input.callToAction}"` : ""}${input.whatsapp ? `\n- Contato Comercial: "${input.whatsapp}"` : ""}
+
+${proportionDirectives}
+Todo o restante da imagem original deve permanecer visualmente idêntico à imagem base fornecida.
+`.trim();
 }
 
 function appendInlineInputPart(

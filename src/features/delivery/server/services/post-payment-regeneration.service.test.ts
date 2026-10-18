@@ -297,5 +297,53 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
       expect(persistedOrder.aiRegenerationCount).toBe(0);
       expect(persistedOrder.cleanMasterImageDataUrl).toBe(FAKE_PNG_DATA_URL);
     });
+
+    it("should pass cleanMasterImageDataUrl as baseCardImageDataUrl to generateAdCard to ensure layout preservation", async () => {
+      const order = await createTestOrder("PAID");
+      await deliveryService.ensureDeliveryExports(order.id);
+
+      await service.regenerateOrderCard({
+        orderId: order.id,
+        customAdjustmentPrompt: "Mudar apenas a cor da logo para verde",
+      });
+
+      expect(mockGenerateAdCard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseCardImageDataUrl: FAKE_PNG_DATA_URL,
+          customStyleInstructions: expect.stringContaining(
+            "Mudar apenas a cor da logo para verde",
+          ),
+        }),
+      );
+    });
+
+    it("should isolate current customAdjustmentPrompt without accumulating contradictory past adjustments", async () => {
+      const order = await createTestOrder("PAID");
+      await deliveryService.ensureDeliveryExports(order.id);
+
+      // Rodada 1: Mudar para verde
+      await service.regenerateOrderCard({
+        orderId: order.id,
+        customAdjustmentPrompt: "Mudar a logo para verde",
+      });
+
+      // Rodada 2: Mudar para vermelho (sobre a arte gerada na rodada 1)
+      await service.regenerateOrderCard({
+        orderId: order.id,
+        customAdjustmentPrompt: "Mudar a logo para vermelho",
+      });
+
+      // Na rodada 2, a instrução ativa para a IA deve focar no ajuste atual e não acumular 'verde'
+      const lastCallArgs =
+        mockGenerateAdCard.mock.calls[
+          mockGenerateAdCard.mock.calls.length - 1
+        ][0];
+      expect(lastCallArgs.customStyleInstructions).toContain(
+        "Mudar a logo para vermelho",
+      );
+      expect(lastCallArgs.customStyleInstructions).not.toContain(
+        "Mudar a logo para verde",
+      );
+    });
   });
 });

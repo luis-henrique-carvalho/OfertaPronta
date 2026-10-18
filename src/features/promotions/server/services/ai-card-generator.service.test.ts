@@ -299,4 +299,41 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
       if (prevKey) process.env.GEMINI_API_KEY = prevKey;
     }
   });
+
+  it("deve incluir baseCardImageDataUrl e ativar modo de edição cirúrgica estrita quando imagem base for fornecida", async () => {
+    const fakeClient = createFakeGeminiClient();
+    const inputWithBaseCard: GenerateAdCardInput = {
+      ...baseInput,
+      baseCardImageDataUrl: `data:image/png;base64,${fakeBase64Png}`,
+      customStyleInstructions: "Mudar a logo para verde",
+    };
+
+    await generateAdCardImage(inputWithBaseCard, fakeClient);
+
+    const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+
+    // Verifica se usou o modelo Nano Banana 2.1
+    expect(callArgs.model).toBe("gemini-nano-banana-2.1");
+
+    // Verifica se a imagem base foi enviada como inlineData prioritário
+    const baseCardPart = callArgs.contents.find(
+      (c: unknown) =>
+        typeof c === "object" &&
+        c !== null &&
+        "inlineData" in c &&
+        (c as { inlineData: { data: string } }).inlineData.data ===
+          fakeBase64Png,
+    );
+    expect(baseCardPart).toBeDefined();
+
+    // Verifica diretrizes de preservação estrita no prompt
+    const promptText = callArgs.contents.find(
+      (c: unknown) => typeof c === "string",
+    ) as string;
+
+    expect(promptText).toContain("EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE");
+    expect(promptText).toContain("PRESERVAÇÃO ESTRITA");
+    expect(promptText).toContain("Mudar a logo para verde");
+    expect(promptText).toContain("PROIBIDO REINVENTAR");
+  });
 });
