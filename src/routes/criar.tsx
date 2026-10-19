@@ -3,12 +3,24 @@ import { OfferBriefWizard } from "@/features/promotions/components/offer-brief-w
 import { Typography } from "@/components/ui/typography";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Store } from "lucide-react";
+import { VariantA } from "@/features/promotions/components/prototype/variant-a-bite-sized";
+
+export interface CriarSearch {
+  variant?: string;
+}
 
 export const Route = createFileRoute("/criar")({
+  validateSearch: (search: Record<string, unknown>): CriarSearch => {
+    return {
+      variant: typeof search.variant === "string" ? search.variant : "A",
+    };
+  },
   component: CriarPageComponent,
 });
 
 function CriarPageComponent() {
+  const { variant = "A" } = Route.useSearch();
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       {/* Top Header Mobile-First */}
@@ -31,14 +43,14 @@ function CriarPageComponent() {
             className="gap-1 px-2.5 py-0.5 text-[11px] font-semibold"
           >
             <Sparkles className="size-3 text-primary" />
-            IA Multimodal
+            IA Fácil
           </Badge>
         </div>
       </header>
 
-      {/* Main Wizard Flow */}
-      <main className="flex-1">
-        <OfferBriefWizard />
+      {/* Main Content: Fluxo A (Micro-Passos & Rodapé Fixo) */}
+      <main className="flex-1 pb-16">
+        {variant === "orig" ? <OfferBriefWizard /> : <VariantA />}
       </main>
 
       {/* Footer minimalista */}

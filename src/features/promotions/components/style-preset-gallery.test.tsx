@@ -226,11 +226,11 @@ describe("StylePresetGallery", () => {
     const infoBtn = screen.getByTestId("preset-info-button-market-discount");
     fireEvent.click(infoBtn);
 
-    // Diálogo aberto com detalhes
-    expect(screen.getByText("Paleta de Cores:")).toBeDefined();
-    expect(screen.getByText("Composição e Layout:")).toBeDefined();
-    expect(screen.getByText("Iluminação e Textura:")).toBeDefined();
-    expect(screen.getByText("Atmosfera Visual:")).toBeDefined();
+    // Diálogo aberto com detalhes (Linguagem do Comerciante)
+    expect(screen.getByText("Aparência:")).toBeDefined();
+    expect(screen.getByText("Cores:")).toBeDefined();
+    expect(screen.getByText("Sensação pro seu cliente:")).toBeDefined();
+    expect(screen.getByText("Ideal para:")).toBeDefined();
 
     const chooseBtn = screen.getByTestId(
       "dialog-choose-preset-market-discount",

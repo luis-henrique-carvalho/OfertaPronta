@@ -16,6 +16,9 @@ export interface StyleMockupSpec {
   bgColor: string;
   textColor: string;
   accentColor: string;
+  footerHeadline?: string;
+  footerSubline?: string;
+  iconVariant?: string;
 }
 
 export interface StyleMockupThumbnailProps {
@@ -208,7 +211,7 @@ function renderRetailBurst(mockup: StyleMockupSpec, id: string) {
           fill="#FFFFFF"
           letterSpacing="1"
         >
-          SUPER DESCONTO
+          {mockup.footerHeadline || "SUPER DESCONTO"}
         </text>
         <text
           x="86"
@@ -218,7 +221,7 @@ function renderRetailBurst(mockup: StyleMockupSpec, id: string) {
           fontWeight="900"
           fill="#991B1B"
         >
-          R$ 9,99
+          {mockup.footerSubline || "R$ 9,99"}
         </text>
       </g>
     </>
@@ -614,26 +617,8 @@ function renderRusticWood(mockup: StyleMockupSpec, id: string) {
         </text>
       </g>
 
-      {/* Emblema Central: Chamas e Forno a Lenha */}
-      <g transform="translate(100, 114)">
-        <circle
-          cx="0"
-          cy="0"
-          r="36"
-          fill="#271004"
-          stroke={accent}
-          strokeWidth="2"
-        />
-        {/* Labaredas em Fogo Ilustrado */}
-        <path
-          d="M0,18 C12,18 16,8 10,-2 C6,-8 0,-18 0,-18 C0,-18 -6,-8 -10,-2 C-16,8 -12,18 0,18 Z"
-          fill="#EA580C"
-        />
-        <path
-          d="M0,18 C7,18 9,12 6,4 C4,0 0,-8 0,-8 C0,-8 -4,0 -6,4 C-9,12 -7,18 0,18 Z"
-          fill="#FBBF24"
-        />
-      </g>
+      {/* Emblema Central Contextual */}
+      {renderRusticWoodEmblem(mockup, accent)}
 
       {/* Placa Rústica de Madeira na Base */}
       <g transform="translate(25, 196)">
@@ -658,7 +643,7 @@ function renderRusticWood(mockup: StyleMockupSpec, id: string) {
           fill="#FEF3C7"
           letterSpacing="1.2"
         >
-          RECEITA ARTESANAL
+          {mockup.footerHeadline || "RECEITA ARTESANAL"}
         </text>
         <text
           x="75"
@@ -668,10 +653,179 @@ function renderRusticWood(mockup: StyleMockupSpec, id: string) {
           fontWeight="900"
           fill="#FFFFFF"
         >
-          FEITO NA LENHA
+          {mockup.footerSubline || "FEITO NA LENHA"}
         </text>
       </g>
     </>
+  );
+}
+
+function renderRusticWoodEmblem(mockup: StyleMockupSpec, accent: string) {
+  return (
+    <g transform="translate(100, 114)">
+      <circle
+        cx="0"
+        cy="0"
+        r="36"
+        fill="#271004"
+        stroke={accent}
+        strokeWidth="2"
+      />
+      {mockup.iconVariant === "barber-scissors" ? (
+        <>
+          <line
+            x1="-13"
+            y1="-13"
+            x2="13"
+            y2="13"
+            stroke="#FDE68A"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          <line
+            x1="13"
+            y1="-13"
+            x2="-13"
+            y2="13"
+            stroke="#FDE68A"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          <circle
+            cx="-13"
+            cy="13"
+            r="4.5"
+            fill="none"
+            stroke="#FDE68A"
+            strokeWidth="1.8"
+          />
+          <circle
+            cx="13"
+            cy="13"
+            r="4.5"
+            fill="none"
+            stroke="#FDE68A"
+            strokeWidth="1.8"
+          />
+          <rect x="-8" y="-17" width="16" height="5" rx="1.5" fill={accent} />
+          <line
+            x1="-6"
+            y1="-12"
+            x2="-6"
+            y2="-8"
+            stroke={accent}
+            strokeWidth="1.2"
+          />
+          <line
+            x1="-2"
+            y1="-12"
+            x2="-2"
+            y2="-8"
+            stroke={accent}
+            strokeWidth="1.2"
+          />
+          <line
+            x1="2"
+            y1="-12"
+            x2="2"
+            y2="-8"
+            stroke={accent}
+            strokeWidth="1.2"
+          />
+          <line
+            x1="6"
+            y1="-12"
+            x2="6"
+            y2="-8"
+            stroke={accent}
+            strokeWidth="1.2"
+          />
+        </>
+      ) : mockup.iconVariant === "burger-grill" ? (
+        <>
+          <path d="M-14,-3 C-14,-14 14,-14 14,-3 Z" fill="#F59E0B" />
+          <circle cx="-5" cy="-8" r="0.9" fill="#FEF3C7" />
+          <circle cx="2" cy="-10" r="0.9" fill="#FEF3C7" />
+          <circle cx="7" cy="-7" r="0.9" fill="#FEF3C7" />
+          <polygon
+            points="-15,-1 15,-1 11,4 5,1 0,5 -5,2 -11,4"
+            fill="#FBBF24"
+          />
+          <rect
+            x="-15"
+            y="3"
+            width="30"
+            height="6"
+            rx="2.5"
+            fill="#78350F"
+            stroke="#EA580C"
+            strokeWidth="1"
+          />
+          <rect x="-13" y="10" width="26" height="4.5" rx="2" fill="#D97706" />
+        </>
+      ) : mockup.iconVariant === "cutlery" ? (
+        <>
+          <circle
+            cx="0"
+            cy="0"
+            r="23"
+            fill="none"
+            stroke="#FDE68A"
+            strokeWidth="1.2"
+            strokeDasharray="3 2"
+          />
+          <path
+            d="M-9,-12 L-9,-2 L-6,13"
+            stroke="#FBBF24"
+            strokeWidth="1.8"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <line
+            x1="-11"
+            y1="-12"
+            x2="-11"
+            y2="-6"
+            stroke="#FBBF24"
+            strokeWidth="1"
+          />
+          <line
+            x1="-7"
+            y1="-12"
+            x2="-7"
+            y2="-6"
+            stroke="#FBBF24"
+            strokeWidth="1"
+          />
+          <path
+            d="M9,-12 C13,-12 13,-4 9,-2 L6,13"
+            stroke="#FBBF24"
+            strokeWidth="1.8"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <ellipse
+            cx="9"
+            cy="-7"
+            rx="3"
+            ry="4.5"
+            fill="#FBBF24"
+            opacity="0.6"
+          />
+        </>
+      ) : (
+        <>
+          <path
+            d="M0,18 C12,18 16,8 10,-2 C6,-8 0,-18 0,-18 C0,-18 -6,-8 -10,-2 C-16,8 -12,18 0,18 Z"
+            fill="#EA580C"
+          />
+          <path
+            d="M0,18 C7,18 9,12 6,4 C4,0 0,-8 0,-8 C0,-8 -4,0 -6,4 C-9,12 -7,18 0,18 Z"
+            fill="#FBBF24"
+          />
+        </>
+      )}
+    </g>
   );
 }
 

@@ -113,7 +113,7 @@ export function StylePresetGallery({
             data-testid="tab-content-presets"
             className="pt-3 outline-none"
           >
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               {presets.map((preset: CuratedStylePreset) => (
                 <StylePresetCardItem
                   key={preset.id}

@@ -98,6 +98,17 @@ Com o OfertaPronta, o microempresário informa os dados da promoção (**Briefin
 - **Tamanho:** Pequeno-Médio (S-M) — 1 semana.
 - **Outcome:** Retenção, Segurança do Consumidor e Visibilidade de Negócio.
 
+#### Épico 8: Vitrine de Inspirações da Comunidade & Histórico de Criações (`CommunityInspirations & CreationHistory`)
+- **Status:** 📋 **Prioridade Futura — Em Planejamento (Fase 2 / Transição Fase 3)**
+- **Hipótese:** Acreditamos que disponibilizar uma vitrine de cards reais gerados por outros comerciantes no mesmo segmento (com curadoria e opt-in no checkout), permitindo ao visitante navegar por inspirações autênticas e selecionar "Usar como Referência" em 1 toque (injetando automaticamente o estilo visual e enquadramento no briefing), somada a uma aba "Meus Cards Anteriores" sincronizada via `localStorage` sem exigir login ou senha, aumentará a confiança do microempresário na qualidade da IA, reduzirá o tempo de criação de quem chega sem ideias visuais e elevará a conversão de novos usuários em +15% e a taxa de recompra de novos cards para ≥ 30% em 30 dias.
+- **Métrica de Sucesso:**
+  - Taxa de conversão Visitante → Checkout com aumento relativo de ≥ 15% para usuários que interagem com a vitrine de inspirações.
+  - ≥ 25% dos rascunhos iniciados ou enriquecidos com a ação "Usar como Referência".
+  - Taxa de retenção/recompra no mesmo dispositivo (criação de um 2º card) ≥ 30% em até 30 dias.
+  - Taxa de opt-in de comerciantes permitindo exibir seus cards na vitrine pública ≥ 40%.
+- **Tamanho:** Médio (M) — 1 a 2 semanas.
+- **Outcome:** Prova Social Irrefutável, Redução de Fricção Criativa e Retenção Orgânica.
+
 ---
 
 ## 3. Sequenciamento Estratégico (Now / Next / Later)
@@ -119,15 +130,16 @@ flowchart TD
         direction TB
         E6["🎯 Épico 6: Ajuste Conversacional Guiado Pós-Compra<br/>(Quick Chips cirúrgicos, histórico de versões e rollback de arte)"]
         E7["📋 Épico 7: Persistência Local, Recuperação de Sessão & Analytics<br/>(Banner de recuperação no-login em localStorage + Telemetria de funil)"]
-        E6 --> E7
+        E8["✨ Épico 8: Vitrine de Inspirações & Histórico de Criações<br/>(Cards reais da comunidade, 'Usar como Referência' e histórico local)"]
+        E6 --> E7 --> E8
     end
 
     subgraph LATER["FASE 3 (Escala & Recorrência)"]
         direction TB
-        E8["Pacotes de Créditos Ativos no Checkout<br/>(5 campanhas por R$ 29,90 / 10 por R$ 49,90)"]
-        E9["Identidade Visual Salva (Brand Kit)<br/>(Logo, cores e WhatsApp salvos para 1 clique)"]
-        E10["Encartes Multiprodutos para Supermercados<br/>(Cards e tabloides com 3 a 6 itens em oferta)"]
-        E8 --> E9 --> E10
+        E9["Pacotes de Créditos Ativos no Checkout<br/>(5 campanhas por R$ 29,90 / 10 por R$ 49,90)"]
+        E10["Identidade Visual Salva (Brand Kit)<br/>(Logo, cores e WhatsApp salvos para 1 clique)"]
+        E11["Encartes Multiprodutos para Supermercados<br/>(Cards e tabloides com 3 a 6 itens em oferta)"]
+        E9 --> E10 --> E11
     end
 
     CONCLUIDO --> NOW --> LATER
@@ -154,5 +166,6 @@ flowchart TD
 | **Épico 5** | Galeria de Estilos e Referências por Segmento | - Módulo profundo `src/features/promotions/data/style-presets-catalog.ts` com 24 presets visuais curados por segmento.<br/>- Componentes `ProductImageUploaderCard` e `StylePresetGallery` na rota `/criar` com seleção de 1 toque e miniaturas vetoriais SVG locais.<br/>- Injeção profunda de Direção de Arte de Agência estruturada no prompt do `AdCardGenerator`. | ✅ **Concluído** |
 | **Épico 6** | Ajuste Conversacional Guiado Pós-Compra | - Componente de Quick Chips de ajustes cirúrgicos na rota `/pedido/$orderId`.<br/>- Histórico visual de até 3 versões geradas com alternância/rollback de download.<br/>- Refinamento do prompt cirúrgico de regeneração multimodal com instruções estruturadas. | 🎯 **Prioridade Ativa** |
 | **Épico 7** | Persistência Local, Recuperação de Sessão & Analytics | - Hook e serviço cliente de sincronização de rascunhos e pedidos em `localStorage`.<br/>- Banner de recuperação na Landing Page (`/`) com link direto para o pedido ativo.<br/>- Módulo leve de analytics de funil em Server Function / cliente respeitando privacidade. | 📋 **Prioridade 2** |
+| **Épico 8** | Vitrine de Inspirações da Comunidade & Cards Salvos | - Flag `is_public_showcase` e RPC `getCommunityShowcaseFn` filtrando cards aprovados por segmento.<br/>- Aba "Inspirações Reais" em `StylePresetGallery` com cards reais de alta conversão e ação "Usar como Referência".<br/>- Aba "Meus Cards Anteriores" no navegador (`localStorage`) para consulta rápida e reutilização de campanhas sem login. | 📋 **Planejado (Futuro)** |
 
 

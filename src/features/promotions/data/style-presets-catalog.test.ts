@@ -3,6 +3,7 @@ import { BUSINESS_SEGMENTS, type BusinessSegment } from "./offer-brief.schema";
 import {
   getSegmentPresets,
   getPresetById,
+  getCommercialGuide,
   resolveArtDirectionDirective,
   type LayoutVariant,
 } from "./style-presets-catalog";
@@ -189,6 +190,42 @@ describe("StylePresetsCatalog (style-presets-catalog.ts)", () => {
       const directive = resolveArtDirectionDirective("restaurant", "   ");
       expect(directive).toContain(
         '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Comidinha Caseira & Aconchego" ---',
+      );
+    });
+  });
+
+  describe("getCommercialGuide (Linguagem do Comerciante)", () => {
+    it("deve retornar o guia comercial com todos os 4 campos essenciais para todos os 24 presets", () => {
+      for (const segment of BUSINESS_SEGMENTS) {
+        const presets = getSegmentPresets(segment);
+        for (const preset of presets) {
+          const guide = getCommercialGuide(preset);
+          expect(guide.appearance.trim().length).toBeGreaterThan(0);
+          expect(guide.colorsSummary.trim().length).toBeGreaterThan(0);
+          expect(guide.customerVibe.trim().length).toBeGreaterThan(0);
+          expect(guide.idealFor.trim().length).toBeGreaterThan(0);
+
+          // Compatibilidade regressiva
+          expect(guide.visualTone).toBe(guide.appearance);
+          expect(guide.customerImpression).toBe(guide.customerVibe);
+        }
+      }
+    });
+
+    it("deve conter a cópia exata humanizada focada no negócio para o estilo salon-glamour", () => {
+      const preset = getPresetById("beauty-salon", "salon-glamour");
+      expect(preset).toBeDefined();
+      const guide = getCommercialGuide(preset!);
+
+      expect(guide.appearance).toBe(
+        "Visual iluminado e limpo, que valoriza cada detalhe sem reflexos pesados.",
+      );
+      expect(guide.colorsSummary).toBe("Tons elegantes de Rosa e Dourado.");
+      expect(guide.customerVibe).toBe(
+        "Passa ar de serviço VIP e alto padrão, transmitindo confiança para cobrar mais.",
+      );
+      expect(guide.idealFor).toBe(
+        "Unhas em gel, escova, maquiagem, estética facial e datas comemorativas.",
       );
     });
   });
