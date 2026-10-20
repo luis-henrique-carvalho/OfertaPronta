@@ -172,21 +172,7 @@ export async function generateAdCardImage(
   const targetAspectRatio: CardAspectRatio = input.targetAspectRatio ?? "feed";
   const geminiAspectRatio = targetAspectRatio === "story" ? "9:16" : "4:5";
 
-  log.info(`Enviando requisição para ${GEMINI_IMAGE_MODEL}`, {
-    segment: input.businessSegment,
-    targetAspectRatio,
-    geminiAspectRatio,
-    businessName: input.businessName,
-    offerTitle: input.offerTitle,
-    promoPrice: input.promoPrice,
-    promptPartsCount: promptParts.length,
-    hasProductImage: !!input.productImageDataUrl,
-    hasReferenceImage: !!input.referenceImageDataUrl,
-    hasBaseCardImage: !!input.baseCardImageDataUrl,
-    hasStylePreset: !!input.stylePresetId,
-    hasLogoImage: !!input.logoImageDataUrl,
-    cardIntent: input.cardIntent,
-  });
+  logPromptDispatch(input, targetAspectRatio, geminiAspectRatio, promptParts);
 
   try {
     const response = await geminiClient.models.generateContent({
@@ -207,6 +193,42 @@ export async function generateAdCardImage(
     log.error(`Erro ao chamar ${GEMINI_IMAGE_MODEL}`, error);
     handleGeminiApiError(error);
   }
+}
+
+function logPromptDispatch(
+  input: GenerateAdCardInput,
+  targetAspectRatio: CardAspectRatio,
+  geminiAspectRatio: string,
+  promptParts: Array<string | InlineDataPart>,
+): void {
+  const textDirectives = promptParts.filter(
+    (part): part is string => typeof part === "string",
+  );
+  const compiledPromptText = textDirectives.join("\n\n---\n\n");
+
+  log.info(`Enviando requisição para ${GEMINI_IMAGE_MODEL}`, {
+    segment: input.businessSegment,
+    targetAspectRatio,
+    geminiAspectRatio,
+    businessName: input.businessName,
+    offerTitle: input.offerTitle,
+    promoPrice: input.promoPrice,
+    promptPartsCount: promptParts.length,
+    hasProductImage: !!input.productImageDataUrl,
+    hasReferenceImage: !!input.referenceImageDataUrl,
+    hasBaseCardImage: !!input.baseCardImageDataUrl,
+    hasStylePreset: !!input.stylePresetId,
+    hasLogoImage: !!input.logoImageDataUrl,
+    cardIntent: input.cardIntent,
+    promptLengthChars: compiledPromptText.length,
+  });
+
+  log.info(
+    `Prompt textual compilado para ${GEMINI_IMAGE_MODEL}:\n${compiledPromptText}`,
+    {
+      compiledPromptText,
+    },
+  );
 }
 
 function extractCandidateImage(
