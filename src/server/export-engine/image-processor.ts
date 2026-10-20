@@ -236,8 +236,8 @@ export interface CobrandingOptions {
 }
 
 /**
- * Renderiza uma assinatura vetorial elegante em container translúcido de alto contraste
- * no rodapé do card nos formatos Feed (1080x1350) e Story (1080x1920).
+ * Renderiza uma marca d'água de assinatura vetorial sutil e não invasiva
+ * no canto inferior direito do card nos formatos Feed (1080x1350) e Story (1080x1920).
  */
 export async function applyCobrandingSignature(
   imageBuffer: Buffer,
@@ -252,53 +252,31 @@ export async function applyCobrandingSignature(
     (options?.creditText ?? "").trim() || "Design por @ofertapronta";
   const escapedText = escapeXml(creditText);
 
-  // Calibração de dimensões e posições
-  // Feed (1080×1350): Y centralizado em 1315px (margem inferior de 35px)
-  // Story (1080×1920): Y centralizado em 1835px (acima da barra de resposta do Instagram)
+  // Calibração de dimensões e posições (Marca d'água no canto inferior direito)
+  // Feed (1080×1350): Y em 1315px (margem inferior de 35px), X a 40px da margem direita
+  // Story (1080×1920): Y em 1835px (acima da barra de resposta do Instagram), X a 45px da margem direita
   const posY = isStory ? 1835 : 1315;
-  const fontSize = isStory ? 24 : 22;
-  const pillPaddingX = 20;
-  const pillHeight = 36;
-  const pillRadius = 18;
-
-  // Largura estimada do container pill com base na contagem de caracteres
-  const charWidth = fontSize * 0.58;
-  const estimatedTextWidth = Math.ceil(creditText.length * charWidth);
-  const pillWidth = estimatedTextWidth + pillPaddingX * 2;
-  const pillX = Math.round((width - pillWidth) / 2);
-  const pillY = posY - Math.round(pillHeight / 2);
-  const textBaselineY = posY + Math.round(fontSize * 0.35);
+  const posX = width - (isStory ? 45 : 40);
+  const fontSize = isStory ? 20 : 18;
 
   const svgOverlay = Buffer.from(`
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.5"/>
+        <filter id="wm-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.75"/>
         </filter>
       </defs>
-      <!-- Pill translúcido de alto contraste que garante legibilidade sobre qualquer fundo -->
-      <rect
-        x="${pillX}"
-        y="${pillY}"
-        width="${pillWidth}"
-        height="${pillHeight}"
-        rx="${pillRadius}"
-        ry="${pillRadius}"
-        fill="rgba(0, 0, 0, 0.55)"
-        stroke="rgba(255, 255, 255, 0.22)"
-        stroke-width="1"
-        filter="url(#shadow)"
-      />
-      <!-- Texto vetorial nítido -->
+      <!-- Texto em estilo marca d'água de assinatura: sutil, translúcido e não invasivo -->
       <text
-        x="${Math.round(width / 2)}"
-        y="${textBaselineY}"
-        text-anchor="middle"
+        x="${posX}"
+        y="${posY}"
+        text-anchor="end"
         font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
         font-size="${fontSize}"
-        font-weight="600"
-        letter-spacing="0.4"
-        fill="#FFFFFF"
+        font-weight="500"
+        letter-spacing="0.5"
+        fill="rgba(255, 255, 255, 0.70)"
+        filter="url(#wm-shadow)"
       >${escapedText}</text>
     </svg>
   `);

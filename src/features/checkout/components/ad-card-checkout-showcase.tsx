@@ -149,19 +149,16 @@ export function AdCardCheckoutShowcase({
             </div>
           )}
 
-          {/* Mockup sutil da assinatura de co-branding no rodapé da arte */}
+          {/* Mockup sutil da marca d'água de co-branding no canto inferior direito da arte */}
           {cobrandingAccepted && (
-            <div className="pointer-events-none absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex max-w-[90%] items-center justify-center">
-              <div className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/65 px-2.5 py-0.5 shadow-sm backdrop-blur-sm">
-                <Sparkles className="size-2.5 shrink-0 text-primary" />
-                <Typography
-                  variant="muted"
-                  as="span"
-                  className="truncate text-[10px] font-semibold text-white/95"
-                >
-                  {cobrandingCreditText || "Design por @ofertapronta"}
-                </Typography>
-              </div>
+            <div className="pointer-events-none absolute bottom-2 right-2.5 z-10 flex max-w-[85%] items-center justify-end">
+              <Typography
+                variant="muted"
+                as="span"
+                className="truncate text-[10px] font-medium tracking-wide text-white/75 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+              >
+                {cobrandingCreditText || "Design por @ofertapronta"}
+              </Typography>
             </div>
           )}
         </div>
