@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Textarea } from "@/components/ui/textarea";
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
@@ -60,7 +61,7 @@ export function RegenerationActiveForm({
             >
               Preço Promocional (Opcional)
             </FieldLabel>
-            <Input
+            <CurrencyInput
               id="regen-promo-price"
               value={promoPrice}
               onChange={(e) => setPromoPrice(e.target.value)}
@@ -77,7 +78,7 @@ export function RegenerationActiveForm({
             >
               Preço Original (De... Opcional)
             </FieldLabel>
-            <Input
+            <CurrencyInput
               id="regen-original-price"
               value={originalPrice}
               onChange={(e) => setOriginalPrice(e.target.value)}

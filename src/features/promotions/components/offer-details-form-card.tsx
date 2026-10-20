@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Typography } from "@/components/ui/typography";
 import {
   Field,
@@ -125,7 +126,7 @@ export function OfferDetailsFormCard({
         <div className="grid grid-cols-2 gap-3">
           <Field data-invalid={!!validationErrors.promoPrice}>
             <FieldLabel htmlFor="promo-price">Preço com Desconto *</FieldLabel>
-            <Input
+            <CurrencyInput
               id="promo-price"
               placeholder={currentCatalog.placeholders.promoPrice}
               value={promoPrice}
@@ -141,7 +142,7 @@ export function OfferDetailsFormCard({
             <FieldLabel htmlFor="original-price">
               Preço Original (opcional)
             </FieldLabel>
-            <Input
+            <CurrencyInput
               id="original-price"
               placeholder={currentCatalog.placeholders.originalPrice}
               value={originalPrice || ""}

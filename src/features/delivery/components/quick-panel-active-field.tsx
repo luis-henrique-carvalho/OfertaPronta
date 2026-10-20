@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Typography } from "@/components/ui/typography";
@@ -48,12 +49,11 @@ export function QuickPanelActiveField({
         <Label htmlFor="input-quick-price" className="text-xs font-semibold">
           Novo Preço Promocional
         </Label>
-        <Input
+        <CurrencyInput
           id="input-quick-price"
-          type="text"
           value={promoPrice}
           onChange={(e) => onPromoPriceChange(e.target.value)}
-          placeholder="Ex: R$ 34,90 ou 2 por R$ 50"
+          placeholder="Ex: R$ 34,90"
           className="h-10 bg-background text-sm"
           disabled={disabled}
           autoFocus
