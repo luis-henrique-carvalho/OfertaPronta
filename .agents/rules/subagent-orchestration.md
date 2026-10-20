@@ -24,6 +24,8 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
        1. Provisionar a worktree isolada: `git worktree add .worktrees/<slug> -b feat/<slug>`
        2. Garantir que `.worktrees/` conste no `.gitignore`.
        3. Invocar o `feature-orchestrator` passando o diretório da worktree (`Cwd: .worktrees/<slug>`) como raiz de execução para que a branch `main` permaneça 100% intocada até a homologação final.
+     - **Checklist Obrigatório Pós-Merge na Branch `main`**:
+       Sempre que a worktree contiver novas migrações SQL (`drizzle/*.sql`), após realizar o merge na branch `main`, o Chat Canvas DEVE rodar obrigatoriamente `pnpm db:migrate` na raiz do workspace antes de disparar o pipeline de verificação global de fechamento (`./.agents/scripts/verify.sh`).
      - Invoca o subagente `feature-orchestrator` (`Role: "Feature Factory Orchestrator"`) com o plano aprovado.
      - Apresenta o resultado final no Gate 3 e dispara o fechamento `/learn`.
    - **Nível 2 — Subagente Orquestrador (`feature-orchestrator`)**:

@@ -211,7 +211,7 @@ Para novas fases, funcionalidades ou refatorações:
 5. **Validação & Auditoria Paralelas**:
    - Despache `test-verifier` (`model: flash`) para rodar o pipeline oficial completo `./.agents/scripts/verify.sh`, regressões e o **Dual Browser Audit** (Mobile 390×844 e Desktop 1440×900 no dev server ativo).
    - Despache simultaneamente `implementation-validator` (`model: flash`) para auditar o diff contra a Spec, SOLID e anti-bloat (`ponytail-review`).
-6. **Fechamento & Auditoria de Execução**: Apresente o resultado no Gate 3, gere a telemetria operacional via `./.agents/scripts/audit_agent_execution.py <conversation_id>` e registre aprendizados no ritual `/learn`.
+6. **Fechamento & Auditoria de Execução**: Ao realizar o merge da worktree na branch `main`, se houver novas migrações SQL (`drizzle/*.sql`), execute obrigatoriamente `pnpm db:migrate` na raiz antes da homologação final. Apresente o resultado no Gate 3, gere a telemetria operacional via `./.agents/scripts/audit_agent_execution.py <conversation_id>` e registre aprendizados no ritual `/learn`.
 
 ---
 
