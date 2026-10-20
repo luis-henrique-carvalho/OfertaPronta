@@ -8,6 +8,7 @@ export {
   getSegmentPresets,
   getPresetById,
   resolveArtDirectionDirective,
+  SegmentRegistry,
   type CuratedStylePreset,
   type LayoutVariant,
   type StyleMockupSpec,

@@ -5,6 +5,10 @@ import {
   getPresetById,
   getCommercialGuide,
   resolveArtDirectionDirective,
+  mapPresetToStyleVisualOption,
+  LAYOUT_VARIANT_BLUEPRINTS,
+  LEGACY_PRESET_ID_ALIASES,
+  SegmentRegistry,
   type LayoutVariant,
 } from "./style-presets-catalog";
 
@@ -198,10 +202,166 @@ describe("StylePresetsCatalog (style-presets-catalog.ts)", () => {
         '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Comidinha Caseira & Aconchego" ---',
       );
     });
+
+    it("deve enriquecer a diretriz com as especificações do blueprint da LayoutVariant", () => {
+      const directive = resolveArtDirectionDirective(
+        "supermarket",
+        "market-discount",
+      );
+
+      expect(directive).toContain(
+        "- Variante de Arquitetura Gráfica (LayoutVariant): retail-burst",
+      );
+      expect(directive).toContain("- Grid Espacial e Posicionamento:");
+      expect(directive).toContain("- Família e Estilo Tipográfico:");
+      expect(directive).toContain("- Óptica Fotográfica e Setup de Estúdio:");
+      expect(directive).toContain("- Especificação Cromática HEX:");
+      expect(directive).toContain("- Estilo de Badge / Ancoragem:");
+      expect(directive).toContain("- Percepção Comercial para o Cliente:");
+    });
+
+    it("deve adaptar a especificação cromática quando hasReferenceImage ou hasCustomPalette for verdadeiro", () => {
+      const directiveWithRef = resolveArtDirectionDirective(
+        "pizzeria",
+        "pizza-rustic-wood",
+        { hasReferenceImage: true },
+      );
+      expect(directiveWithRef).toContain(
+        "priorizando os tons extraídos da Imagem de Referência ou Paleta Personalizada",
+      );
+
+      const directiveWithPalette = resolveArtDirectionDirective(
+        "pizzeria",
+        "pizza-rustic-wood",
+        { hasCustomPalette: true },
+      );
+      expect(directiveWithPalette).toContain(
+        "priorizando os tons extraídos da Imagem de Referência ou Paleta Personalizada",
+      );
+    });
+
+    it("deve adaptar o estilo de badge quando hasPromoPrice for falso (card institucional)", () => {
+      const directive = resolveArtDirectionDirective(
+        "fashion",
+        "fashion-boutique",
+        { hasPromoPrice: false },
+      );
+      expect(directive).toContain(
+        "Selo institucional editorial discreto sem conotação de preço",
+      );
+    });
+
+    it("deve resolver graciosamente IDs de presets legados via LEGACY_PRESET_ID_ALIASES", () => {
+      expect(LEGACY_PRESET_ID_ALIASES["pizza-rustic"]).toBe(
+        "pizza-rustic-wood",
+      );
+      expect(LEGACY_PRESET_ID_ALIASES["market-red"]).toBe("market-discount");
+
+      const directive = resolveArtDirectionDirective(
+        "pizzeria",
+        "pizza-rustic",
+      );
+      expect(directive).toContain(
+        '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Forno a Lenha Rústico" ---',
+      );
+
+      const preset = getPresetById("pizzeria", "pizza-rustic");
+      expect(preset?.id).toBe("pizza-rustic-wood");
+
+      const marketPreset = getPresetById("supermarket", "market-red");
+      expect(marketPreset?.id).toBe("market-discount");
+    });
+  });
+
+  describe("LAYOUT_VARIANT_BLUEPRINTS", () => {
+    it("deve conter blueprints válidos para todas as 6 variantes canônicas de layout", () => {
+      expect(Object.keys(LAYOUT_VARIANT_BLUEPRINTS)).toHaveLength(6);
+
+      for (const variant of VALID_LAYOUT_VARIANTS) {
+        const bp = LAYOUT_VARIANT_BLUEPRINTS[variant];
+        expect(bp).toBeDefined();
+        expect(bp.layoutVariant).toBe(variant);
+        expect(bp.spatialGrid.trim().length).toBeGreaterThan(0);
+        expect(bp.descriptiveTypography.trim().length).toBeGreaterThan(0);
+        expect(bp.priceBadgeStyle.trim().length).toBeGreaterThan(0);
+        expect(bp.cameraAndLightingSetup.trim().length).toBeGreaterThan(0);
+        expect(bp.defaultTailwindPreview.color.trim().length).toBeGreaterThan(
+          0,
+        );
+        expect(
+          bp.defaultTailwindPreview.bgPreview.trim().length,
+        ).toBeGreaterThan(0);
+        expect(bp.defaultTailwindPreview.badgeBg.trim().length).toBeGreaterThan(
+          0,
+        );
+        expect(
+          bp.defaultTailwindPreview.textColor.trim().length,
+        ).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe("mapPresetToStyleVisualOption", () => {
+    it("deve mapear um CuratedStylePreset para StyleVisualOption com fidelidade visual", () => {
+      const presets = getSegmentPresets("fashion");
+      for (const preset of presets) {
+        const visual = mapPresetToStyleVisualOption(preset);
+        expect(visual.id).toBe(preset.id);
+        expect(visual.name.trim().length).toBeGreaterThan(0);
+        expect(visual.tag.trim().length).toBeGreaterThan(0);
+        expect(visual.color.trim().length).toBeGreaterThan(0);
+        expect(visual.bgPreview.trim().length).toBeGreaterThan(0);
+        expect(visual.badgeBg.trim().length).toBeGreaterThan(0);
+        expect(visual.badgeText).toBe(preset.mockup.badgeText);
+        expect(visual.textColor.trim().length).toBeGreaterThan(0);
+        expect(visual.paletteSwatches).toEqual(preset.paletteSwatches);
+      }
+    });
+  });
+
+  describe("SegmentRegistry", () => {
+    it("getAllSegments retorna todas as 7 definições canônicas", () => {
+      const segments = SegmentRegistry.getAllSegments();
+      expect(segments).toHaveLength(7);
+      expect(segments.map((s) => s.id)).toEqual(BUSINESS_SEGMENTS);
+    });
+
+    it("getSegment retorna a definição com metadados, visualGuideline e 4 presets", () => {
+      for (const segmentId of BUSINESS_SEGMENTS) {
+        const segment = SegmentRegistry.getSegment(segmentId);
+        expect(segment.id).toBe(segmentId);
+        expect(segment.label.trim().length).toBeGreaterThan(0);
+        expect(segment.shortDescription.trim().length).toBeGreaterThan(0);
+        expect(segment.icon).toBeDefined();
+        expect(segment.iconName.trim().length).toBeGreaterThan(0);
+        expect(segment.placeholders.businessName.trim().length).toBeGreaterThan(
+          0,
+        );
+        expect(
+          segment.visualGuideline.visualStyle.trim().length,
+        ).toBeGreaterThan(0);
+        expect(
+          segment.visualGuideline.atmosphere.trim().length,
+        ).toBeGreaterThan(0);
+        expect(segment.presets).toHaveLength(4);
+      }
+    });
+
+    it("permite registrar dinamicamente novos segmentos com zero impacto nos existentes", () => {
+      const customDef = {
+        ...SegmentRegistry.getSegment("local-retail"),
+        id: "local-retail" as const,
+        label: "Varejo Local Atualizado",
+      };
+      SegmentRegistry.registerSegment(customDef);
+      expect(SegmentRegistry.getSegment("local-retail").label).toBe(
+        "Varejo Local Atualizado",
+      );
+    });
   });
 
   describe("getCommercialGuide (Linguagem do Comerciante)", () => {
-    it("deve retornar o guia comercial com todos os 4 campos essenciais para todos os 24 presets", () => {
+    it("deve retornar o guia comercial com todos os 4 campos essenciais para todos os 28 presets", () => {
       for (const segment of BUSINESS_SEGMENTS) {
         const presets = getSegmentPresets(segment);
         for (const preset of presets) {

@@ -69,12 +69,12 @@ describe("CreationCatalog (creation-catalog.ts)", () => {
     }
   });
 
-  it("cada segmento contém exatamente 6 estilos visuais completos com layout types canônicos", () => {
+  it("cada segmento contém exatamente 4 estilos visuais completos sincronizados com o catálogo canônico", () => {
     const allStyleIds = new Set<string>();
 
     for (const segment of BUSINESS_SEGMENTS) {
       const item = CREATION_CATALOG[segment];
-      expect(item.styles).toHaveLength(6);
+      expect(item.styles).toHaveLength(4);
 
       for (const style of item.styles) {
         expect(style.id).toMatch(/^[a-z0-9-]+$/);
@@ -99,8 +99,8 @@ describe("CreationCatalog (creation-catalog.ts)", () => {
       }
     }
 
-    // 7 segmentos * 6 estilos = 42 estilos únicos
-    expect(allStyleIds.size).toBe(42);
+    // 7 segmentos * 4 estilos = 28 estilos únicos
+    expect(allStyleIds.size).toBe(28);
   });
 
   it("exporta QUICK_BRAND_PALETTES com exatamente 6 paletas de duas cores", () => {
@@ -162,10 +162,10 @@ describe("CreationCatalog (creation-catalog.ts)", () => {
       ]);
     });
 
-    it("getSegmentStyles retorna 6 estilos para o segmento", () => {
+    it("getSegmentStyles retorna 4 estilos para o segmento", () => {
       const styles = getSegmentStyles("pizzeria");
-      expect(styles).toHaveLength(6);
-      expect(styles[0].id).toBe("pizza-rustic");
+      expect(styles).toHaveLength(4);
+      expect(styles[0].id).toBe("pizza-rustic-wood");
     });
 
     it("getCreationStyleById localiza o estilo correto ou retorna undefined", () => {
@@ -175,6 +175,20 @@ describe("CreationCatalog (creation-catalog.ts)", () => {
 
       const notFound = getCreationStyleById("non-existent-style");
       expect(notFound).toBeUndefined();
+    });
+
+    it("getCreationStyleById resolve graciosamente aliases de estilos legados", () => {
+      const pizzaLegacy = getCreationStyleById("pizza-rustic");
+      expect(pizzaLegacy).toBeDefined();
+      expect(pizzaLegacy?.id).toBe("pizza-rustic-wood");
+
+      const marketLegacy = getCreationStyleById("market-red");
+      expect(marketLegacy).toBeDefined();
+      expect(marketLegacy?.id).toBe("market-discount");
+
+      const burgerLegacy = getCreationStyleById("burger-dark");
+      expect(burgerLegacy).toBeDefined();
+      expect(burgerLegacy?.id).toBe("burger-dark-bold");
     });
   });
 });
