@@ -196,14 +196,21 @@ src/
 Para novas fases, funcionalidades ou refatorações:
 
 1. **Context Discovery & Worktree Provisioning (`codebase-researcher`)**: Mapeie dependências com `graphify query` (`model: flash`), inspecione `PRD.md`, `GLOSSARY.md` e provisione obrigatoriamente a worktree isolada da feature via `git worktree add .worktrees/<slug> -b feat/<slug>` antes de iniciar qualquer ciclo de planejamento ou construção.
-2. **Gate 0 — Produto & Regras de Negócio (`product-manager`, `model: inherit`)**: Despache o `product-manager` para analisar `PRD.md` e `GLOSSARY.md`, caçar lacunas de negócio, casos de borda e fluxos mobile-first, entrevistando o usuário diretamente via `ask_question` (`/grill-me`) até eliminar todos os gaps, salvando a Spec de Produto em `docs/specs/<slug>.md` (`to-spec`) e os tickets verticais em `docs/tickets/<slug>/<NN>-<ticket>.md` (`to-tickets`).
-3. **Gate 0 Técnico & Planejamento (`solution-architect`, `model: inherit`)**: Despache o `solution-architect` para auditar Arquitetura (*Deep Modules*), Isolamento Client/Server, Segurança (Zod nas bordas, HMAC, idempotência, preços autoritativos) e Qualidade (SOLID + `ponytail`), entrevistando o usuário via `ask_question` sobre trade-offs técnicos e redigindo a especificação em `docs/plans/<slug>.md` (e `implementation_plan.md`) com diagramas Mermaid obrigatórios.
-4. **Construção Paralela Inteligente (`feature-orchestrator`)**:
-   - Despache `backend-builder` (`model: flash`) para serviços de backend (Server Functions, Drizzle schemas, `AdCardGenerator` Gemini, Webhooks Pix, `ExportEngine` Sharp/S3).
-   - Despache `frontend-builder` (`model: flash`) para rotas TanStack Start, componentes de briefing multisegmento, uploaders de produto/referência, preview de card e telas mobile-first.
+2. **Gate 0 — Planejamento Inteligente & Anti-Cerimônia**:
+   - **Fast-Track Pós-Protótipo**: Se a feature já possui protótipo funcional validado pelo usuário (`/prototype`), pule o `product-manager` e despache diretamente o `solution-architect` (`model: inherit`) para consolidar a arquitetura em `docs/plans/<slug>.md` e gerar no máximo **2 Macro-Tickets** (`01-backend-stream.md` e `02-frontend-stream.md`).
+   - **Fluxo Standard (Sem Protótipo)**: Despache `product-manager` (`model: inherit`) para caçar lacunas de negócio via `ask_question` (`/grill-me`), salvando `docs/specs/<slug>.md` e no máximo **2 a 3 Macro-Tickets** em `docs/tickets/<slug>/`. Em seguida, despache `solution-architect` (`model: inherit`) para redigir o plano técnico em `docs/plans/<slug>.md` com diagramas Mermaid.
+3. **Macro-Streams Paralelas (Fim do Over-Slicing)**:
+   - É proibido fatiar em 4+ micro-tickets sequenciais. Adote o padrão de **2 Macro-Streams**:
+     - **Stream 1 (Backend & Data)**: Drizzle Schemas + Migrações SQL + Schemas Zod isomórficos + Services/Prompts + Testes unitários de backend.
+     - **Stream 2 (Frontend & UX)**: Catálogo/DTOs + Hook de Estado + Componentes Visuais + Rota + Testes de integração/UI.
+   - O `feature-orchestrator` despacha ambas as streams concorrentemente via `invoke_subagent`.
+4. **Dieta de Contexto & TDD Cirúrgico nos Builders**:
+   - Builders (`backend-builder`, `frontend-builder`) são proibidos de chamar `view_file` em `AGENTS.md`, `PRD.md` ou `GLOSSARY.md` (o `AGENTS.md` já é injetado automaticamente pelo Antigravity em `<user_rules>`). Devem abrir apenas o seu ticket ativo e os contratos técnicos.
+   - No ciclo TDD, builders rodam exclusivamente o teste do arquivo editado (`pnpm vitest run <caminho.test.ts>` em 1-2s) + `pnpm typecheck`. Proibido rodar `pnpm test` global ou `pnpm build` dentro dos builders.
+   - Sempre que `src/server/db/schema/` for alterado, o `backend-builder` DEVE rodar obrigatoriamente `pnpm db:generate && pnpm db:migrate` dentro da worktree para persistir a migração SQL em `drizzle/`.
 5. **Validação & Auditoria Paralelas**:
-   - Despache `test-verifier` (`model: flash`) para rodar o pipeline completo de qualidade do projeto via `./.agents/scripts/verify.sh` (ou `./scripts/verify.sh`), checagem estrita de tipos (`pnpm typecheck`), conformidade Shadcn UI, Vitest (`pnpm test`), regressões e o **Dual Browser Audit** (Mobile 390×844 e Desktop 1440×900 no dev server ativo).
-   - Despache `implementation-validator` (`model: flash`) para auditar o diff contra a Spec, SOLID e anti-bloat (`ponytail-review`).
+   - Despache `test-verifier` (`model: flash`) para rodar o pipeline oficial completo `./.agents/scripts/verify.sh`, regressões e o **Dual Browser Audit** (Mobile 390×844 e Desktop 1440×900 no dev server ativo).
+   - Despache simultaneamente `implementation-validator` (`model: flash`) para auditar o diff contra a Spec, SOLID e anti-bloat (`ponytail-review`).
 6. **Fechamento & Auditoria de Execução**: Apresente o resultado no Gate 3, gere a telemetria operacional via `./.agents/scripts/audit_agent_execution.py <conversation_id>` e registre aprendizados no ritual `/learn`.
 
 ---

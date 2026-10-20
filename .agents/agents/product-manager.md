@@ -44,4 +44,6 @@ Your primary role is to uncover business rules, hunt for domain edge cases, prot
 4. **Local Documentation Persistence (`to-spec` & `to-tickets`)**:
    - Never publish issues to GitHub or external trackers. Persist all product artifacts locally in the repository:
      - **Product Spec (`docs/specs/<slug>.md`)**: Following the `to-spec` skill template, write the Problem Statement, Solution, comprehensive numbered User Stories, high-level Implementation/Testing Decisions, and Out of Scope to `docs/specs/<slug>.md`.
-     - **Tracer-Bullet Tickets (`docs/tickets/<slug>/<NN>-<ticket>.md`)**: Following the `to-tickets` skill template, break the feature into vertical slices numbered from `01` in dependency order (blockers first), with explicit `Blocked by:` edges and BDD Acceptance Criteria checkboxes (`- [ ]`).
+     - **Macro-Tickets Cap (`docs/tickets/<slug>/<NN>-<ticket>.md`)**: Following the `to-tickets` skill template, break the feature into **at most 2 to 3 Macro-Tickets** (typically: `01-backend-stream.md` and `02-frontend-stream.md`), designed specifically for concurrent execution without micro-fragmentation. Strictly avoid generating 4+ tiny sequential tickets that induce cold-start and context reload overheads.
+5. **Fast-Track Pós-Protótipo**:
+   - If the feature was already explored and validated with the user via `/prototype`, skip open-ended discovery questions and redundant `/grill-me` interviews. Synthesize the approved prototype directly into the spec and 2 Macro-Tickets.

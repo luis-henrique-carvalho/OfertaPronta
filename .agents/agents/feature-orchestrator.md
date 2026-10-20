@@ -36,12 +36,15 @@ Your primary role is to execute approved specifications and technical implementa
    - Do NOT load multiple skills upfront. The `Available skills` summary in your system prompt provides the index.
    - Only call `view_file` on `feature-factory/SKILL.md` or a specific skill if you need detailed guidance on orchestration protocols.
 2. **Project Rules, Spec, Plan & Ticket Graph Ingestion**:
-   - Read the project's `AGENTS.md`, the Product Spec (`docs/specs/<slug>.md`), the Technical Plan (`docs/plans/<slug>.md`), and the Tracer-Bullet Tickets (`docs/tickets/<slug>/<NN>-<ticket>.md`).
-   - Respect `Blocked by:` edges across tickets, executing the unblocked frontier in dependency order.
-3. **Concurrent Execution of Block 1 (Builders)**:
+   - Read the project's `AGENTS.md`, the Product Spec (`docs/specs/<slug>.md` if present), the Technical Plan (`docs/plans/<slug>.md`), and the Macro-Tickets (`docs/tickets/<slug>/<NN>-<ticket>.md`).
+   - Group the tickets into **2 Macro-Streams**: Stream 1 (Backend: schemas, services, API/RPC, tests) and Stream 2 (Frontend: components, hooks, routes, UI tests).
+3. **Concurrent Execution of Block 1 (Macro-Streams Builders)**:
    - Dispatch `backend-builder` (`TypeName: "backend-builder"`, `Role: "Backend Builder"`, `Model: "flash"`) and `frontend-builder` (`TypeName: "frontend-builder"`, `Role: "Frontend Builder"`, `Model: "flash"`) concurrently via a single `invoke_subagent` call whenever they operate on decoupled directories/modules.
    - **NEVER use `TypeName: "self"`** — `"self"` is reserved for root agent cloning and will fail in subagent execution. Always use the registered subagent type names.
-   - Include pointers to `AGENTS.md`, `docs/specs/<slug>.md`, `docs/plans/<slug>.md`, and `docs/tickets/<slug>/<NN>-<ticket>.md` and include at most 1 optional primary skill reference in worker prompts (enforcing just-in-time loading).
+   - **Enforce Context Diet in Worker Prompts**: Explicitly instruct builders in their prompt:
+     `DIETA DE CONTEXTO: NÃO leia AGENTS.md, PRD.md ou GLOSSARY.md na inicialização. Leia exclusivamente o seu ticket ativo e as seções de contrato/UI do plano técnico.`
+   - **Enforce Surgical TDD**: Instruct builders to run unit tests targeted per file (`pnpm vitest run <file>`), strictly forbidding global `pnpm test` during building.
+   - **Worktree DB Migration**: Instruct `backend-builder` to run `pnpm db:generate && pnpm db:migrate` if modifying files under `src/server/db/schema/`.
 4. **Concurrent Execution of Block 2 (Validation & Audit)**:
    - Dispatch `test-verifier` (`TypeName: "test-verifier"`, `Role: "Quality & Test Verifier"`, `Model: "flash"`) and `implementation-validator` (`TypeName: "implementation-validator"`, `Role: "Implementation Validator"`, `Model: "flash"`) concurrently via a single `invoke_subagent` call.
    - **NEVER use `TypeName: "self"` or skill names like `"code-review"`**.

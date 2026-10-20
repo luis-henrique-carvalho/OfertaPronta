@@ -26,9 +26,10 @@ Break the work into **tracer bullet** tickets:
 
 <vertical-slice-rules>
 
-- Each slice cuts a narrow but COMPLETE path through every layer (schema, backend module/RPC, UI, tests): vertical, NOT a horizontal slice of one layer.
+- Each slice cuts a narrow but COMPLETE path through the architecture, grouped into **at most 2 to 3 Macro-Tickets** per feature/epic (e.g., `01-backend-stream.md` and `02-frontend-stream.md`).
+- Avoid micro-fragmentation (e.g. 5+ small tickets) which causes cold-start overhead, repetitive subagent spawns, and sequential queuing.
+- Slices should maximize concurrent execution (Stream 1 Backend and Stream 2 Frontend running in parallel).
 - A completed slice is demoable or verifiable on its own.
-- Each slice is sized to fit cleanly in a single builder execution turn.
 - Any prefactoring or foundational schema/seam setup goes first (`01-...`).
 
 </vertical-slice-rules>

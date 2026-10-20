@@ -10,6 +10,7 @@ import os
 import json
 import glob
 import re
+import argparse
 from datetime import datetime
 from collections import Counter
 
@@ -34,7 +35,7 @@ def format_duration(seconds):
         return f"{minutes}m {secs}s"
     return f"{secs}s"
 
-def audit_conversation(conv_id, brain_base=None):
+def audit_conversation(conv_id, brain_base=None, from_text=None):
     if not brain_base:
         brain_base = os.path.expanduser("~/.gemini/antigravity/brain")
     
@@ -45,17 +46,32 @@ def audit_conversation(conv_id, brain_base=None):
         print(f"Erro: Transcript não encontrado em {transcript_path}", file=sys.stderr)
         sys.exit(1)
 
-    steps = []
+    all_steps = []
     with open(transcript_path, "r", encoding="utf-8", errors="ignore") as f:
         for line in f:
             line = line.strip()
             if line:
                 try:
-                    steps.append(json.loads(line))
+                    all_steps.append(json.loads(line))
                 except Exception:
                     pass
 
+    # Filter steps if from_text is specified
+    steps = all_steps
+    filtered_from_idx = None
+    if from_text:
+        search_lower = from_text.lower()
+        for idx, s in enumerate(all_steps):
+            if s.get("type") == "USER_INPUT" and search_lower in s.get("content", "").lower():
+                steps = all_steps[idx:]
+                filtered_from_idx = s.get("step_index", idx)
+                break
+
     total_steps = len(steps)
+    if total_steps == 0:
+        print(f"Aviso: Nenhum step encontrado {'a partir de: ' + from_text if from_text else ''}")
+        return
+
     first_time = None
     last_time = None
     
@@ -75,6 +91,10 @@ def audit_conversation(conv_id, brain_base=None):
     schedule_calls = []
     subagents_created = []
     
+    prev_time = None
+    active_duration_sec = 0
+    idle_pauses_sec = 0
+
     # Process steps
     for s in steps:
         idx = s.get("step_index", 0)
@@ -85,6 +105,16 @@ def audit_conversation(conv_id, brain_base=None):
                 first_time = t
             if not last_time or t > last_time:
                 last_time = t
+
+            if prev_time:
+                delta = (t - prev_time).total_seconds()
+                if delta > 0:
+                    # Gaps > 10 min between turns are treated as user idle pauses
+                    if delta > 600 and s.get("type") == "USER_INPUT":
+                        idle_pauses_sec += delta
+                    else:
+                        active_duration_sec += delta
+            prev_time = t
                 
         stype = s.get("type")
         if stype == "PLANNER_RESPONSE":
@@ -118,7 +148,7 @@ def audit_conversation(conv_id, brain_base=None):
                 if name == "run_command":
                     cmd = args.get("CommandLine", "")
                     commands_run.append(cmd)
-                    if "transcript.jsonl" in cmd or "tail" in cmd and "brain" in cmd:
+                    if "transcript.jsonl" in cmd or ("tail" in cmd and "brain" in cmd):
                         tail_spy_commands.append(cmd)
                 elif name == "view_file":
                     p = args.get("AbsolutePath", "")
@@ -139,7 +169,9 @@ def audit_conversation(conv_id, brain_base=None):
                         subagents_created.extend(subs)
 
     # Calculate duration
-    total_duration_sec = (last_time - first_time).total_seconds() if (first_time and last_time) else 0
+    wall_duration_sec = (last_time - first_time).total_seconds() if (first_time and last_time) else 0
+    if active_duration_sec == 0 and wall_duration_sec > 0:
+        active_duration_sec = wall_duration_sec
 
     # Tasks in task directory
     task_files = glob.glob(os.path.join(conv_dir, ".system_generated/tasks/task-*.log"))
@@ -183,19 +215,25 @@ def audit_conversation(conv_id, brain_base=None):
     # Print Report
     print(f"# Relatório de Auditoria Operacional & Telemetria do Agente")
     print(f"\n**Conversation ID:** `{conv_id}`")
+    if filtered_from_idx is not None:
+        print(f"**Filtro Ativo:** A partir do Step {filtered_from_idx} (`\"{from_text}\"`)")
     print(f"**Data da Sessão:** {first_time.strftime('%d/%m/%Y') if first_time else 'N/A'}")
-    print(f"**Intervalo de Execução:** {first_time.strftime('%H:%M:%S UTC') if first_time else ''} → {last_time.strftime('%H:%M:%S UTC') if last_time else ''}")
-    print(f"**Duração Total:** **{format_duration(total_duration_sec)}**\n")
+    print(f"**Intervalo:** {first_time.strftime('%H:%M:%S UTC') if first_time else ''} → {last_time.strftime('%H:%M:%S UTC') if last_time else ''}")
+    print(f"**Tempo Ativo de Execução:** **{format_duration(active_duration_sec)}** *(Tempo real de trabalho do agente)*")
+    if idle_pauses_sec > 0:
+        print(f"**Pausas/Ociosidade Humana:** {format_duration(idle_pauses_sec)} *(Gaps > 10 min entre interações)*")
+    print(f"**Tempo Decorrido Total (Wall-Clock):** {format_duration(wall_duration_sec)}\n")
     print("---\n")
 
     print("## 1. Dashboard Geral de Telemetria e Consumo\n")
     print("| Métrica | Valor Registrado | Avaliação de Eficiência |")
     print("|---|:---:|:---:|")
-    dur_eval = "🔴 Crítico (> 1h)" if total_duration_sec > 3600 else ("🟡 Atenção (> 30m)" if total_duration_sec > 1800 else "🟢 Ótimo")
-    print(f"| **Duração Total da Sessão** | **{format_duration(total_duration_sec)}** | {dur_eval} |")
+    dur_eval = "🔴 Crítico (> 1h)" if active_duration_sec > 3600 else ("🟡 Atenção (> 30m)" if active_duration_sec > 1800 else "🟢 Ótimo")
+    print(f"| **Tempo Ativo de Execução** | **{format_duration(active_duration_sec)}** | {dur_eval} |")
+    print(f"| **Tempo Decorrido (Wall Clock)** | {format_duration(wall_duration_sec)} | Informativo |")
     
     step_eval = "🔴 Crítico (> 300)" if total_steps > 300 else ("🟡 Atenção (> 100)" if total_steps > 100 else "🟢 Ótimo")
-    print(f"| **Total de Steps Registrados** | **{total_steps:,}** | {step_eval} |")
+    print(f"| **Total de Steps Analisados** | **{total_steps:,}** | {step_eval} |")
     
     print(f"| **Invocações do Modelo (LLM)** | **{model_invocations:,} turnos** | {step_eval} |")
     
@@ -241,7 +279,7 @@ def audit_conversation(conv_id, brain_base=None):
         
     repetitive_edits = [f"{p} ({c}x)" for p, c in file_edits.items() if c >= 4]
     if repetitive_edits:
-        issues_found.append(f"⚠️ **Tentativa e Erro Caótica (Edições Repetidas):** Arquivos editados 4 ou mais vezes na mesma sessão: {', '.join(repetitive_edits)}. Indica falta de planejamento prévio e desrespeito ao princípio Ponytail.")
+        issues_found.append(f"⚠️ **Tentativa e Erro Caótica (Edições Repetidas):** Arquivos editados 4 ou mais vezes no intervalo analisado: {', '.join(repetitive_edits)}. Indica falta de planejamento prévio e desrespeito ao princípio Ponytail.")
 
     if len(large_tasks) > 0:
         large_list = [f"`{t[0]}` ({t[1]//1024} KB)" for t in large_tasks[:4]]
@@ -267,20 +305,27 @@ def audit_conversation(conv_id, brain_base=None):
         t_cache = trn["cache_tok"]
         top_t = ", ".join([f"{k}:{v}" for k, v in trn["tools"].most_common(2)])
         
+        t_dur_str = "N/A"
+        if trn["start"] and trn["steps"]:
+            last_step_t = parse_iso(trn["steps"][-1].get("created_at"))
+            if last_step_t:
+                d_sec = (last_step_t - trn["start"]).total_seconds()
+                t_dur_str = format_duration(d_sec)
+        
         diag = "🟢 Eficiente"
         if t_steps > 150 or t_cache > 10_000_000:
             diag = "🔴 Desperdício Crítico"
         elif t_steps > 50 or t_cache > 3_000_000:
             diag = "🟡 Ineficiente"
             
-        print(f"| **T{i+1}** | {t_prompt} | {t_steps} | ~ | {t_in:,} | {t_cache:,} | {top_t} | {diag} |")
+        print(f"| **T{i+1}** | {t_prompt} | {t_steps} | {t_dur_str} | {t_in:,} | {t_cache:,} | {top_t} | {diag} |")
         
     print("\n---\n")
 
     print("## 5. Scoreboard de Eficiência Operacional\n")
     score = 100
-    if total_duration_sec > 3600: score -= 30
-    elif total_duration_sec > 1800: score -= 15
+    if active_duration_sec > 3600: score -= 30
+    elif active_duration_sec > 1800: score -= 15
     if len(schedule_calls) > 10: score -= 25
     if len(tail_spy_commands) > 5: score -= 20
     if len(repetitive_edits) > 0: score -= 15
@@ -291,7 +336,10 @@ def audit_conversation(conv_id, brain_base=None):
     print("\n*Relatório gerado automaticamente por `.agents/scripts/audit_agent_execution.py`.*")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Uso: audit_agent_execution.py <conversation_id> [brain_path]")
-        sys.exit(1)
-    audit_conversation(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
+    parser = argparse.ArgumentParser(description="Auditoria de Execução Operacional de Agentes Antigravity")
+    parser.add_argument("conversation_id", help="ID da conversa a auditar")
+    parser.add_argument("--brain-path", default=None, help="Caminho raiz do diretório brain")
+    parser.add_argument("--from-text", default=None, help="Filtrar steps a partir do primeiro comando do usuário contendo este texto")
+    
+    args = parser.parse_args()
+    audit_conversation(args.conversation_id, args.brain_path, args.from_text)

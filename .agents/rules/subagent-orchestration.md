@@ -12,9 +12,12 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
 1. **Topologia Hierárquica de Planejamento e Execução**:
    - **Nível 1 — Chat Canvas (Root / User Bridge)**:
      - Coordena a descoberta inicial acionando `codebase-researcher` (`model: flash`) para mapeamento rápido do grafo (`graphify query`).
-     - Delega o **Gate 0 Mandatório (`/grill-me`) e Planejamento (`/plan`)** para a dupla de especialistas em `model: inherit`:
-       - **`product-manager`**: analisa regras de negócio, domínio (`AGENTS.md`, `PRD.md`, `GLOSSARY.md`) e jornada do usuário (UX), entrevistando o usuário diretamente via `ask_question` para eliminar gaps de negócio, salvando a Spec de Produto em `docs/specs/<slug>.md` (`to-spec`) e os tickets verticais em `docs/tickets/<slug>/<NN>-<ticket>.md` (`to-tickets`).
-       - **`solution-architect`**: avalia arquitetura (*Deep Modules*), isolamento de camadas/fronteiras, qualidade (SOLID/Ponytail) e segurança (validação de schemas nas bordas, assinaturas/autenticação, idempotência e regras autoritativas no backend), entrevistando o usuário via `ask_question` e redigindo a especificação técnica em `docs/plans/<slug>.md` (e `implementation_plan.md`) com diagramas Mermaid estruturais obrigatórios.
+     - **Fast-Track Pós-Protótipo (Anti-Cerimônia)**:
+       - Se a funcionalidade **já possui um protótipo funcional validado pelo usuário** na sessão (ex: via `/prototype`), **PULE** o despacho de `product-manager` e `to-tickets`. Despache diretamente o **`solution-architect`** (`model: inherit`) para consolidar a arquitetura em `docs/plans/<slug>.md` e gerar no máximo **2 Macro-Tickets** (`01-backend-stream.md` e `02-frontend-stream.md`).
+     - **Fluxo Standard (Demandas do Zero sem Protótipo)**:
+       - Delega o **Gate 0 Mandatório (`/grill-me`) e Planejamento (`/plan`)** para a dupla de especialistas em `model: inherit`:
+         - **`product-manager`**: analisa regras de negócio e UX via `ask_question`, salvando a Spec em `docs/specs/<slug>.md` e fatiando em no máximo **2 a 3 Macro-Tickets** em `docs/tickets/<slug>/`.
+         - **`solution-architect`**: avalia arquitetura (*Deep Modules*), segurança e qualidade, redigindo `docs/plans/<slug>.md` (e `implementation_plan.md`) com diagramas Mermaid.
      - Aguarda aprovação explícita do usuário no Gate Humano 1 & 2.
      - **Provisionamento Obrigatório de Git Worktree (Isolamento Físico de Features)**:
        Antes de invocar o `feature-orchestrator`, o Chat Canvas DEVE obrigatoriamente:
@@ -25,72 +28,49 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
      - Apresenta o resultado final no Gate 3 e dispara o fechamento `/learn`.
    - **Nível 2 — Subagente Orquestrador (`feature-orchestrator`)**:
      - Opera com carregamento cirúrgico de skills sob demanda (Just-in-Time), sem poluição de contexto.
-     - Comanda a esteira técnica e gerencia os blocos de execução paralela respeitando a ordem de dependência (`Blocked by:`) dos tickets em `docs/tickets/<slug>/`.
+     - Comanda a esteira técnica e gerencia os blocos de execução paralela respeitando a ordem de dependência (`Blocked by:`) dos macro-tickets.
      - Conduz o loop de auto-correção iterativo caso haja quebras de teste ou code smells.
      - Reporta o resultado consolidado ao Chat Canvas.
 
-2. **Carregamento Cirúrgico e Just-in-Time de Skills (Anti-Bloat & Progressive Disclosure Real)**:
-   - **Proibição de Carga em Massa Upfront**: É TERMINANTEMENTE PROIBIDO injetar listas de 3 ou mais skills para leitura obrigatória em bloco no início do prompt de qualquer subagente. Essa prática consome dezenas de milhares de tokens desnecessários, dispersa a atenção do modelo (*Lost in the Middle*), introduz latência estéril e causa conflito entre diretrizes.
-   - **Princípio da Divulgação Progressiva**: A lista `Available skills` do prompt de sistema já fornece o sumário de indexação (nome e descrição curta). O agente só deve invocar `view_file` no arquivo `SKILL.md` específico **sob demanda**, no exato momento em que surgir uma necessidade técnica real ou dúvida sobre uma API específica.
-   - **Foco Único por Despacho (No Máximo 1 Skill Primária)**: Ao despachar um worker especializado, o orquestrador pode indicar **no máximo 1 skill primária** indispensável ao escopo daquele ticket (ex.: `tanstack-start` para rotas/Server Functions, `shadcn` para UI). Demais playbooks devem ser consultados estritamente sob demanda pelo próprio worker se necessário.
-   - **Resolução Dinâmica**: Quando uma skill precisar ser lida, o caminho absoluto deve ser obtido da seção `Available skills` do prompt do sistema ou resolvido a partir da raiz do workspace ativo: `<workspace_root>/.agents/skills/<skill>/SKILL.md`.
+2. **Fim do Over-Slicing: Macro-Streams Paralelas (Máximo 2 a 3 Tickets)**:
+   - **Proibição de Micro-Tickets Fracionados**: É TERMINANTEMENTE PROIBIDO fatiar funcionalidades em 4, 5 ou mais micro-tickets sequenciais que gerem ondas lentas de subagentes. Cada subagente tem um custo de inicialização de ~2 minutos.
+   - **Padrão de 2 Macro-Streams**:
+     - **Stream 1 (Backend & Data)**: Drizzle Schemas + Migrações SQL + Schemas Zod isomórficos + Services/Prompts + Testes unitários de backend.
+     - **Stream 2 (Frontend & UX)**: Catálogo/DTOs + Hook de Estado + Componentes Visuais + Rota + Testes de integração/UI.
+   - Como os contratos de dados e Zod estão congelados no Plano Técnico, **Stream 1 e Stream 2 DEVEM rodar em paralelo** ou em no máximo duas ondas.
 
-3. **Paralelismo Duplo Inteligente (Construção e Validação)**:
-   - **Bloco 1 — Construção Concorrente**: Devido ao desacoplamento arquitetural entre camadas, `backend-builder` (serviços, banco de dados, módulos profundos, rotas de API/RPC) e `frontend-builder` (rotas, telas, componentes de UI acessíveis e responsivos) **PODEM e DEVEM ser despachados em paralelo** dentro de uma única chamada de `invoke_subagent` sempre que atuarem em diretórios desacoplados.
-   - **Bloco 2 — Validação & Auditoria Concorrentes**: Concluída a construção, `test-verifier` (execução da suíte de testes oficial, typecheck, linting, Dual Browser Audit e pipeline de verificação do `AGENTS.md`) e `implementation-validator` (leitura e auditoria do diff contra Spec/Plan/Tickets/SOLID/Ponytail) **PODEM e DEVEM ser despachados simultaneamente** em uma única chamada de `invoke_subagent`. Como o validador é estritamente read-only e o verificador executa testes em processo isolado, não há concorrência de arquivos nem disputa de git lock.
-   - **Dual Browser Audit Obrigatório no Bloco de Validação**:
-     O `test-verifier` DEVE subir o dev server local (`pnpm dev`) em background e executar a auditoria visual em dois viewports:
-     - **Mobile (390×844)**: toque fluido, zero overflow horizontal, touch targets ≥ 44px e formulários acessíveis.
-     - **Desktop (1440×900)**: grid responsivo, espaçamento e alinhamento visual correto.
-     - *Fallback*: Se o MCP Server do Chrome DevTools estiver ausente da sessão, o `test-verifier` deve testar as rotas via requisições HTTP smoke reais no servidor ativo (`curl -I http://localhost:3000/...`), combinadas com os testes do React Testing Library e linter Shadcn UI, registrando explicitamente a cobertura e a ausência do MCP no relatório final.
-   - Apenas arquivos compartilhados da raiz (ex.: manifestos de pacotes, configurações de bundler/infra) operam em sequência.
-   - **Identificadores Canônicos (`TypeName`)**:
-     Ao invocar workers via `invoke_subagent`, utilize SEMPRE os identificadores únicos definidos em `.agents/agents/<name>.md`:
-     - `codebase-researcher` para mapeamento rápido do grafo (`graphify`) e leitura exploratória (`model: flash`).
-     - `product-manager` para descoberta de regras de negócio, casos de borda, UX e entrevistas `/grill-me` via `ask_question` (`model: inherit`).
-     - `solution-architect` para arquitetura (*Deep Modules*), segurança, qualidade, entrevistas `/grill-me` técnicas e escrita de `docs/plans/<slug>.md` (`model: inherit`).
-     - `backend-builder` para construção do backend guiada por TDD e pelo `AGENTS.md` do projeto (`model: flash`).
-     - `frontend-builder` para construção do frontend guiada pelo design system e pelo `AGENTS.md` do projeto (`model: flash`).
-     - `test-verifier` para execução da suíte de testes e pipeline de qualidade oficial do projeto (`model: flash`).
-     - `implementation-validator` para auditoria de código, spec, segurança e anti-bloat (`model: flash`).
-     **NUNCA use `TypeName: "self"`** em despachos a partir do orquestrador (`self` é restrito ao agente raiz e sua invocação a partir de um subagente é bloqueada pelo runtime com erro fatal).
+3. **Dieta de Contexto nos Builders (Zero Releitura Redundante)**:
+   - O `AGENTS.md` **já é injetado automaticamente pelo Antigravity nas regras `<user_rules>` de todos os subagentes**.
+   - É PROIBIDO que `backend-builder` ou `frontend-builder` gastem tool calls chamando `view_file` em `AGENTS.md`, `PRD.md`, `GLOSSARY.md` ou `docs/specs/<slug>.md`.
+   - Os builders devem abrir **exclusivamente o seu Ticket ativo** (`docs/tickets/<slug>/<NN>-<ticket>.md`) e os contratos específicos em `docs/plans/<slug>.md`, indo direto aos arquivos de código e teste.
 
-4. **Template Canônico de Prompt para Subagentes (Padrão Boost)**:
-   Ao despachar subagentes, o prompt DEVE seguir rigorosamente a estrutura profunda:
-   ```markdown
-   **Task**: [Instrução do usuário verbatim]
+4. **TDD Cirúrgico nos Builders vs. Pipeline Completo no Test-Verifier**:
+   - **Nos Builders (`backend-builder` / `frontend-builder`)**:
+     - O ciclo TDD deve executar **apenas o arquivo de teste unitário específico** em alteração: `pnpm vitest run <caminho/do/teste.test.ts>` (execução ultrarrápida de 1 a 2 segundos) + `pnpm typecheck` + `./.agents/scripts/verify.sh --shadcn` (para frontend).
+     - É TERMINANTEMENTE PROIBIDO rodar `pnpm test` global (todos os 40+ arquivos) ou `pnpm build` dentro dos builders.
+   - **Migração de Banco na Worktree Obrigatória**:
+     - Sempre que `src/server/db/schema/` for alterado, o `backend-builder` DEVE rodar obrigatoriamente `pnpm db:generate && pnpm db:migrate` dentro da worktree para gerar o arquivo SQL em `drizzle/` e aplicá-lo ao banco, garantindo que o commit contenha a migração limpa.
+   - **No `test-verifier` (Fase 4)**:
+     - O `test-verifier` é o único agente autorizado a rodar o pipeline oficial completo `./.agents/scripts/verify.sh` (todos os testes + typecheck + lint + build de produção Nitro) e o **Dual Browser Audit** (Mobile 390×844 e Desktop 1440×900).
 
-   **Skill Primária de Referência (Opcional — Máximo 1, Just-in-Time)**:
-   Se estritamente necessário para consulta da API ou padrão do ticket, consulte a skill primária:
-   - `<workspace_root>/.agents/skills/<skill_primaria>/SKILL.md` (ou via `Available skills`)
-   *Nota: Proibido carregar skills em bloco. Demais playbooks da lista `Available skills` devem ser consultados estritamente sob demanda se surgir dúvida técnica pontual.*
+5. **Paralelismo Duplo Inteligente (Construção e Validação)**:
+   - **Bloco 1 — Construção Concorrente**: Devido ao desacoplamento arquitetural entre camadas, `backend-builder` e `frontend-builder` **PODEM e DEVEM ser despachados em paralelo** dentro de uma única chamada de `invoke_subagent` sempre que atuarem em diretórios desacoplados.
+   - **Bloco 2 — Validação & Auditoria Concorrentes**: Concluída a construção, `test-verifier` e `implementation-validator` **são despachados simultaneamente** em uma única chamada de `invoke_subagent`.
 
-   **Additional Context**:
-   - Repositório/Subprojeto: <caminho> | Branch: <branch>
-   - Spec de Produto: docs/specs/<slug>.md
-   - Plano Técnico: docs/plans/<slug>.md (e implementation_plan.md)
-   - Ticket Ativo: docs/tickets/<slug>/<NN>-<ticket>.md
-   - Regras Canônicas: AGENTS.md local do projeto (Stack, Deep Modules, Isolamento de Camadas, Tipagem Estrita e CLI oficial)
+6. **Identificadores Canônicos (`TypeName`)**:
+   - `codebase-researcher` para mapeamento rápido do grafo (`graphify`) (`model: flash`).
+   - `product-manager` para descoberta de regras de negócio, casos de borda e UX (`model: inherit`).
+   - `solution-architect` para arquitetura (*Deep Modules*), segurança e planos técnicos (`model: inherit`).
+   - `backend-builder` para construção backend guiada por TDD cirúrgico (`model: flash`).
+   - `frontend-builder` para construção frontend mobile-first (`model: flash`).
+   - `test-verifier` para pipeline oficial completo e Dual Browser Audit (`model: flash`).
+   - `implementation-validator` para auditoria independente de diff contra spec/SOLID/anti-bloat (`model: flash`).
+   - **NUNCA use `TypeName: "self"`** a partir do orquestrador.
 
-   **Escopo a Implementar**:
-   1. Componentes/Arquivos exatos a criar ou modificar.
-   2. Tipos, DTOs, schemas e rotas necessárias.
-   3. Protocolos de qualidade (TDD Red-Green no backend, UI acessível e responsiva no frontend).
-   4. Comandos de validação definidos no AGENTS.md do projeto.
-   ```
+7. **Proibição Estrita de Polling Ativo e Espionagem de Subagentes (`Zero-Polling & Anti-Spy Invariant`)**:
+   - **Zero-Polling**: Proibido `schedule` ou `manage_subagents(Action="list")` em loop. Confie no wakeup reativo.
+   - **Zero-Spying**: Proibido rodar `tail`, `grep`, `cat` em logs de transcripts `.system_generated/logs/transcript.jsonl`.
+   - **WaitMsBeforeAsync Adequado**: Em comandos de teste/build, utilize `WaitMsBeforeAsync: 10000` para evitar logs truncados em background.
 
-5. **Ritual de Fechamento com `/learn`**:
-   - Concluída a entrega e aprovado o Gate 3, o Chat Canvas deve invocar o protocolo `/learn` para consolidar lições aprendidas e atualizar o `AGENTS.md`.
-
-6. **Proibição Estrita de Polling Ativo e Espionagem de Subagentes (`Zero-Polling & Anti-Spy Invariant`)**:
-   - **Zero-Polling (Confiança no Reactive Wakeup)**: É TERMINANTEMENTE PROIBIDO utilizar a ferramenta `schedule` ou invocar `manage_subagents(Action="list")` em loop para "monitorar" ou "esperar" o progresso de subagentes. O sistema Antigravity já retoma a execução reativamente quando o subagente responde. Após despachar um worker ou orquestrador, o agente DEVE PARAR imediatamente de chamar ferramentas.
-   - **Zero-Spying (Proibição de `tail` em Transcripts)**: É TERMINANTEMENTE PROIBIDO executar comandos bash (`tail`, `grep`, `cat` ou scripts Python) para ler arquivos `.system_generated/logs/transcript.jsonl` de subagentes em execução. Isso incha o contexto com centenas de KB de JSON Lines desnecessárias e queima milhões de tokens de cache à toa.
-   - **WaitMsBeforeAsync Adequado**: Em comandos demorados (`verify.sh`, suítes completas de testes), configure `WaitMsBeforeAsync` de até 10000ms para evitar criação excessiva de background tasks e logs massivos truncados.
-
-7. **Padrão Mandatório do Relatório de Auditoria Operacional do Agente (Telemetria & Eficiência)**:
-   - Sempre que o usuário solicitar "Relatório de Auditoria de Execução", análise de desempenho do agente ou profiling de tokens, o agente NÃO deve limitar-se a testes de software (BDD/SOLID). Ele DEVE obrigatoriamente executar `./.agents/scripts/audit_agent_execution.py <conversation_id>` e apresentar a telemetria completa:
-     1. **Dashboard Geral de Telemetria e Consumo** (Duração total, steps, invocações LLM, tool calls, background tasks, tokens input/output/cache e pico de contexto por step).
-     2. **Detalhamento de Ferramentas (Tool Breakdown)** (contagem exata e % de cada ferramenta).
-     3. **Diagnóstico de Gargalos & Fontes de Desperdício** (loops de polling, tasks em background fúteis, reedição repetida de arquivos e logs massivos).
-     4. **Tabela de Desperdício / Consumo por Turno** (steps, duração aproximada, tokens e diagnóstico por turno).
-     5. **Scoreboard de Eficiência Operacional** (Nota de 0 a 100 com avaliação de A a F).
+8. **Padrão Mandatório do Relatório de Auditoria Operacional do Agente**:
+   - Execute `./.agents/scripts/audit_agent_execution.py <conversation_id>` para telemetria de tokens, tempo ativo real (sem pausas ociosas) e raio-x de subagentes.
