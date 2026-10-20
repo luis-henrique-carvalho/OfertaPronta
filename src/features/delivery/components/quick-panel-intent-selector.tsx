@@ -44,7 +44,7 @@ export function QuickPanelIntentSelector({
         onClick={() => onSelect("style")}
       >
         <Palette className="size-3.5" data-icon="inline-start" />
-        <span className="truncate">Trocar Cores/Estilo</span>
+        <span className="truncate">Cores & Estilo</span>
       </Button>
 
       <Button

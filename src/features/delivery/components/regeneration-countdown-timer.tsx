@@ -58,13 +58,13 @@ export function RegenerationCountdownTimer({
   return (
     <div className={`flex items-center gap-1.5 ${className ?? ""}`}>
       <Badge
-        variant="secondary"
-        className="gap-1.5 px-2.5 py-1 text-xs font-semibold"
+        variant="outline"
+        className="gap-1.5 border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-900 dark:text-amber-200"
       >
-        <Clock className="size-3.5 text-primary" />
+        <Clock className="size-3.5 text-amber-700 dark:text-amber-400 shrink-0" />
         <Typography
           variant="muted"
-          className="text-xs font-bold text-foreground"
+          className="text-xs font-bold text-amber-950 dark:text-amber-100"
           suppressHydrationWarning
         >
           {formatRemainingTime(remainingMs)} restantes

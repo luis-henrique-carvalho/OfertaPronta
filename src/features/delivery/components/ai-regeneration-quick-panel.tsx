@@ -15,14 +15,14 @@ import {
 } from "./quick-panel-intent-selector";
 import {
   QuickPanelActiveField,
-  COLOR_PALETTE_PRESETS,
+  QUICK_BRAND_PALETTES,
   QUICK_PROMPT_SUGGESTIONS,
 } from "./quick-panel-active-field";
 import { QuickPanelExpiredCard } from "./quick-panel-expired-card";
 import { QuickPanelHeader } from "./quick-panel-header";
 
 export type { QuickIntent };
-export { COLOR_PALETTE_PRESETS, QUICK_PROMPT_SUGGESTIONS };
+export { QUICK_BRAND_PALETTES, QUICK_PROMPT_SUGGESTIONS };
 
 export interface AiRegenerationQuickPanelProps {
   orderId: string;
@@ -99,13 +99,13 @@ function buildRegenerationPayload({
         error: "Selecione uma combinação de cores/estilo para aplicar.",
       };
     }
-    const paletteObj = COLOR_PALETTE_PRESETS.find(
-      (p) => p.id === selectedPalette,
+    const paletteObj = QUICK_BRAND_PALETTES.find(
+      (p) => p.name === selectedPalette,
     );
     return {
       payload: {
         offerTitle: initialOfferTitle,
-        colorPalette: paletteObj ? paletteObj.name : selectedPalette,
+        colorPalette: paletteObj ? paletteObj.value : selectedPalette,
       },
     };
   }

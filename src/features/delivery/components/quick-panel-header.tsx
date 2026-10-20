@@ -32,8 +32,8 @@ export function QuickPanelHeader({
 
         <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
           <Badge
-            variant="secondary"
-            className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold"
+            variant="outline"
+            className="gap-1.5 border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary dark:text-primary-foreground"
           >
             <Sparkles className="size-3 text-primary" />
             <span>

@@ -99,7 +99,9 @@ describe("OrderDeliveryView Component (Redesign Simplificado)", () => {
     expect(
       screen.getByRole("button", { name: /Corrigir Título/i }),
     ).toBeDefined();
-    expect(screen.getByRole("button", { name: /Trocar Cores/i })).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: /Cores & Estilo/i }),
+    ).toBeDefined();
     expect(screen.getByRole("button", { name: /Outro Ajuste/i })).toBeDefined();
   });
 

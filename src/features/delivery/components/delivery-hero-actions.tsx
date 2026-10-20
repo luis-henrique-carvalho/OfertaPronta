@@ -122,7 +122,10 @@ export function DeliveryHeroActions({
           onClick={onEditCard}
           aria-label="Editar ou ajustar arte com IA"
         >
-          <Sparkles className="size-3.5 text-primary" data-icon="inline-start" />
+          <Sparkles
+            className="size-3.5 text-primary"
+            data-icon="inline-start"
+          />
           <span>
             Editar / Ajustar Arte com IA
             {remainingRegenerations !== undefined && remainingRegenerations > 0

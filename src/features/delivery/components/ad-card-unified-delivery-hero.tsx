@@ -118,10 +118,10 @@ export function AdCardUnifiedDeliveryHero({
             </TabsList>
 
             <Badge
-              variant="secondary"
-              className="hidden gap-1 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 sm:inline-flex"
+              variant="outline"
+              className="hidden gap-1 border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 sm:inline-flex"
             >
-              <Sparkles className="size-3 text-emerald-600" />
+              <Sparkles className="size-3 text-emerald-600 dark:text-emerald-400" />
               <span>Sem Marca d&apos;Água</span>
             </Badge>
           </div>

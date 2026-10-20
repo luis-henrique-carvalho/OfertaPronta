@@ -4,34 +4,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Typography } from "@/components/ui/typography";
 import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { QUICK_BRAND_PALETTES } from "@/features/promotions/data/creation-catalog";
 import type { QuickIntent } from "./quick-panel-intent-selector";
 
-export const COLOR_PALETTE_PRESETS = [
-  {
-    id: "dark-premium",
-    name: "Preto & Dourado Premium",
-    description: "Visual noturno elegante com iluminação sofisticada",
-    colors: ["#121212", "#EAB308", "#F59E0B"],
-  },
-  {
-    id: "vibrant-food",
-    name: "Vermelho & Amarelo Apetite",
-    description: "Cores energéticas que despertam vontade e urgência",
-    colors: ["#DC2626", "#F59E0B", "#FEF08A"],
-  },
-  {
-    id: "fresh-natural",
-    name: "Verde Orgânico & Frescor",
-    description: "Paleta limpa ideal para produtos frescos, hortifruti e saúde",
-    colors: ["#16A34A", "#4ADE80", "#F0FDF4"],
-  },
-  {
-    id: "modern-minimal",
-    name: "Minimalista Branco & Grafite",
-    description: "Estética contemporânea, fundo limpo e tipografia arrojada",
-    colors: ["#FFFFFF", "#334155", "#0F172A"],
-  },
-] as const;
+export { QUICK_BRAND_PALETTES };
 
 export const QUICK_PROMPT_SUGGESTIONS = [
   "Deixar o fundo mais escuro com iluminação acolhedora",
@@ -120,51 +97,52 @@ export function QuickPanelActiveField({
   if (activeIntent === "style") {
     return (
       <div className="flex flex-col gap-2.5">
-        <Label className="text-xs font-semibold">
-          Escolha uma Paleta Visual para a Nova Arte
-        </Label>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {COLOR_PALETTE_PRESETS.map((palette) => {
-            const isSelected = selectedPalette === palette.id;
+        <div className="flex flex-col gap-0.5">
+          <Label className="text-xs font-semibold text-foreground">
+            Escolha uma Paleta Visual para a Nova Arte
+          </Label>
+          <Typography
+            variant="muted"
+            className="text-[11px] text-muted-foreground"
+          >
+            Selecione a combinação de cores da sua marca para renovar o design.
+          </Typography>
+        </div>
+
+        <div className="flex flex-wrap gap-2 pt-0.5">
+          {QUICK_BRAND_PALETTES.map((palette) => {
+            const isSelected = selectedPalette === palette.name;
             return (
               <Button
-                key={palette.id}
+                key={palette.name}
                 type="button"
                 variant="outline"
-                className={`h-auto justify-between p-2.5 text-left transition-all ${
-                  isSelected
-                    ? "border-primary bg-primary/5 ring-1 ring-primary"
-                    : "bg-background hover:bg-muted/50"
-                }`}
-                onClick={() => onSelectPalette(palette.id)}
+                size="sm"
+                onClick={() => onSelectPalette(palette.name)}
                 disabled={disabled}
+                className={cn(
+                  "h-9 rounded-full px-3 text-xs font-semibold gap-2 border transition-all select-none shrink-0",
+                  isSelected
+                    ? "border-primary bg-primary/10 text-primary ring-1 ring-primary font-bold shadow-xs"
+                    : "border-border/80 bg-background text-foreground hover:bg-muted/60",
+                )}
               >
-                <div className="flex flex-col gap-0.5">
-                  <Typography
-                    variant="muted"
-                    className="text-xs font-bold text-foreground"
-                  >
-                    {palette.name}
-                  </Typography>
-                  <Typography
-                    variant="muted"
-                    className="text-[10px] text-muted-foreground"
-                  >
-                    {palette.description}
-                  </Typography>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="flex -space-x-1">
-                    {palette.colors.map((color) => (
-                      <span
-                        key={`${palette.id}-${color}`}
-                        className="size-3.5 rounded-full border border-background shadow-2xs"
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </div>
-                  {isSelected && <Check className="size-3.5 text-primary" />}
-                </div>
+                <span
+                  className="flex items-center -space-x-1 shrink-0"
+                  aria-hidden="true"
+                >
+                  {palette.swatches.map((hex) => (
+                    <span
+                      key={`${palette.name}-${hex}`}
+                      className="size-3.5 rounded-full border border-background shadow-xs shrink-0"
+                      style={{ backgroundColor: hex }}
+                    />
+                  ))}
+                </span>
+                <span>{palette.label}</span>
+                {isSelected && (
+                  <Check className="size-3.5 text-primary shrink-0" />
+                )}
               </Button>
             );
           })}

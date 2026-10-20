@@ -67,10 +67,10 @@ export function OrderDeliveryView({
 
         <div className="flex items-center gap-2">
           <Badge
-            variant="secondary"
-            className="hidden sm:inline-flex gap-1 px-2.5 py-0.5 text-[11px] font-semibold"
+            variant="outline"
+            className="hidden sm:inline-flex gap-1 border-emerald-600/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300"
           >
-            <ShieldCheck className="size-3 text-emerald-500" />
+            <ShieldCheck className="size-3 text-emerald-600 dark:text-emerald-400" />
             Entrega Garantida
           </Badge>
 
@@ -93,8 +93,8 @@ export function OrderDeliveryView({
           <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
           <div className="flex items-center gap-1.5 truncate">
             <Badge
-              variant="secondary"
-              className="px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300"
+              variant="outline"
+              className="border-emerald-600/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300"
             >
               Pagamento Confirmado
             </Badge>
