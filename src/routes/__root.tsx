@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/query-client";
-import appCss from "@/styles/index.css?url";
+import "@/styles/index.css";
 import { RootErrorComponent } from "@/components/shared/root-error-component";
 import { RootNotFoundComponent } from "@/components/shared/root-not-found-component";
 
@@ -48,10 +48,6 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
-      },
-      {
-        rel: "stylesheet",
-        href: appCss,
       },
     ],
   }),

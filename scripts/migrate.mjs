@@ -13,9 +13,9 @@ const pool = new pg.Pool({ connectionString });
 const db = drizzle(pool);
 
 try {
-  console.log("Applying database migrations from ./drizzle...");
+  console.warn("Applying database migrations from ./drizzle...");
   await migrate(db, { migrationsFolder: "./drizzle" });
-  console.log("Database migrations applied successfully.");
+  console.warn("Database migrations applied successfully.");
 } catch (error) {
   console.error("Error executing database migrations:", error);
   process.exit(1);
