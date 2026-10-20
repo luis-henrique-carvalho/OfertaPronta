@@ -39,8 +39,8 @@ O catálogo curado de referências estéticas organizadas por segmento comercial
 _Avoid_: Banco de imagens genérico, marketplace de templates, filtro de foto
 
 **Art Direction Directive (Diretriz de Direção de Arte)**:
-O conjunto aprofundado de instruções técnicas de design (iluminação, contraste, paleta cromática, tipografia e composição) derivado do Estilo Visual selecionado e injetado pelo servidor no prompt multimodal do AdCardGenerator.
-_Avoid_: Prompt genérico, texto livre do usuário, regras CSS brutas
+O blueprint narrativo e espacial de design gráfico — englobando geometria de layout, códigos cromáticos exatos, óptica fotográfica, iluminação de estúdio e família tipográfica descritiva — derivado canonicamente do Estilo Visual selecionado (e adaptado caso o microempresário envie uma Imagem de Referência ou paleta própria) para guiar a síntese do Card Publicitário em camadas.
+_Avoid_: Prompt genérico em tópicos soltos, texto livre do usuário, regras CSS brutas
 
 **Draft (Rascunho)**:
 O estado em construção contendo o Briefing da Oferta, as imagens de entrada (Produto e/ou Referência) e a prévia do Card Publicitário antes do fechamento do pedido.

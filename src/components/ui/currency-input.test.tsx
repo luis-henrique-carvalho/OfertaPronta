@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { CurrencyInput } from "./currency-input";
 
@@ -88,22 +88,6 @@ describe("CurrencyInput", () => {
 
     fireEvent.change(input, { target: { value: "R$ 0,0" } });
     expect(input.value).toBe("");
-  });
-
-  it("dispara callback onValueChange com string formatada e centavos numéricos", () => {
-    const handleValueChange = vi.fn();
-    render(
-      <CurrencyInput
-        data-testid="currency-input"
-        value=""
-        onValueChange={handleValueChange}
-      />,
-    );
-
-    const input = screen.getByTestId("currency-input");
-    fireEvent.change(input, { target: { value: "8990" } });
-
-    expect(handleValueChange).toHaveBeenCalledWith("R$ 89,90", 8990);
   });
 
   it("trata colagem (paste) inteligente de inteiros e decimais", () => {

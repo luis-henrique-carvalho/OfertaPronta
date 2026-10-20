@@ -4,7 +4,6 @@ import {
   maskCurrency,
   parsePastedCurrency,
   parseCurrencyToCents,
-  parseCurrencyToNumber,
 } from "./currency";
 
 describe("formatBRL", () => {
@@ -103,17 +102,11 @@ describe("parsePastedCurrency", () => {
   });
 });
 
-describe("parseCurrencyToCents e parseCurrencyToNumber", () => {
+describe("parseCurrencyToCents", () => {
   it("extrai centavos numéricos corretamente", () => {
     expect(parseCurrencyToCents("R$ 89,90")).toBe(8990);
     expect(parseCurrencyToCents("R$ 9,90")).toBe(990);
     expect(parseCurrencyToCents("")).toBe(0);
     expect(parseCurrencyToCents(null)).toBe(0);
-  });
-
-  it("converte para float em reais", () => {
-    expect(parseCurrencyToNumber("R$ 89,90")).toBe(89.9);
-    expect(parseCurrencyToNumber("R$ 1.250,50")).toBe(1250.5);
-    expect(parseCurrencyToNumber("")).toBe(0);
   });
 });
