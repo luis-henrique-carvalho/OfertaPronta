@@ -43,6 +43,13 @@
       "when": 1792343641197,
       "tag": "0005_small_matthew_murdock",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792458297543,
+      "tag": "0006_curious_stingray",
+      "breakpoints": true
     }
   ]
 }
