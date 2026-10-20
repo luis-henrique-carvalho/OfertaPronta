@@ -7,7 +7,10 @@ import type {
   SaveDraftResponse,
   OfferDraft,
 } from "../server";
-import type { SaveOfferDraftInput } from "../data/offer-brief.schema";
+import {
+  REFERENCE_STYLE_PRESET_ID,
+  type SaveOfferDraftInput,
+} from "../data/offer-brief.schema";
 
 function createMockDraft(overrides: Partial<OfferDraft> = {}): OfferDraft {
   const { cardIntent, ...restOverrides } = overrides;
@@ -290,7 +293,7 @@ describe("useOfferBriefDraft Hook - Style Presets, Mutual Exclusivity and Reacti
     expect(result.current.referenceImageDataUrl).toBe(
       "data:image/png;base64,sampleReference",
     );
-    expect(result.current.stylePresetId).toBeUndefined();
+    expect(result.current.stylePresetId).toBe(REFERENCE_STYLE_PRESET_ID);
 
     // Trocar de 'supermarket' para 'beauty-salon'
     act(() => {
@@ -310,7 +313,7 @@ describe("useOfferBriefDraft Hook - Style Presets, Mutual Exclusivity and Reacti
     expect(result.current.stylePresetId).toBe("pizza-rustic-wood");
   });
 
-  it("deve aplicar regra de exclusividade mútua: setStylePresetId limpa referenceImageDataUrl", () => {
+  it("deve permitir selecionar preset de catálogo sem limpar referenceImageDataUrl", () => {
     const { result } = renderHook(() => useOfferBriefDraft());
 
     act(() => {
@@ -321,17 +324,19 @@ describe("useOfferBriefDraft Hook - Style Presets, Mutual Exclusivity and Reacti
     expect(result.current.referenceImageDataUrl).toBe(
       "data:image/png;base64,sampleReference",
     );
-    expect(result.current.stylePresetId).toBeUndefined();
+    expect(result.current.stylePresetId).toBe(REFERENCE_STYLE_PRESET_ID);
 
     // Selecionar estilo pronto
     act(() => {
       result.current.setStylePresetId("market-fresh");
     });
     expect(result.current.stylePresetId).toBe("market-fresh");
-    expect(result.current.referenceImageDataUrl).toBeUndefined();
+    expect(result.current.referenceImageDataUrl).toBe(
+      "data:image/png;base64,sampleReference",
+    );
   });
 
-  it("deve aplicar regra de exclusividade mútua: setReferenceImageDataUrl limpa stylePresetId", () => {
+  it("deve definir stylePresetId como REFERENCE_STYLE_PRESET_ID ao definir referenceImageDataUrl", () => {
     const { result } = renderHook(() => useOfferBriefDraft());
 
     expect(result.current.stylePresetId).toBe("market-discount");
@@ -344,7 +349,7 @@ describe("useOfferBriefDraft Hook - Style Presets, Mutual Exclusivity and Reacti
     expect(result.current.referenceImageDataUrl).toBe(
       "data:image/png;base64,customRefImage",
     );
-    expect(result.current.stylePresetId).toBeUndefined();
+    expect(result.current.stylePresetId).toBe(REFERENCE_STYLE_PRESET_ID);
   });
 
   it("deve persistir stylePresetId no payload enviado para saveDraftFn", async () => {

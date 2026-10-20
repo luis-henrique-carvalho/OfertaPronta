@@ -314,7 +314,7 @@ describe("OfferCreationWizard Integration Flow", () => {
     ).toBeDefined();
   });
 
-  it("deve exibir banner de Print de Referência Ativo no Passo 4 se houver imagem de referência enviada", () => {
+  it("deve exibir e selecionar por padrão o card 'Estilo do seu Print de Referência' no Passo 4 com nenhum estilo de catálogo selecionado", () => {
     render(
       <OfferCreationWizard
         initialDraft={{
@@ -337,12 +337,162 @@ describe("OfferCreationWizard Integration Flow", () => {
     // Passo 3 -> Passo 4
     fireEvent.click(screen.getByTestId("btn-wizard-next"));
 
-    // No Passo 4, deve exibir o banner de referência ativo
-    expect(screen.getByTestId("reference-image-active-banner")).toBeDefined();
-    expect(screen.getByText(/Print de Referência Ativo!/i)).toBeDefined();
+    // No Passo 4, deve exibir o card especial de estilo de referência ativo e selecionado
+    const refCard = screen.getByTestId("reference-style-card");
+    expect(refCard).toBeDefined();
+    expect(refCard.getAttribute("aria-pressed")).toBe("true");
     expect(
-      screen.getByText(/A IA vai seguir o formato do print que você enviou/i),
+      screen.getByText(/Estilo do seu Print de Referência/i),
     ).toBeDefined();
+    expect(screen.getByText(/Ativo \/ Recomendado/i)).toBeDefined();
+    expect(
+      screen.getByText(
+        /A IA vai copiar a estética, paleta de cores e tipografia do print que você enviou/i,
+      ),
+    ).toBeDefined();
+
+    // Nenhum mini-post de catálogo deve estar selecionado por padrão
+    const catalogCards = screen.getAllByRole("button").filter((btn) => {
+      const label = btn.getAttribute("aria-label");
+      return (
+        label &&
+        label.startsWith("Estilo ") &&
+        btn.getAttribute("data-testid") !== "reference-style-card"
+      );
+    });
+    expect(catalogCards.length).toBeGreaterThan(0);
+    catalogCards.forEach((card) => {
+      expect(card.getAttribute("aria-pressed")).toBe("false");
+    });
+  });
+
+  it("deve desmarcar o card de referência e selecionar o estilo do catálogo ao clicar em um mini-post", () => {
+    render(
+      <OfferCreationWizard
+        initialDraft={{
+          businessSegment: "supermarket",
+          businessName: "Supermercado Bom Preço",
+          offerTitle: "Alcatra Bovina 1kg",
+          promoPrice: "R$ 39,90",
+          referenceImageDataUrl: "data:image/png;base64,refPrintImage",
+        }}
+        saveDraftFn={mockSaveDraft}
+        generatePreviewFn={mockGeneratePreview}
+        initiateCheckoutFn={mockInitiateCheckout}
+      />,
+    );
+
+    // Navega até Passo 4
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+
+    const refCard = screen.getByTestId("reference-style-card");
+    expect(refCard.getAttribute("aria-pressed")).toBe("true");
+
+    const catalogCards = screen.getAllByRole("button").filter((btn) => {
+      const label = btn.getAttribute("aria-label");
+      return (
+        label &&
+        label.startsWith("Estilo ") &&
+        btn.getAttribute("data-testid") !== "reference-style-card"
+      );
+    });
+    const firstCatalogCard = catalogCards[0];
+
+    // Clica no primeiro estilo de catálogo
+    fireEvent.click(firstCatalogCard);
+
+    // O card de referência é desmarcado
+    expect(refCard.getAttribute("aria-pressed")).toBe("false");
+    // O estilo de catálogo clicado fica selecionado
+    expect(firstCatalogCard.getAttribute("aria-pressed")).toBe("true");
+    // Os outros estilos de catálogo continuam desmarcados
+    catalogCards.slice(1).forEach((card) => {
+      expect(card.getAttribute("aria-pressed")).toBe("false");
+    });
+  });
+
+  it("deve reativar o card de referência e desmarcar o estilo de catálogo ao clicar novamente no card de referência", () => {
+    render(
+      <OfferCreationWizard
+        initialDraft={{
+          businessSegment: "supermarket",
+          businessName: "Supermercado Bom Preço",
+          offerTitle: "Alcatra Bovina 1kg",
+          promoPrice: "R$ 39,90",
+          referenceImageDataUrl: "data:image/png;base64,refPrintImage",
+        }}
+        saveDraftFn={mockSaveDraft}
+        generatePreviewFn={mockGeneratePreview}
+        initiateCheckoutFn={mockInitiateCheckout}
+      />,
+    );
+
+    // Navega até Passo 4
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+
+    const refCard = screen.getByTestId("reference-style-card");
+    const catalogCards = screen.getAllByRole("button").filter((btn) => {
+      const label = btn.getAttribute("aria-label");
+      return (
+        label &&
+        label.startsWith("Estilo ") &&
+        btn.getAttribute("data-testid") !== "reference-style-card"
+      );
+    });
+    const firstCatalogCard = catalogCards[0];
+
+    // Clica no estilo de catálogo para ativá-lo
+    fireEvent.click(firstCatalogCard);
+    expect(refCard.getAttribute("aria-pressed")).toBe("false");
+    expect(firstCatalogCard.getAttribute("aria-pressed")).toBe("true");
+
+    // Clica novamente no card de referência
+    fireEvent.click(refCard);
+    expect(refCard.getAttribute("aria-pressed")).toBe("true");
+    expect(firstCatalogCard.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("não deve exibir o card de referência se referenceImageDataUrl for indefinido ou removido, mantendo a seleção padrão de catálogo", () => {
+    render(
+      <OfferCreationWizard
+        initialDraft={{
+          businessSegment: "supermarket",
+          businessName: "Supermercado Bom Preço",
+          offerTitle: "Alcatra Bovina 1kg",
+          promoPrice: "R$ 39,90",
+          referenceImageDataUrl: undefined,
+        }}
+        saveDraftFn={mockSaveDraft}
+        generatePreviewFn={mockGeneratePreview}
+        initiateCheckoutFn={mockInitiateCheckout}
+      />,
+    );
+
+    // Navega até Passo 4
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+
+    // O card de referência não deve existir
+    expect(screen.queryByTestId("reference-style-card")).toBeNull();
+
+    // O primeiro estilo de catálogo deve estar selecionado por padrão
+    const catalogCards = screen.getAllByRole("button").filter((btn) => {
+      const label = btn.getAttribute("aria-label");
+      return (
+        label &&
+        label.startsWith("Estilo ") &&
+        btn.getAttribute("data-testid") !== "reference-style-card"
+      );
+    });
+    expect(catalogCards[0].getAttribute("aria-pressed")).toBe("true");
+    catalogCards.slice(1).forEach((card) => {
+      expect(card.getAttribute("aria-pressed")).toBe("false");
+    });
   });
 
   it("deve permitir selecionar paleta rápida no Passo 4", () => {

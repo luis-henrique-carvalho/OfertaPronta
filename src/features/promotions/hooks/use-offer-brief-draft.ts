@@ -8,6 +8,7 @@ import type {
 import {
   SEGMENT_CATALOG,
   deriveVisualInputMode,
+  REFERENCE_STYLE_PRESET_ID,
 } from "../data/offer-brief.schema";
 import {
   saveDraftFn,
@@ -118,7 +119,9 @@ function getInitialFields(
     referenceImageDataUrl: initialDraft?.referenceImageDataUrl ?? undefined,
     stylePresetId:
       initialDraft?.stylePresetId ??
-      SEGMENT_CATALOG[segment].stylePresets[0].id,
+      (initialDraft?.referenceImageDataUrl
+        ? REFERENCE_STYLE_PRESET_ID
+        : SEGMENT_CATALOG[segment].stylePresets[0].id),
     customStyleInstructions:
       initialDraft?.customStyleInstructions ??
       initialDraft?.customStyleNote ??
@@ -216,13 +219,12 @@ function createFieldSetters(
       setFields((p) => ({
         ...p,
         referenceImageDataUrl: v,
-        ...(v ? { stylePresetId: undefined } : {}),
+        stylePresetId: v ? REFERENCE_STYLE_PRESET_ID : p.stylePresetId,
       })),
     setStylePresetId: (v?: string) =>
       setFields((p) => ({
         ...p,
         stylePresetId: v,
-        ...(v ? { referenceImageDataUrl: undefined } : {}),
       })),
     setCustomStyleInstructions: (v: string) =>
       setFields((p) => ({

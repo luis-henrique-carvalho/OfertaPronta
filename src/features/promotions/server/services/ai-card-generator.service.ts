@@ -4,6 +4,7 @@ import {
   type BusinessSegment,
   type CardAspectRatio,
   type CardIntent,
+  REFERENCE_STYLE_PRESET_ID,
 } from "../../data/offer-brief.schema";
 import {
   resolveArtDirectionDirective,
@@ -14,6 +15,8 @@ import {
   type LayoutVariantBlueprint,
 } from "../../data/style-presets-catalog";
 import { createServerLogger } from "@/server/logger";
+
+export { REFERENCE_STYLE_PRESET_ID };
 
 const log = createServerLogger("promotions.ai-card-generator");
 
@@ -103,7 +106,41 @@ export interface GoogleGenAIClient {
   };
 }
 
-const SEGMENT_ART_DIRECTIVES: Record<
+/**
+ * Avalia se a geração deve operar no modo puramente orientado à referência visual.
+ * Retorna true se referenceImageDataUrl existe e não está vazio,
+ * E (!stylePresetId ou stylePresetId.trim() === REFERENCE_STYLE_PRESET_ID).
+ */
+export function isReferenceDrivenMode(input: {
+  referenceImageDataUrl?: string | null;
+  stylePresetId?: string | null;
+}): boolean {
+  const hasRef = Boolean(
+    input.referenceImageDataUrl &&
+    input.referenceImageDataUrl.trim().length > 0,
+  );
+  if (!hasRef) return false;
+
+  const presetId = input.stylePresetId?.trim();
+  return !presetId || presetId === REFERENCE_STYLE_PRESET_ID;
+}
+
+/**
+ * Constrói a diretriz autoritativa de direção de arte para replicação estética da imagem de referência.
+ */
+export function buildReferenceDrivenArtDirective(): string {
+  return [
+    `--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---`,
+    `- Papel do Modelo: Atue como diretor de arte e designer gráfico sênior encarregado de reproduzir com maestria a identidade visual do print de referência anexo.`,
+    `- Estilo, Composição e Grid: Analise detalhadamente a IMAGEM DE REFERÊNCIA anexa e reproduza sua distribuição espacial, enquadramento, proporções relativas, alinhamentos, formas geométricas e padrão de respiro/bordas.`,
+    `- Paleta Cromática Dominante: Extraia com fidelidade as cores de fundo, contrastes, gradientes e tons de acento presentes na IMAGEM DE REFERÊNCIA, aplicando-os à composição do anúncio sem recorrer a paletas externas genéricas.`,
+    `- Tipografia e Hierarquia: Emule o estilo visual, peso das fontes (bold, condensed, elegante, etc.) e disposição de títulos e chamadas observados na IMAGEM DE REFERÊNCIA.`,
+    `- Iluminação e Atmosfera: Replique o clima luminoso (luz suave, iluminação comercial, contraste dramático, estética clean ou vibrante) e as texturas da IMAGEM DE REFERÊNCIA.`,
+    `- Adaptação ao Conteúdo: Combine toda essa estética do print com os dados da oferta comercial anunciada (título, preço, contato e fotos enviadas), gerando uma peça inédita que pareça pertencer à mesma campanha visual.`,
+  ].join("\n");
+}
+
+export const SEGMENT_ART_DIRECTIVES: Record<
   BusinessSegment,
   { segmentTitle: string; visualStyle: string; atmosphere: string }
 > = {
@@ -219,6 +256,7 @@ function logPromptDispatch(
     hasBaseCardImage: !!input.baseCardImageDataUrl,
     hasStylePreset: !!input.stylePresetId,
     hasLogoImage: !!input.logoImageDataUrl,
+    isReferenceDriven: isReferenceDrivenMode(input),
     cardIntent: input.cardIntent,
     promptLengthChars: compiledPromptText.length,
   });
@@ -619,6 +657,62 @@ function compileFourLayersNarrative(
   return [layer1, layer2, layer3, layer4];
 }
 
+export interface CompileReferenceDrivenFourLayersParams {
+  input: GenerateAdCardInput;
+  hasPrice: boolean;
+  isStory: boolean;
+}
+
+export function compileReferenceDrivenFourLayers(
+  params: CompileReferenceDrivenFourLayersParams,
+): [string, string, string, string] {
+  const { input, hasPrice, isStory } = params;
+
+  // CAMADA 1: Fundo Full-Bleed & Atmosfera
+  const layer1 = `CAMADA 1 — FUNDO FULL-BLEED & ATMOSFERA: Enquadramento positivo full-bleed edge-to-edge preenchendo 100% do canvas até as 4 extremidades sem bordas ou margens externas vazias. Paleta cromática dominante, texturas de fundo, gradientes e atmosfera visual extraídos 100% com fidelidade da IMAGEM DE REFERÊNCIA anexa sem recorrer a paletas ou cores de presets externos.`;
+
+  // CAMADA 2: Sujeito Hero & Óptica Fotográfica Comercial
+  const productFidelity = input.productImageDataUrl
+    ? `Preservar e destacar com máxima fidelidade visual a FOTO DO PRODUTO FORNECIDA, posicionando o produto real no centro focal da composição.`
+    : `Renderizar "${input.offerTitle}" com iluminação comercial atraente e acabamento realista impecável inspirado no tratamento visual da IMAGEM DE REFERÊNCIA anexa.`;
+
+  const layer2 = `CAMADA 2 — SUJEITO HERO & ÓPTICA FOTOGRÁFICA COMERCIAL: Tratamento óptico, ângulo de câmera e iluminação inspirados diretamente no acabamento estético da IMAGEM DE REFERÊNCIA anexa, com iluminação de estúdio comercial e sombras de contato naturais. Destaque central para "${input.offerTitle}". ${productFidelity}`;
+
+  // CAMADA 3: Geometria de Grid, Safe Zone & Tipografia Descritiva
+  const logoPlacement = input.logoImageDataUrl
+    ? `Inclusão do LOGOTIPO DA LOJA FORNECIDO posicionado no topo, canto superior ou rodapé com fidelidade à identidade da marca e sem distorções.`
+    : `Identificação visual clara com o nome do estabelecimento "${input.businessName}".`;
+
+  const safeZoneNote = isStory
+    ? `SAFE ZONE OBRIGATÓRIA: 15% da altura no topo e 15% na base livres de elementos gráficos críticos. Título "${input.offerTitle}" e dados comerciais estritamente posicionados na zona segura central.`
+    : `Respiro balanceado e alinhamento geométrico perfeito respeitando o formato 4:5.`;
+
+  const layer3 = `CAMADA 3 — GEOMETRIA DE GRID, SAFE ZONE & TIPOGRAFIA DESCRITIVA: Distribuição espacial, grid de diagramação e proporções espelhando a composição da IMAGEM DE REFERÊNCIA anexa. Família tipográfica e hierarquia de títulos emulando o peso visual e estilo observados na referência. Renderização de título legível para "${input.offerTitle}" e estabelecimento "${input.businessName}". ${logoPlacement} ${safeZoneNote}`;
+
+  // CAMADA 4: Ancoragem de Preço & Rodapé Comercial
+  let layer4Price: string;
+  if (hasPrice) {
+    const priceDetail = input.originalPrice
+      ? `com originalPrice tachado ("De ${input.originalPrice}") e valor promocional "${input.promoPrice}" em destaque`
+      : `com valor promocional "${input.promoPrice}" em tamanho dominante`;
+    layer4Price = `Container e destaque de preço promocional harmonizados com a linguagem visual e selos da IMAGEM DE REFERÊNCIA anexa, ${priceDetail}.`;
+  } else {
+    layer4Price = `Diretriz de card institucional sem nenhum container de preço e proibindo expressamente "R$ 0,00" ou valores monetários.`;
+  }
+
+  const footerDirectives = [
+    input.callToAction ? `Chamada para ação: "${input.callToAction}".` : "",
+    input.whatsapp ? `Rodapé comercial: "${input.whatsapp}".` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const layer4 =
+    `CAMADA 4 — ANCORAGEM DE PREÇO & RODAPÉ COMERCIAL: ${layer4Price} ${footerDirectives || "Rodapé limpo e equilibrado."}`.trim();
+
+  return [layer1, layer2, layer3, layer4];
+}
+
 function buildVisualHierarchy(
   hasPrice: boolean,
   offerTitle: string,
@@ -714,10 +808,71 @@ ${visualHierarchy}
 `.trim();
 }
 
-function buildPromptText(
+function resolveArtAndLayers(
   input: GenerateAdCardInput,
-  segmentConfig: (typeof SEGMENT_ART_DIRECTIVES)[BusinessSegment],
+  resolvedSegmentConfig: (typeof SEGMENT_ART_DIRECTIVES)[BusinessSegment],
+  options: {
+    isReferenceDriven: boolean;
+    hasPrice: boolean;
+    hasReferenceImage: boolean;
+    hasCustomPalette: boolean;
+    isStory: boolean;
+  },
+): {
+  artDirectiveText: string;
+  layers: [string, string, string, string];
+} {
+  if (options.isReferenceDriven) {
+    return {
+      artDirectiveText: buildReferenceDrivenArtDirective(),
+      layers: compileReferenceDrivenFourLayers({
+        input,
+        hasPrice: options.hasPrice,
+        isStory: options.isStory,
+      }),
+    };
+  }
+
+  const { preset, blueprint } = resolvePresetAndBlueprint(
+    input.businessSegment,
+    input.stylePresetId,
+  );
+
+  const artDirectiveText = resolveArtDirectionDirective(
+    input.businessSegment,
+    input.stylePresetId,
+    {
+      hasReferenceImage: options.hasReferenceImage,
+      hasCustomPalette: options.hasCustomPalette,
+      cardIntent: input.cardIntent,
+      hasPromoPrice: options.hasPrice,
+    },
+  );
+
+  const layers = compileFourLayersNarrative({
+    input,
+    segmentAtmosphere: resolvedSegmentConfig.atmosphere,
+    preset,
+    blueprint,
+    hasPrice: options.hasPrice,
+    hasReferenceImage: options.hasReferenceImage,
+    hasCustomPalette: options.hasCustomPalette,
+    isStory: options.isStory,
+  });
+
+  return { artDirectiveText, layers };
+}
+
+export function buildPromptText(
+  input: GenerateAdCardInput,
+  segmentConfig?: (typeof SEGMENT_ART_DIRECTIVES)[BusinessSegment],
 ): string {
+  const resolvedSegmentConfig =
+    segmentConfig ??
+    SEGMENT_ART_DIRECTIVES[input.businessSegment] ??
+    SEGMENT_ART_DIRECTIVES.supermarket;
+
+  const isReferenceDriven = isReferenceDrivenMode(input);
   const hasPrice = Boolean(
     input.promoPrice && input.promoPrice.trim().length > 0,
   );
@@ -729,24 +884,8 @@ function buildPromptText(
     input.customStyleInstructions &&
     input.customStyleInstructions.trim().length > 0,
   );
-
-  const { preset, blueprint } = resolvePresetAndBlueprint(
-    input.businessSegment,
-    input.stylePresetId,
-  );
-
-  const artDirectiveText = resolveArtDirectionDirective(
-    input.businessSegment,
-    input.stylePresetId,
-    {
-      hasReferenceImage,
-      hasCustomPalette,
-      cardIntent: input.cardIntent,
-      hasPromoPrice: hasPrice,
-    },
-  );
-
   const isStory = input.targetAspectRatio === "story";
+
   const { audienceText, proportionDirectives } =
     buildProportionDirectives(isStory);
   const priceInstructions = resolvePriceInstructions(
@@ -755,18 +894,6 @@ function buildPromptText(
     input.originalPrice,
   );
   const notes = buildPromptOptionalNotes(input);
-
-  const layers = compileFourLayersNarrative({
-    input,
-    segmentAtmosphere: segmentConfig.atmosphere,
-    preset,
-    blueprint,
-    hasPrice,
-    hasReferenceImage,
-    hasCustomPalette,
-    isStory,
-  });
-
   const visualHierarchy = buildVisualHierarchy(
     hasPrice,
     input.offerTitle,
@@ -774,9 +901,21 @@ function buildPromptText(
     input.promoPrice,
   );
 
+  const { artDirectiveText, layers } = resolveArtAndLayers(
+    input,
+    resolvedSegmentConfig,
+    {
+      isReferenceDriven,
+      hasPrice,
+      hasReferenceImage,
+      hasCustomPalette,
+      isStory,
+    },
+  );
+
   return assemblePromptText({
     audienceText,
-    segmentConfig,
+    segmentConfig: resolvedSegmentConfig,
     businessName: input.businessName,
     offerTitle: input.offerTitle,
     priceInstructions,

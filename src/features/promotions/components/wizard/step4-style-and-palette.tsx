@@ -2,13 +2,15 @@ import { Typography } from "@/components/ui/typography";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Palette } from "lucide-react";
+import { CheckCircle2, Palette, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   QUICK_BRAND_PALETTES,
   type CreationCatalogItem,
 } from "../../data/creation-catalog";
+import { REFERENCE_STYLE_PRESET_ID } from "../../data/offer-brief.schema";
 import { StyleMiniPostCard } from "./style-mini-post-card";
 
 export interface Step4StyleAndPaletteProps {
@@ -39,7 +41,26 @@ export function Step4StyleAndPalette({
   className,
 }: Step4StyleAndPaletteProps) {
   const styles = segmentData.styles;
-  const currentSelectedStyleId = selectedStyleId || styles[0]?.id;
+  const hasReference = Boolean(
+    referenceImageDataUrl && referenceImageDataUrl.trim().length > 0,
+  );
+
+  const isRefSelected =
+    hasReference &&
+    (selectedStyleId === REFERENCE_STYLE_PRESET_ID || !selectedStyleId);
+
+  const activeCatalogStyleId =
+    !hasReference &&
+    (!selectedStyleId || selectedStyleId === REFERENCE_STYLE_PRESET_ID)
+      ? styles[0]?.id
+      : selectedStyleId;
+
+  const handleRefKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onSelectStyle(REFERENCE_STYLE_PRESET_ID);
+    }
+  };
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
@@ -55,24 +76,60 @@ export function Step4StyleAndPalette({
         </Typography>
       </div>
 
-      {/* Alerta se o usuário já enviou um Print de Referência no passo anterior */}
-      {referenceImageDataUrl && (
+      {/* Card Especial de Referência quando o usuário enviou um Print no passo anterior */}
+      {hasReference && (
         <Card
-          data-testid="reference-image-active-banner"
-          className="flex items-center gap-3 rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 p-3"
+          data-testid="reference-style-card"
+          role="button"
+          tabIndex={0}
+          aria-pressed={isRefSelected}
+          aria-label="Estilo do seu Print de Referência: A IA vai copiar a estética, paleta de cores e tipografia do print que você enviou"
+          onClick={() => onSelectStyle(REFERENCE_STYLE_PRESET_ID)}
+          onKeyDown={handleRefKeyDown}
+          className={cn(
+            "group cursor-pointer overflow-hidden rounded-2xl border-2 transition-all p-3.5 flex items-center gap-3.5 select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+            isRefSelected
+              ? "border-primary bg-primary/5 ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md"
+              : "border-border bg-card hover:border-primary/40 opacity-80 hover:opacity-100",
+          )}
         >
-          <img
-            src={referenceImageDataUrl}
-            alt="Print de referência"
-            className="size-12 rounded-lg object-cover border border-amber-500/40 shrink-0"
-          />
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
-              <CheckCircle2 className="size-4 shrink-0" />
-              <span>Print de Referência Ativo!</span>
+          {/* Miniatura do Print de Referência */}
+          <div className="relative size-16 sm:size-20 shrink-0 aspect-square overflow-hidden rounded-xl border border-black/15 shadow-xs">
+            <img
+              src={referenceImageDataUrl!}
+              alt="Print de referência"
+              className="size-full object-cover"
+            />
+          </div>
+
+          {/* Textos e Badges */}
+          <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <Badge
+                variant={isRefSelected ? "default" : "secondary"}
+                className="text-[10px] font-extrabold uppercase tracking-wide gap-1"
+              >
+                <Sparkles className="size-3 shrink-0" />
+                <span>Ativo / Recomendado</span>
+              </Badge>
+              {isRefSelected && (
+                <CheckCircle2
+                  data-testid="reference-selected-check-icon"
+                  className="size-4 text-primary shrink-0 ml-auto"
+                />
+              )}
             </div>
-            <Typography variant="muted" className="text-[11px] leading-snug">
-              A IA vai seguir o formato do print que você enviou.
+
+            <Typography
+              variant="h4"
+              className="text-sm font-bold text-foreground leading-tight"
+            >
+              Estilo do seu Print de Referência
+            </Typography>
+
+            <Typography variant="muted" className="text-xs leading-snug">
+              A IA vai copiar a estética, paleta de cores e tipografia do print
+              que você enviou.
             </Typography>
           </div>
         </Card>
@@ -85,7 +142,11 @@ export function Step4StyleAndPalette({
             key={style.id}
             style={style}
             segmentData={segmentData}
-            isSelected={currentSelectedStyleId === style.id}
+            isSelected={
+              hasReference
+                ? !isRefSelected && selectedStyleId === style.id
+                : activeCatalogStyleId === style.id
+            }
             businessName={businessName}
             offerTitle={offerTitle}
             promoPrice={promoPrice}

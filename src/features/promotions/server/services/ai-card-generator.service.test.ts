@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   generateAdCardImage,
   AdCardGenerationError,
+  isReferenceDrivenMode,
+  buildPromptText,
+  REFERENCE_STYLE_PRESET_ID,
   type GenerateAdCardInput,
   type GoogleGenAIClient,
 } from "./ai-card-generator.service";
@@ -796,6 +799,289 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
       expect(promptText).toContain(
         "Selo circular tipo carimbo artesanal ou etiqueta rústica preenchida na cor de acento com alto contraste.",
       );
+    });
+  });
+
+  describe("Modo REFERENCE_DRIVEN e Eliminação de Attention Bleeding (Ticket 01)", () => {
+    const fakeDataUrl = `data:image/jpeg;base64,${fakeBase64Png}`;
+
+    describe("isReferenceDrivenMode helper", () => {
+      it("deve retornar true quando referenceImageDataUrl estiver presente e stylePresetId for REFERENCE_STYLE_PRESET_ID", () => {
+        expect(
+          isReferenceDrivenMode({
+            referenceImageDataUrl: fakeDataUrl,
+            stylePresetId: REFERENCE_STYLE_PRESET_ID,
+          }),
+        ).toBe(true);
+      });
+
+      it("deve retornar true quando referenceImageDataUrl estiver presente e stylePresetId for null, undefined, vazio ou espaços", () => {
+        expect(
+          isReferenceDrivenMode({
+            referenceImageDataUrl: fakeDataUrl,
+            stylePresetId: undefined,
+          }),
+        ).toBe(true);
+
+        expect(
+          isReferenceDrivenMode({
+            referenceImageDataUrl: fakeDataUrl,
+            stylePresetId: null,
+          }),
+        ).toBe(true);
+
+        expect(
+          isReferenceDrivenMode({
+            referenceImageDataUrl: fakeDataUrl,
+            stylePresetId: "",
+          }),
+        ).toBe(true);
+
+        expect(
+          isReferenceDrivenMode({
+            referenceImageDataUrl: fakeDataUrl,
+            stylePresetId: "   ",
+          }),
+        ).toBe(true);
+      });
+
+      it("deve retornar false quando referenceImageDataUrl estiver ausente, mesmo com stylePresetId reference-style", () => {
+        expect(
+          isReferenceDrivenMode({
+            referenceImageDataUrl: undefined,
+            stylePresetId: REFERENCE_STYLE_PRESET_ID,
+          }),
+        ).toBe(false);
+
+        expect(
+          isReferenceDrivenMode({
+            referenceImageDataUrl: null,
+            stylePresetId: REFERENCE_STYLE_PRESET_ID,
+          }),
+        ).toBe(false);
+
+        expect(
+          isReferenceDrivenMode({
+            referenceImageDataUrl: "",
+            stylePresetId: REFERENCE_STYLE_PRESET_ID,
+          }),
+        ).toBe(false);
+
+        expect(
+          isReferenceDrivenMode({
+            referenceImageDataUrl: "   ",
+            stylePresetId: REFERENCE_STYLE_PRESET_ID,
+          }),
+        ).toBe(false);
+      });
+
+      it("deve retornar false quando referenceImageDataUrl estiver presente mas stylePresetId for um preset de catálogo explícito", () => {
+        expect(
+          isReferenceDrivenMode({
+            referenceImageDataUrl: fakeDataUrl,
+            stylePresetId: "burger-dark-bold",
+          }),
+        ).toBe(false);
+
+        expect(
+          isReferenceDrivenMode({
+            referenceImageDataUrl: fakeDataUrl,
+            stylePresetId: "fashion-boutique",
+          }),
+        ).toBe(false);
+      });
+    });
+
+    describe("Compilação de Prompt no Modo REFERENCE_DRIVEN (buildPromptText)", () => {
+      const referenceDrivenInput: GenerateAdCardInput = {
+        businessSegment: "burger-shop",
+        businessName: "Burger Artesanal da Vila",
+        offerTitle: "Smash Burger Duplo com Fritas",
+        promoPrice: "R$ 32,90",
+        originalPrice: "R$ 42,90",
+        callToAction: "Peça pelo WhatsApp!",
+        whatsapp: "(11) 97777-6666",
+        referenceImageDataUrl: fakeDataUrl,
+        stylePresetId: REFERENCE_STYLE_PRESET_ID,
+      };
+
+      it("deve injetar a diretriz autoritativa de replicação estética da imagem de referência", () => {
+        const promptText = buildPromptText(referenceDrivenInput);
+
+        expect(promptText).toContain(
+          "--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---",
+        );
+        expect(promptText).toContain(
+          "Papel do Modelo: Atue como diretor de arte e designer gráfico sênior encarregado de reproduzir com maestria a identidade visual do print de referência anexo.",
+        );
+        expect(promptText).toContain(
+          "Estilo, Composição e Grid: Analise detalhadamente a IMAGEM DE REFERÊNCIA anexa e reproduza sua distribuição espacial, enquadramento, proporções relativas, alinhamentos, formas geométricas e padrão de respiro/bordas.",
+        );
+        expect(promptText).toContain(
+          "Paleta Cromática Dominante: Extraia com fidelidade as cores de fundo, contrastes, gradientes e tons de acento presentes na IMAGEM DE REFERÊNCIA, aplicando-os à composição do anúncio sem recorrer a paletas externas genéricas.",
+        );
+        expect(promptText).toContain(
+          "Tipografia e Hierarquia: Emule o estilo visual, peso das fontes (bold, condensed, elegante, etc.) e disposição de títulos e chamadas observados na IMAGEM DE REFERÊNCIA.",
+        );
+        expect(promptText).toContain(
+          "Iluminação e Atmosfera: Replique o clima luminoso (luz suave, iluminação comercial, contraste dramático, estética clean ou vibrante) e as texturas da IMAGEM DE REFERÊNCIA.",
+        );
+        expect(promptText).toContain(
+          "Adaptação ao Conteúdo: Combine toda essa estética do print com os dados da oferta comercial anunciada",
+        );
+      });
+
+      it("deve estruturar as 4 camadas narrativas derivadas 100% da imagem de referência anexa", () => {
+        const promptText = buildPromptText(referenceDrivenInput);
+
+        expect(promptText).toContain(
+          "CAMADA 1 — FUNDO FULL-BLEED & ATMOSFERA: Enquadramento positivo full-bleed edge-to-edge preenchendo 100% do canvas até as 4 extremidades sem bordas ou margens externas vazias. Paleta cromática dominante, texturas de fundo, gradientes e atmosfera visual extraídos 100% com fidelidade da IMAGEM DE REFERÊNCIA anexa sem recorrer a paletas ou cores de presets externos.",
+        );
+        expect(promptText).toContain(
+          'CAMADA 2 — SUJEITO HERO & ÓPTICA FOTOGRÁFICA COMERCIAL: Tratamento óptico, ângulo de câmera e iluminação inspirados diretamente no acabamento estético da IMAGEM DE REFERÊNCIA anexa, com iluminação de estúdio comercial e sombras de contato naturais. Destaque central para "Smash Burger Duplo com Fritas". Renderizar "Smash Burger Duplo com Fritas" com iluminação comercial atraente e acabamento realista impecável inspirado no tratamento visual da IMAGEM DE REFERÊNCIA anexa.',
+        );
+        expect(promptText).toContain(
+          'CAMADA 3 — GEOMETRIA DE GRID, SAFE ZONE & TIPOGRAFIA DESCRITIVA: Distribuição espacial, grid de diagramação e proporções espelhando a composição da IMAGEM DE REFERÊNCIA anexa. Família tipográfica e hierarquia de títulos emulando o peso visual e estilo observados na referência. Renderização de título legível para "Smash Burger Duplo com Fritas" e estabelecimento "Burger Artesanal da Vila".',
+        );
+        expect(promptText).toContain(
+          'CAMADA 4 — ANCORAGEM DE PREÇO & RODAPÉ COMERCIAL: Container e destaque de preço promocional harmonizados com a linguagem visual e selos da IMAGEM DE REFERÊNCIA anexa, com originalPrice tachado ("De R$ 42,90") e valor promocional "R$ 32,90" em destaque.',
+        );
+      });
+
+      it("deve eliminar estritamente o attention bleeding: ZERO nomes de presets, ZERO códigos HEX e ZERO blueprints de catálogo", () => {
+        const promptText = buildPromptText(referenceDrivenInput);
+
+        // 1. Zero nomes de presets de catálogo de qualquer segmento
+        expect(promptText).not.toContain("Dark Burger & Fumaça");
+        expect(promptText).not.toContain("Smash Burger Fire & Cheddar");
+        expect(promptText).not.toContain("Classic Diner & Neon Americano");
+        expect(promptText).not.toContain("Artesanal Madeira & Tabua Rústica");
+        expect(promptText).not.toContain("Boutique Minimalista");
+        expect(promptText).not.toContain("Super Encarte Amarelo & Vermelho");
+        expect(promptText).not.toContain("Forno a Lenha Rústico");
+        expect(promptText).not.toContain(
+          "DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL:",
+        );
+
+        // 2. Zero códigos HEX (#111111, #DC2626, #E11D48, etc.)
+        expect(promptText).not.toMatch(/#[0-9A-Fa-f]{3,6}\b/);
+        expect(promptText).not.toContain("#111111");
+        expect(promptText).not.toContain("#DC2626");
+        expect(promptText).not.toContain("#E11D48");
+        expect(promptText).not.toContain("#000000");
+
+        // 3. Zero blueprints ou LayoutVariants concorrentes
+        expect(promptText).not.toContain("retail-burst");
+        expect(promptText).not.toContain("dark-luxury");
+        expect(promptText).not.toContain("50mm f/4");
+        expect(promptText).not.toContain("Macro gastronômica");
+        expect(promptText).not.toContain("Sans-serif geométrica condensada");
+        expect(promptText).not.toContain("Didone editorial clássica");
+        expect(promptText).not.toContain(
+          "Selo estrelado ou circular de alto impacto",
+        );
+      });
+
+      it("deve operar em modo REFERENCE_DRIVEN também quando stylePresetId for undefined ou null com referenceImageDataUrl", () => {
+        const inputUndefined: GenerateAdCardInput = {
+          ...referenceDrivenInput,
+          stylePresetId: undefined,
+        };
+        const promptText = buildPromptText(inputUndefined);
+
+        expect(promptText).toContain(
+          "--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---",
+        );
+        expect(promptText).not.toContain("Dark Burger & Fumaça");
+        expect(promptText).not.toMatch(/#[0-9A-Fa-f]{3,6}\b/);
+      });
+
+      it("deve aplicar safe zone de 15% na Camada 3 no modo REFERENCE_DRIVEN quando targetAspectRatio for story", () => {
+        const inputStory: GenerateAdCardInput = {
+          ...referenceDrivenInput,
+          targetAspectRatio: "story",
+        };
+        const promptText = buildPromptText(inputStory);
+
+        expect(promptText).toContain("SAFE ZONE OBRIGATÓRIA");
+        expect(promptText).toContain("15% da altura no topo e 15% na base");
+      });
+
+      it("deve gerar card com sucesso via generateAdCardImage no modo REFERENCE_DRIVEN", async () => {
+        const fakeClient = createFakeGeminiClient();
+        const result = await generateAdCardImage(
+          referenceDrivenInput,
+          fakeClient,
+        );
+
+        expect(result.rawImageBuffer).toBeInstanceOf(Buffer);
+        const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+        const promptText = callArgs.contents.find(
+          (c: unknown) => typeof c === "string",
+        ) as string;
+
+        expect(promptText).toContain(
+          "--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---",
+        );
+        expect(promptText).not.toContain("Dark Burger & Fumaça");
+        expect(promptText).not.toMatch(/#[0-9A-Fa-f]{3,6}\b/);
+      });
+    });
+
+    describe("Modo Híbrido: Referência + Preset de Catálogo Explícito", () => {
+      it("deve adotar estratégia híbrida quando o usuário escolher conscientemente um preset de catálogo tendo uma referência", () => {
+        const hybridInput: GenerateAdCardInput = {
+          businessSegment: "burger-shop",
+          businessName: "Burger Artesanal da Vila",
+          offerTitle: "Smash Burger Duplo",
+          promoPrice: "R$ 32,90",
+          referenceImageDataUrl: fakeDataUrl,
+          stylePresetId: "burger-dark-bold",
+        };
+
+        expect(isReferenceDrivenMode(hybridInput)).toBe(false);
+
+        const promptText = buildPromptText(hybridInput);
+
+        // Contém a diretriz de direção de arte do preset selecionado
+        expect(promptText).toContain(
+          '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Dark Burger & Fumaça" ---',
+        );
+        // Contém adaptação cromática priorizando a referência
+        expect(promptText).toContain(
+          "Prioridade cromática: adaptar e priorizar a paleta de cores da Imagem de Referência",
+        );
+        // Não contém a diretriz de pura replicação estética de referência
+        expect(promptText).not.toContain(
+          "--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---",
+        );
+      });
+    });
+
+    describe("Modo Catálogo Padrão (Sem Referência)", () => {
+      it("deve manter comportamento canônico 100% inalterado quando não houver referenceImageDataUrl", () => {
+        const catalogInput: GenerateAdCardInput = {
+          businessSegment: "burger-shop",
+          businessName: "Burger Artesanal da Vila",
+          offerTitle: "Smash Burger Duplo",
+          promoPrice: "R$ 32,90",
+          stylePresetId: "burger-dark-bold",
+        };
+
+        expect(isReferenceDrivenMode(catalogInput)).toBe(false);
+
+        const promptText = buildPromptText(catalogInput);
+
+        expect(promptText).toContain(
+          '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Dark Burger & Fumaça" ---',
+        );
+        expect(promptText).toContain("Paleta cromática do preset (HEX):");
+        expect(promptText).toContain("#111827");
+        expect(promptText).toContain("#DC2626");
+        expect(promptText).not.toContain(
+          "--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---",
+        );
+      });
     });
   });
 });

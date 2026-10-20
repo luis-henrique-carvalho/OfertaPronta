@@ -46,6 +46,11 @@ export type CardAspectRatio = (typeof CARD_ASPECT_RATIOS)[number];
 
 export type StylePreset = CuratedStylePreset;
 
+/**
+ * Identificador sentinela para o estilo guiado pelo print de referência.
+ */
+export const REFERENCE_STYLE_PRESET_ID = "reference-style";
+
 export interface SegmentCatalogItem {
   id: BusinessSegment;
   label: string;
