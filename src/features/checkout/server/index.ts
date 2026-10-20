@@ -11,6 +11,7 @@ export {
   updateOrderWhatsappFn,
   regenerateExpiredChargeFn,
   simulateDevPaymentFn,
+  updateOrderCobrandingFn,
 } from "./functions/checkout.functions";
 
 export {
@@ -18,6 +19,7 @@ export {
   orderIdSchema,
   updateOrderWhatsappSchema,
   updateWhatsappSchema,
+  updateOrderCobrandingSchema,
   checkoutDetailsOutputSchema,
   checkPaymentStatusOutputSchema,
 } from "../data/checkout.schemas";
@@ -27,6 +29,7 @@ export type {
   OrderIdInput,
   UpdateOrderWhatsappInput,
   UpdateWhatsappInput,
+  UpdateOrderCobrandingInput,
   CheckoutDetailsResult,
   CheckPaymentStatusResult,
 } from "../data/checkout.schemas";

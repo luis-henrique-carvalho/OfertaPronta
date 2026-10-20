@@ -5,6 +5,8 @@ import { deliveryExports } from "../../../../server/db/schema/delivery";
 import {
   formatFeedCard,
   formatStoryCard,
+  applyCobrandingSignature,
+  type CobrandingOptions,
 } from "../../../../server/export-engine";
 import {
   type DownloadFormat,
@@ -37,6 +39,10 @@ export interface DeliveryServiceDependencies {
   database?: AppDatabase;
   formatFeed?: (buffer: Buffer) => Promise<Buffer>;
   formatStory?: (buffer: Buffer) => Promise<Buffer>;
+  applySignature?: (
+    buffer: Buffer,
+    options?: CobrandingOptions,
+  ) => Promise<Buffer>;
 }
 
 /**
@@ -48,11 +54,16 @@ export class DeliveryService {
   private readonly database: AppDatabase;
   private readonly formatFeed: (buffer: Buffer) => Promise<Buffer>;
   private readonly formatStory: (buffer: Buffer) => Promise<Buffer>;
+  private readonly applySignature: (
+    buffer: Buffer,
+    options?: CobrandingOptions,
+  ) => Promise<Buffer>;
 
   constructor(deps?: DeliveryServiceDependencies) {
     this.database = deps?.database ?? db;
     this.formatFeed = deps?.formatFeed ?? formatFeedCard;
     this.formatStory = deps?.formatStory ?? formatStoryCard;
+    this.applySignature = deps?.applySignature ?? applyCobrandingSignature;
   }
 
   /**
@@ -154,10 +165,27 @@ export class DeliveryService {
       },
     );
 
-    const [feedBuffer, storyBuffer] = await Promise.all([
+    let [feedBuffer, storyBuffer] = await Promise.all([
       this.formatFeed(masterBuffer),
       this.formatStory(masterBuffer),
     ]);
+
+    if (order.cobrandingAccepted && order.cobrandingCreditText) {
+      log.info("Aplicando assinatura de co-branding nos arquivos finais", {
+        orderId: order.id,
+        creditText: order.cobrandingCreditText,
+      });
+      [feedBuffer, storyBuffer] = await Promise.all([
+        this.applySignature(feedBuffer, {
+          creditText: order.cobrandingCreditText,
+          aspectRatio: "feed",
+        }),
+        this.applySignature(storyBuffer, {
+          creditText: order.cobrandingCreditText,
+          aspectRatio: "story",
+        }),
+      ]);
+    }
 
     const feedUrl = `data:image/png;base64,${feedBuffer.toString("base64")}`;
     const storyUrl = `data:image/png;base64,${storyBuffer.toString("base64")}`;
@@ -293,10 +321,33 @@ export class DeliveryService {
     orderId: string,
     masterBuffer: Buffer,
   ): Promise<typeof deliveryExports.$inferSelect> {
-    const [feedBuffer, storyBuffer] = await Promise.all([
+    const [order] = await this.database
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    let [feedBuffer, storyBuffer] = await Promise.all([
       this.formatFeed(masterBuffer),
       this.formatStory(masterBuffer),
     ]);
+
+    if (order?.cobrandingAccepted && order?.cobrandingCreditText) {
+      log.info("Preservando assinatura de co-branding na regeneração", {
+        orderId,
+        creditText: order.cobrandingCreditText,
+      });
+      [feedBuffer, storyBuffer] = await Promise.all([
+        this.applySignature(feedBuffer, {
+          creditText: order.cobrandingCreditText,
+          aspectRatio: "feed",
+        }),
+        this.applySignature(storyBuffer, {
+          creditText: order.cobrandingCreditText,
+          aspectRatio: "story",
+        }),
+      ]);
+    }
 
     const feedUrl = `data:image/png;base64,${feedBuffer.toString("base64")}`;
     const storyUrl = `data:image/png;base64,${storyBuffer.toString("base64")}`;

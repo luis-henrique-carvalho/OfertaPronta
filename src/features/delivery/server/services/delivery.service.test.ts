@@ -14,6 +14,7 @@ describe("DeliveryService Deep Module (TDD)", () => {
   let service: DeliveryService;
   let mockFormatFeed: ReturnType<typeof vi.fn>;
   let mockFormatStory: ReturnType<typeof vi.fn>;
+  let mockApplySignature: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     mockFormatFeed = vi.fn().mockImplementation(async (_buffer: Buffer) => {
@@ -22,11 +23,20 @@ describe("DeliveryService Deep Module (TDD)", () => {
     mockFormatStory = vi.fn().mockImplementation(async (_buffer: Buffer) => {
       return Buffer.from("fake-story-hd-png");
     });
+    mockApplySignature = vi
+      .fn()
+      .mockImplementation(async (buffer: Buffer, _options) => {
+        return Buffer.concat([
+          buffer,
+          Buffer.from("-with-cobranding-signature"),
+        ]);
+      });
 
     service = new DeliveryService({
       database: db,
       formatFeed: mockFormatFeed,
       formatStory: mockFormatStory,
+      applySignature: mockApplySignature,
     });
   });
 
@@ -295,6 +305,91 @@ describe("DeliveryService Deep Module (TDD)", () => {
         Buffer.from("updated-story-hd").toString("base64"),
       );
       expect(updated.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it("should apply cobranding signature in updateExports when order has cobrandingAccepted: true", async () => {
+      const order = await createTestOrder("PAID", {
+        cobrandingAccepted: true,
+        cobrandingCreditText: "Design por @ofertapronta",
+      });
+      await service.ensureDeliveryExports(order.id);
+      mockApplySignature.mockClear();
+
+      mockFormatFeed.mockResolvedValueOnce(Buffer.from("regen-feed-raw"));
+      mockFormatStory.mockResolvedValueOnce(Buffer.from("regen-story-raw"));
+
+      const newMasterBuffer = Buffer.from("new-regen-master");
+      const updated = await service.updateExports(order.id, newMasterBuffer);
+
+      expect(mockApplySignature).toHaveBeenCalledTimes(2);
+      expect(mockApplySignature).toHaveBeenCalledWith(
+        Buffer.from("regen-feed-raw"),
+        { creditText: "Design por @ofertapronta", aspectRatio: "feed" },
+      );
+      expect(mockApplySignature).toHaveBeenCalledWith(
+        Buffer.from("regen-story-raw"),
+        { creditText: "Design por @ofertapronta", aspectRatio: "story" },
+      );
+
+      expect(updated.feedUrl).toContain(
+        Buffer.from("regen-feed-raw-with-cobranding-signature").toString(
+          "base64",
+        ),
+      );
+      expect(updated.storyUrl).toContain(
+        Buffer.from("regen-story-raw-with-cobranding-signature").toString(
+          "base64",
+        ),
+      );
+    });
+  });
+
+  describe("Co-branding Signature Application in Delivery", () => {
+    it("should apply cobranding signature to Feed and Story when order has cobrandingAccepted: true", async () => {
+      const order = await createTestOrder("PAID", {
+        cobrandingAccepted: true,
+        cobrandingCreditText: "Design por @ofertapronta",
+      });
+
+      const result = await service.ensureDeliveryExports(order.id);
+
+      expect(mockApplySignature).toHaveBeenCalledTimes(2);
+      expect(mockApplySignature).toHaveBeenCalledWith(
+        Buffer.from("fake-feed-hd-png"),
+        { creditText: "Design por @ofertapronta", aspectRatio: "feed" },
+      );
+      expect(mockApplySignature).toHaveBeenCalledWith(
+        Buffer.from("fake-story-hd-png"),
+        { creditText: "Design por @ofertapronta", aspectRatio: "story" },
+      );
+
+      expect(result.feedCardUrl).toContain(
+        Buffer.from("fake-feed-hd-png-with-cobranding-signature").toString(
+          "base64",
+        ),
+      );
+      expect(result.storyCardUrl).toContain(
+        Buffer.from("fake-story-hd-png-with-cobranding-signature").toString(
+          "base64",
+        ),
+      );
+    });
+
+    it("should NOT apply cobranding signature when order has cobrandingAccepted: false", async () => {
+      const order = await createTestOrder("PAID", {
+        cobrandingAccepted: false,
+        cobrandingCreditText: null,
+      });
+
+      const result = await service.ensureDeliveryExports(order.id);
+
+      expect(mockApplySignature).not.toHaveBeenCalled();
+      expect(result.feedCardUrl).toContain(
+        Buffer.from("fake-feed-hd-png").toString("base64"),
+      );
+      expect(result.storyCardUrl).toContain(
+        Buffer.from("fake-story-hd-png").toString("base64"),
+      );
     });
   });
 });

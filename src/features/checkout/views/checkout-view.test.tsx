@@ -11,6 +11,14 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CheckoutView } from "./checkout-view";
 import type { CheckoutDetailsResult } from "../data/checkout.schemas";
+import * as checkoutFunctions from "../server/functions/checkout.functions";
+
+vi.mock("sonner", () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+  },
+}));
 
 vi.mock("../server/functions/checkout.functions", () => ({
   updateOrderWhatsappFn: vi.fn().mockResolvedValue({ success: true }),
@@ -38,6 +46,47 @@ vi.mock("../server/functions/checkout.functions", () => ({
     isPaid: false,
     isExpired: false,
   }),
+  updateOrderCobrandingFn: vi
+    .fn()
+    .mockImplementation(
+      async ({
+        data,
+      }: {
+        data: { orderId: string; cobrandingAccepted: boolean };
+      }): Promise<CheckoutDetailsResult> => {
+        const isDiscounted = data.cobrandingAccepted;
+        return {
+          orderId: data.orderId,
+          draftId: "draft-mock-123",
+          status: "PENDING",
+          amountCents: isDiscounted ? 693 : 990,
+          originalAmountCents: 990,
+          cobrandingAccepted: isDiscounted,
+          cobrandingPromotionAvailable: true,
+          cobrandingCreditText: isDiscounted
+            ? "Design por @ofertapronta"
+            : undefined,
+          cobrandingDiscountPercent: 30,
+          customerWhatsapp: "11988887777",
+          customerEmail: undefined,
+          frozenSnapshot: {
+            offerTitle: "Super Promoção de Carnes",
+            businessName: "Açougue do Bairro",
+            previewCardImageUrl: "https://example.com/preview.png",
+            targetAspectRatio: "feed",
+          },
+          charge: {
+            txId: isDiscounted ? "tx-discounted" : "tx-full",
+            copiaECola: isDiscounted
+              ? "00020126580014br.gov.bcb.pix0136testdiscounted"
+              : "00020126580014br.gov.bcb.pix0136test",
+            qrCodeBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==",
+            expiresAt: new Date(Date.now() + 1800000).toISOString(),
+            status: "PENDING",
+          },
+        };
+      },
+    ),
 }));
 
 function createWrapper() {
@@ -63,6 +112,11 @@ const mockCheckoutDetails: CheckoutDetailsResult = {
   draftId: "draft-mock-123",
   status: "PENDING",
   amountCents: 990,
+  originalAmountCents: 990,
+  cobrandingAccepted: false,
+  cobrandingPromotionAvailable: true,
+  cobrandingCreditText: "Design por @ofertapronta",
+  cobrandingDiscountPercent: 30,
   customerWhatsapp: "11988887777",
   customerEmail: undefined,
   frozenSnapshot: {
@@ -311,5 +365,146 @@ describe("CheckoutView Component", () => {
     expect(
       screen.queryByText("Teste Local: Simulação de Pagamento"),
     ).toBeNull();
+  });
+
+  /* ─────────────────────────────────────────────────────────────────────────────
+   * Testes da Feature: Co-branding Discount Card & Atualização Reativa
+   * ───────────────────────────────────────────────────────────────────────────── */
+
+  it("renders CobrandingDiscountCard with switch off and economy badge", () => {
+    render(<CheckoutView initialDetails={mockCheckoutDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(screen.getByText(/Economize R\$\s*2,97/)).toBeDefined();
+    expect(screen.getByText("30% OFF")).toBeDefined();
+    expect(
+      screen.getByText("Ativar assinatura de marca no rodapé"),
+    ).toBeDefined();
+
+    const cobrandingSwitch = screen.getByRole("switch", {
+      name: "Ativar assinatura de marca no rodapé",
+    });
+    expect(cobrandingSwitch.getAttribute("data-state")).toBe("unchecked");
+
+    // Mockup da assinatura não deve estar visível no showcase
+    expect(screen.queryByText("Design por @ofertapronta")).toBeNull();
+  });
+
+  it("toggles switch ON: calls updateOrderCobrandingFn, updates price to R$ 6,93 and shows signature mockup", async () => {
+    render(<CheckoutView initialDetails={mockCheckoutDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    const cobrandingSwitch = screen.getByRole("switch", {
+      name: "Ativar assinatura de marca no rodapé",
+    });
+    expect(cobrandingSwitch.getAttribute("data-state")).toBe("unchecked");
+
+    fireEvent.click(cobrandingSwitch);
+
+    await waitFor(() => {
+      expect(checkoutFunctions.updateOrderCobrandingFn).toHaveBeenCalledWith({
+        data: {
+          orderId: mockCheckoutDetails.orderId,
+          cobrandingAccepted: true,
+        },
+      });
+    });
+
+    await waitFor(() => {
+      // Switch agora está marcado
+      expect(cobrandingSwitch.getAttribute("data-state")).toBe("checked");
+      // Valor de R$ 6,93 aparece na tela
+      expect(screen.getAllByText(/R\$\s*6,93/).length).toBeGreaterThanOrEqual(
+        1,
+      );
+      // Mockup da assinatura aparece no showcase da arte
+      expect(screen.getByText("Design por @ofertapronta")).toBeDefined();
+    });
+  });
+
+  it("toggles switch OFF: reverts to full amount of R$ 9,90 and signature mockup disappears", async () => {
+    const discountedInitialDetails: CheckoutDetailsResult = {
+      ...mockCheckoutDetails,
+      amountCents: 693,
+      cobrandingAccepted: true,
+      cobrandingCreditText: "Design por @ofertapronta",
+    };
+
+    render(<CheckoutView initialDetails={discountedInitialDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    const cobrandingSwitch = screen.getByRole("switch", {
+      name: "Ativar assinatura de marca no rodapé",
+    });
+    expect(cobrandingSwitch.getAttribute("data-state")).toBe("checked");
+    // Mockup da assinatura visível
+    expect(screen.getByText("Design por @ofertapronta")).toBeDefined();
+
+    fireEvent.click(cobrandingSwitch);
+
+    await waitFor(() => {
+      expect(checkoutFunctions.updateOrderCobrandingFn).toHaveBeenCalledWith({
+        data: {
+          orderId: mockCheckoutDetails.orderId,
+          cobrandingAccepted: false,
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(cobrandingSwitch.getAttribute("data-state")).toBe("unchecked");
+      // Mockup da assinatura desaparece
+      expect(screen.queryByText("Design por @ofertapronta")).toBeNull();
+      // Valor atualizado para R$ 9,90
+      expect(screen.getAllByText(/R\$\s*9,90/).length).toBeGreaterThanOrEqual(
+        1,
+      );
+    });
+  });
+
+  it("handles error when toggling discount fails and reverts switch gracefully", async () => {
+    vi.mocked(checkoutFunctions.updateOrderCobrandingFn).mockRejectedValueOnce(
+      new Error("Erro ao emitir cobrança Pix com desconto"),
+    );
+
+    render(<CheckoutView initialDetails={mockCheckoutDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    const cobrandingSwitch = screen.getByRole("switch", {
+      name: "Ativar assinatura de marca no rodapé",
+    });
+    expect(cobrandingSwitch.getAttribute("data-state")).toBe("unchecked");
+
+    fireEvent.click(cobrandingSwitch);
+
+    await waitFor(() => {
+      expect(checkoutFunctions.updateOrderCobrandingFn).toHaveBeenCalled();
+    });
+
+    // O switch reverte para desligado e a aplicação não quebra
+    await waitFor(() => {
+      expect(cobrandingSwitch.getAttribute("data-state")).toBe("unchecked");
+      expect(screen.queryByText("Design por @ofertapronta")).toBeNull();
+    });
+  });
+
+  it("does NOT render CobrandingDiscountCard when cobrandingPromotionAvailable is false", () => {
+    const disabledPromotionDetails: CheckoutDetailsResult = {
+      ...mockCheckoutDetails,
+      cobrandingPromotionAvailable: false,
+    };
+
+    render(<CheckoutView initialDetails={disabledPromotionDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(
+      screen.queryByText("Ativar assinatura de marca no rodapé"),
+    ).toBeNull();
+    expect(screen.queryByText(/Economize R\$\s*2,97/)).toBeNull();
   });
 });

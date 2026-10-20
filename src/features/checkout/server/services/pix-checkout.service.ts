@@ -1,6 +1,10 @@
 import { eq, and, desc } from "drizzle-orm";
 import { db, type AppDatabase } from "../../../../server/db";
-import { orders, paymentCharges } from "../../../../server/db/schema/orders";
+import {
+  orders,
+  paymentCharges,
+  type Order,
+} from "../../../../server/db/schema/orders";
 import { drafts, type Draft } from "../../../../server/db/schema/promotions";
 import { serverEnv } from "../../../../config/server-env";
 import {
@@ -11,6 +15,7 @@ import {
 } from "../../data/checkout.schemas";
 import {
   getCampaignPlanById,
+  calculateCobrandingPrice,
   type CampaignCatalogEnv,
   type CampaignPlan,
 } from "../../data/campaign-catalog";
@@ -70,6 +75,10 @@ export class PixCheckoutService {
       planId: plan.id,
       planName: plan.name,
       amountCents: plan.amountCents,
+      originalAmountCents: plan.amountCents,
+      cobrandingAccepted: false,
+      cobrandingDiscountPercent: null,
+      cobrandingCreditText: null,
       maxPostPaymentRegenerations: plan.maxPostPaymentRegenerations,
       frozenAt: new Date().toISOString(),
     };
@@ -231,11 +240,23 @@ export class PixCheckoutService {
       .orderBy(desc(paymentCharges.createdAt))
       .limit(1);
 
+    const snapshot = (order.frozenSnapshot || {}) as Record<string, unknown>;
+    const originalAmountCents =
+      typeof snapshot.originalAmountCents === "number"
+        ? snapshot.originalAmountCents
+        : order.amountCents;
+
     return {
       orderId: order.id,
       draftId: order.draftId || "",
       status: order.status as "PENDING" | "PAID" | "EXPIRED" | "CANCELLED",
       amountCents: order.amountCents,
+      originalAmountCents,
+      cobrandingAccepted: order.cobrandingAccepted ?? false,
+      cobrandingPromotionAvailable:
+        serverEnv.COBRANDING_PROMOTION_ENABLED ?? true,
+      cobrandingCreditText: order.cobrandingCreditText || undefined,
+      cobrandingDiscountPercent: serverEnv.COBRANDING_DISCOUNT_PERCENT ?? 30,
       customerWhatsapp: order.customerWhatsapp || undefined,
       customerEmail: order.customerEmail || undefined,
       frozenSnapshot:
@@ -251,6 +272,149 @@ export class PixCheckoutService {
           }
         : null,
     };
+  }
+
+  private resolveCobrandingDetails(
+    order: Order,
+    cobrandingAccepted: boolean,
+  ): {
+    newAmountCents: number;
+    creditText: string | null;
+    discountPercent: number | null;
+    updatedSnapshot: Record<string, unknown>;
+  } {
+    const snapshot = (order.frozenSnapshot || {}) as Record<string, unknown>;
+    const originalAmountCents =
+      typeof snapshot.originalAmountCents === "number"
+        ? snapshot.originalAmountCents
+        : getCampaignPlanById(order.planId, this.catalogEnv).amountCents;
+
+    let newAmountCents = originalAmountCents;
+    let creditText: string | null = null;
+    let discountPercent: number | null = null;
+
+    if (cobrandingAccepted) {
+      const isPromotionEnabled = serverEnv.COBRANDING_PROMOTION_ENABLED ?? true;
+      if (!isPromotionEnabled) {
+        throw new Error(
+          "A promoção de co-branding não está disponível no momento (PROMOTION_DISABLED)",
+        );
+      }
+
+      discountPercent = serverEnv.COBRANDING_DISCOUNT_PERCENT ?? 30;
+      const calc = calculateCobrandingPrice(
+        originalAmountCents,
+        discountPercent,
+      );
+      newAmountCents = calc.amountCents;
+      creditText =
+        serverEnv.COBRANDING_CREDIT_TEXT ?? "Design por @ofertapronta";
+    }
+
+    const updatedSnapshot: Record<string, unknown> = {
+      ...snapshot,
+      originalAmountCents,
+      amountCents: newAmountCents,
+      cobrandingAccepted,
+      cobrandingDiscountPercent: discountPercent,
+      cobrandingCreditText: creditText,
+      updatedAt: new Date().toISOString(),
+    };
+
+    return {
+      newAmountCents,
+      creditText,
+      discountPercent,
+      updatedSnapshot,
+    };
+  }
+
+  /**
+   * Atualiza a opção de co-branding (desconto com marca) para um pedido pendente.
+   * Recalcula o valor autoritativo no backend, expira a cobrança Pix pendente anterior,
+   * emite nova cobrança na Pushin Pay e atualiza atomicamente o pedido e snapshot congelado.
+   */
+  async updateOrderCobranding(
+    orderId: string,
+    cobrandingAccepted: boolean,
+  ): Promise<CheckoutDetailsResult> {
+    const [order] = await this.database
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (!order) {
+      throw new Error("Pedido não encontrado");
+    }
+
+    if (order.status === "PAID") {
+      throw new Error(
+        "Pedido já está pago; não é possível alterar opção de co-branding (ORDER_ALREADY_PAID)",
+      );
+    }
+
+    // Idempotência: se a opção já estiver idêntica, retorna estado atual sem reemitir cobrança
+    if (order.cobrandingAccepted === cobrandingAccepted) {
+      return this.getCheckoutDetails(orderId);
+    }
+
+    const { newAmountCents, creditText, updatedSnapshot } =
+      this.resolveCobrandingDetails(order, cobrandingAccepted);
+
+    // Emite nova cobrança Pix na Pushin Pay com o novo valor
+    const newCharge = await this.pushinPay.createCashInCharge({
+      valueCents: newAmountCents,
+    });
+
+    const now = new Date();
+
+    // Transação Atômica Drizzle
+    await this.database.transaction(async (tx) => {
+      // Expira cobranças PENDING anteriores
+      await tx
+        .update(paymentCharges)
+        .set({ status: "EXPIRED", updatedAt: now })
+        .where(
+          and(
+            eq(paymentCharges.orderId, orderId),
+            eq(paymentCharges.status, "PENDING"),
+          ),
+        );
+
+      // Insere nova cobrança com o novo valor
+      await tx.insert(paymentCharges).values({
+        orderId: order.id,
+        txId: newCharge.txId,
+        status: "PENDING",
+        qrCodeImageUrl: newCharge.qrCodeBase64,
+        copiaECola: newCharge.copiaECola,
+        amountCents: newAmountCents,
+        expiresAt: newCharge.expiresAt,
+        rawPayload: newCharge as unknown as Record<string, unknown>,
+      });
+
+      // Atualiza pedido
+      await tx
+        .update(orders)
+        .set({
+          amountCents: newAmountCents,
+          cobrandingAccepted,
+          cobrandingCreditText: creditText,
+          frozenSnapshot: updatedSnapshot,
+          updatedAt: now,
+        })
+        .where(eq(orders.id, orderId));
+    });
+
+    log.info("Co-branding do pedido atualizado com sucesso", {
+      orderId,
+      cobrandingAccepted,
+      newAmountCents,
+      newTxId: newCharge.txId,
+    });
+
+    return this.getCheckoutDetails(orderId);
   }
 
   /**
@@ -499,6 +663,8 @@ export class PixCheckoutService {
           planId: plan.id,
           status: "PENDING",
           amountCents: plan.amountCents,
+          cobrandingAccepted: false,
+          cobrandingCreditText: null,
           cleanMasterImageDataUrl: cleanMasterImageDataUrl ?? null,
           frozenSnapshot,
           customerWhatsapp,
@@ -529,6 +695,36 @@ export class PixCheckoutService {
     paidAt: Date,
   ): Promise<void> {
     await this.database.transaction(async (tx) => {
+      const [order] = await tx
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId))
+        .limit(1);
+
+      const [charge] = await tx
+        .select()
+        .from(paymentCharges)
+        .where(eq(paymentCharges.id, chargeId))
+        .limit(1);
+
+      const snapshot = (order?.frozenSnapshot || {}) as Record<string, unknown>;
+      const originalAmountCents =
+        typeof snapshot.originalAmountCents === "number"
+          ? snapshot.originalAmountCents
+          : order
+            ? getCampaignPlanById(order.planId, this.catalogEnv).amountCents
+            : 990;
+
+      const isDiscounted = charge
+        ? charge.amountCents < originalAmountCents
+        : false;
+      const cobrandingAccepted = isDiscounted;
+      const cobrandingCreditText = isDiscounted
+        ? order?.cobrandingCreditText ||
+          serverEnv.COBRANDING_CREDIT_TEXT ||
+          "Design por @ofertapronta"
+        : null;
+
       await tx
         .update(paymentCharges)
         .set({
@@ -543,6 +739,9 @@ export class PixCheckoutService {
         .set({
           status: "PAID",
           paidAt,
+          amountCents: charge?.amountCents ?? order?.amountCents,
+          cobrandingAccepted,
+          cobrandingCreditText,
           updatedAt: new Date(),
         })
         .where(eq(orders.id, orderId));

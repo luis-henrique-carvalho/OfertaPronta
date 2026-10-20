@@ -16,6 +16,14 @@ export const serverEnvSchema = z.object({
   PUSHIN_PAY_WEBHOOK_SECRET: z.string().optional(),
   CAMPAIGN_SINGLE_PRICE_CENTS: z.coerce.number().int().positive().optional(),
   DEV_BYPASS_PAYMENT: z.coerce.boolean().default(false),
+  COBRANDING_PROMOTION_ENABLED: z.coerce.boolean().default(true),
+  COBRANDING_CREDIT_TEXT: z.string().default("Design por @ofertapronta"),
+  COBRANDING_DISCOUNT_PERCENT: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(90)
+    .default(30),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

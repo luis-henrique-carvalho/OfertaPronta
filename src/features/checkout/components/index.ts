@@ -4,6 +4,11 @@ export {
 } from "./ad-card-checkout-showcase";
 
 export {
+  CobrandingDiscountCard,
+  type CobrandingDiscountCardProps,
+} from "./cobranding-discount-card";
+
+export {
   UnifiedPixPaymentCard,
   type UnifiedPixPaymentCardProps,
 } from "./unified-pix-payment-card";

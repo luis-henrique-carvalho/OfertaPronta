@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import {
   applyWatermark,
+  applyCobrandingSignature,
   formatFeedCard,
   formatStoryCard,
   type WatermarkOptions,
@@ -129,6 +130,69 @@ describe("ExportEngine Deep Module", () => {
     it("deve lançar erro descritivo quando receber buffer inválido", async () => {
       const corruptBuffer = Buffer.from("isto-nao-e-uma-imagem");
       await expect(applyWatermark(corruptBuffer)).rejects.toThrow();
+    });
+  });
+
+  describe("applyCobrandingSignature", () => {
+    it("deve renderizar a assinatura vetorial em formato Feed (1080x1350) com dimensões preservadas", async () => {
+      const feedBuffer = await createTestImage(1080, 1350);
+      const result = await applyCobrandingSignature(feedBuffer, {
+        creditText: "Design por @ofertapronta",
+        aspectRatio: "feed",
+      });
+
+      expect(result).toBeInstanceOf(Buffer);
+      const metadata = await sharp(result).metadata();
+      expect(metadata.width).toBe(1080);
+      expect(metadata.height).toBe(1350);
+      expect(metadata.format).toBe("png");
+      expect(result.equals(feedBuffer)).toBe(false);
+    });
+
+    it("deve renderizar a assinatura vetorial em formato Story (1080x1920) com dimensões preservadas", async () => {
+      const storyBuffer = await createTestImage(1080, 1920);
+      const result = await applyCobrandingSignature(storyBuffer, {
+        creditText: "Design por @ofertapronta",
+        aspectRatio: "story",
+      });
+
+      expect(result).toBeInstanceOf(Buffer);
+      const metadata = await sharp(result).metadata();
+      expect(metadata.width).toBe(1080);
+      expect(metadata.height).toBe(1920);
+      expect(metadata.format).toBe("png");
+      expect(result.equals(storyBuffer)).toBe(false);
+    });
+
+    it("deve usar o texto de crédito padrão quando creditText não for informado", async () => {
+      const feedBuffer = await createTestImage(1080, 1350);
+      const result = await applyCobrandingSignature(feedBuffer);
+
+      expect(result).toBeInstanceOf(Buffer);
+      const metadata = await sharp(result).metadata();
+      expect(metadata.width).toBe(1080);
+      expect(metadata.height).toBe(1350);
+    });
+
+    it("deve escapar caracteres especiais de XML para prevenir injeção ou quebra do SVG", async () => {
+      const feedBuffer = await createTestImage(1080, 1350);
+      const result = await applyCobrandingSignature(feedBuffer, {
+        creditText: "Design <Oferta & Pronta> 'Test'",
+      });
+
+      expect(result).toBeInstanceOf(Buffer);
+      const metadata = await sharp(result).metadata();
+      expect(metadata.width).toBe(1080);
+      expect(metadata.height).toBe(1350);
+    });
+
+    it("deve detectar aspect ratio Story automaticamente quando height > 1600", async () => {
+      const tallBuffer = await createTestImage(1080, 1920);
+      const result = await applyCobrandingSignature(tallBuffer);
+
+      const metadata = await sharp(result).metadata();
+      expect(metadata.width).toBe(1080);
+      expect(metadata.height).toBe(1920);
     });
   });
 });

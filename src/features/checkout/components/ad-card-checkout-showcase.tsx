@@ -28,6 +28,8 @@ export interface AdCardCheckoutShowcaseProps {
   amountCents?: number;
   planName?: string | null;
   maxRegenerations?: number | null;
+  cobrandingAccepted?: boolean;
+  cobrandingCreditText?: string;
   className?: string;
 }
 
@@ -39,6 +41,8 @@ export function AdCardCheckoutShowcase({
   amountCents,
   planName,
   maxRegenerations,
+  cobrandingAccepted = false,
+  cobrandingCreditText,
   className,
 }: AdCardCheckoutShowcaseProps) {
   const [isZoomOpen, setIsZoomOpen] = useState(false);
@@ -142,6 +146,22 @@ export function AdCardCheckoutShowcase({
               <Typography variant="muted" className="text-xs font-medium">
                 Prévia do Card Publicitário
               </Typography>
+            </div>
+          )}
+
+          {/* Mockup sutil da assinatura de co-branding no rodapé da arte */}
+          {cobrandingAccepted && (
+            <div className="pointer-events-none absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex max-w-[90%] items-center justify-center">
+              <div className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/65 px-2.5 py-0.5 shadow-sm backdrop-blur-sm">
+                <Sparkles className="size-2.5 shrink-0 text-primary" />
+                <Typography
+                  variant="muted"
+                  as="span"
+                  className="truncate text-[10px] font-semibold text-white/95"
+                >
+                  {cobrandingCreditText || "Design por @ofertapronta"}
+                </Typography>
+              </div>
             </div>
           )}
         </div>

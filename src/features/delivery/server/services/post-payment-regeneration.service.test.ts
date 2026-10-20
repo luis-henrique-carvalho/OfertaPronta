@@ -20,6 +20,7 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
   let mockGenerateAdCard: ReturnType<typeof vi.fn>;
   let mockFormatFeed: ReturnType<typeof vi.fn>;
   let mockFormatStory: ReturnType<typeof vi.fn>;
+  let mockApplySignature: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     mockFormatFeed = vi.fn().mockImplementation(async (_buffer: Buffer) => {
@@ -28,11 +29,20 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
     mockFormatStory = vi.fn().mockImplementation(async (_buffer: Buffer) => {
       return Buffer.from("fake-story-hd-png");
     });
+    mockApplySignature = vi
+      .fn()
+      .mockImplementation(async (buffer: Buffer, _options) => {
+        return Buffer.concat([
+          buffer,
+          Buffer.from("-with-cobranding-signature"),
+        ]);
+      });
 
     deliveryService = new DeliveryService({
       database: db,
       formatFeed: mockFormatFeed,
       formatStory: mockFormatStory,
+      applySignature: mockApplySignature,
     });
 
     mockGenerateAdCard = vi
@@ -442,6 +452,44 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
       );
       expect(lastCallArgs.customStyleInstructions).not.toContain(
         "Dourado e Preto",
+      );
+    });
+
+    it("should preserve and re-apply cobranding signature on regenerated exports when order has cobrandingAccepted: true", async () => {
+      const order = await createTestOrder("PAID", {
+        cobrandingAccepted: true,
+        cobrandingCreditText: "Design por @ofertapronta",
+      });
+      await deliveryService.ensureDeliveryExports(order.id);
+      mockApplySignature.mockClear();
+
+      mockFormatFeed.mockResolvedValueOnce(Buffer.from("regen-feed-raw"));
+      mockFormatStory.mockResolvedValueOnce(Buffer.from("regen-story-raw"));
+
+      const result = await service.regenerateOrderCard({
+        orderId: order.id,
+        offerTitle: "Título Regenerado com Co-Branding",
+      });
+
+      expect(mockApplySignature).toHaveBeenCalledTimes(2);
+      expect(mockApplySignature).toHaveBeenCalledWith(
+        Buffer.from("regen-feed-raw"),
+        { creditText: "Design por @ofertapronta", aspectRatio: "feed" },
+      );
+      expect(mockApplySignature).toHaveBeenCalledWith(
+        Buffer.from("regen-story-raw"),
+        { creditText: "Design por @ofertapronta", aspectRatio: "story" },
+      );
+
+      expect(result.feedCardUrl).toContain(
+        Buffer.from("regen-feed-raw-with-cobranding-signature").toString(
+          "base64",
+        ),
+      );
+      expect(result.storyCardUrl).toContain(
+        Buffer.from("regen-story-raw-with-cobranding-signature").toString(
+          "base64",
+        ),
       );
     });
   });
