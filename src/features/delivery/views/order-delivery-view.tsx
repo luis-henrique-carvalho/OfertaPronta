@@ -1,18 +1,15 @@
 import { Typography } from "@/components/ui/typography";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Store, PlusCircle, ShieldCheck } from "lucide-react";
+import { Store, PlusCircle, ShieldCheck, CheckCircle2 } from "lucide-react";
 import type {
   DeliveryDetailsResult,
   DownloadFormat,
   RequestRegenerationInput,
 } from "../data/delivery.schemas";
 import { useDeliveryOrder } from "../hooks/use-delivery-order";
-import { DeliveryHeaderStatus } from "../components/delivery-header-status";
-import { AdCardDeliveryPreview } from "../components/ad-card-delivery-preview";
-import { DownloadActionsCard } from "../components/download-actions-card";
-import { OrderWhatsappShareCard } from "../components/order-whatsapp-share-card";
-import { AiRegenerationPanel } from "../components/ai-regeneration-panel";
+import { AdCardUnifiedDeliveryHero } from "../components/ad-card-unified-delivery-hero";
+import { AiRegenerationQuickPanel } from "../components/ai-regeneration-quick-panel";
 
 export interface OrderDeliveryViewProps {
   initialDetails: DeliveryDetailsResult;
@@ -56,7 +53,7 @@ export function OrderDeliveryView({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-5 sm:max-w-xl sm:py-7">
+    <div className="mx-auto flex w-full max-w-md flex-col gap-3.5 px-4 py-4 sm:max-w-xl sm:py-6">
       {/* Barra de Navegação Superior */}
       <div className="flex items-center justify-between">
         <a href="/" className="flex items-center gap-1.5 focus:outline-none">
@@ -90,39 +87,55 @@ export function OrderDeliveryView({
         </div>
       </div>
 
-      {/* 1. Banner Comemorativo de Pagamento Confirmado */}
-      <DeliveryHeaderStatus
-        offerTitle={details.offerTitle}
-        businessName={details.businessName}
-        businessSegment={details.businessSegment}
-      />
+      {/* Header Compacto e Discreto: Pagamento Confirmado + Título da Oferta */}
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+          <div className="flex items-center gap-1.5 truncate">
+            <Badge
+              variant="secondary"
+              className="px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300"
+            >
+              Pagamento Confirmado
+            </Badge>
+            <Typography
+              variant="muted"
+              className="truncate text-xs font-bold text-foreground"
+            >
+              {details.offerTitle}
+            </Typography>
+          </div>
+        </div>
 
-      {/* 2. Visualizador HD com Alternância Feed e Story */}
-      <AdCardDeliveryPreview
+        {details.businessName && (
+          <Typography
+            variant="muted"
+            className="hidden sm:inline text-xs text-muted-foreground shrink-0"
+          >
+            {details.businessName}
+            {details.businessSegment ? ` • ${details.businessSegment}` : ""}
+          </Typography>
+        )}
+      </div>
+
+      {/* Hero Card Unificado: Preview HD + Tabs Feed/Story + Download Sincronizado + WhatsApp */}
+      <AdCardUnifiedDeliveryHero
+        orderId={details.orderId}
         feedCardUrl={details.feedCardUrl}
         storyCardUrl={details.storyCardUrl}
         offerTitle={details.offerTitle}
-      />
-
-      {/* 3. Ações Diretas de Download em PNG HD */}
-      <DownloadActionsCard
-        orderId={details.orderId}
+        businessName={details.businessName}
+        businessSegment={details.businessSegment}
+        permanentOrderUrl={details.permanentOrderUrl}
+        customerWhatsapp={details.customerWhatsapp}
         downloadCount={details.downloadCount}
         onDownload={triggerDownload}
         isDownloading={isDownloading}
         activeFormat={activeDownloadFormat}
       />
 
-      {/* 4. Compartilhamento e Acesso Fácil via WhatsApp */}
-      <OrderWhatsappShareCard
-        orderId={details.orderId}
-        offerTitle={details.offerTitle}
-        permanentOrderUrl={details.permanentOrderUrl}
-        customerWhatsapp={details.customerWhatsapp}
-      />
-
-      {/* 5. Painel Retrátil de Refinamento com IA */}
-      <AiRegenerationPanel
+      {/* Painel Rápido de Refinamento por Micro-Passos (ou Mensagem Acolhedora de Salvo) */}
+      <AiRegenerationQuickPanel
         orderId={details.orderId}
         offerTitle={details.offerTitle}
         canRegenerate={details.canRegenerate}
@@ -132,10 +145,11 @@ export function OrderDeliveryView({
         regenerationWindowEndsAt={details.regenerationWindowEndsAt}
         onRegenerationSuccess={updateDetails}
         regenerationFn={regenerationFn}
+        onNavigateHome={handleCreateNew}
       />
 
-      {/* Rodapé de Confiança */}
-      <div className="flex flex-col items-center gap-1 py-4 text-center">
+      {/* Rodapé de Confiança e Link Permanente */}
+      <div className="flex flex-col items-center gap-1 py-3 text-center">
         <Typography
           variant="muted"
           className="text-[11px] text-muted-foreground"

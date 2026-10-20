@@ -21,3 +21,12 @@ export type { RegenerationDisabledNoticeProps } from "./regeneration-disabled-no
 
 export { RegenerationActiveForm } from "./regeneration-active-form";
 export type { RegenerationActiveFormProps } from "./regeneration-active-form";
+
+export { AdCardUnifiedDeliveryHero } from "./ad-card-unified-delivery-hero";
+export type { AdCardUnifiedDeliveryHeroProps } from "./ad-card-unified-delivery-hero";
+
+export { AiRegenerationQuickPanel } from "./ai-regeneration-quick-panel";
+export type {
+  AiRegenerationQuickPanelProps,
+  QuickIntent,
+} from "./ai-regeneration-quick-panel";

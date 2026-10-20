@@ -34,6 +34,8 @@ interface RegenerationContext {
   mergedPromoPrice: string;
   mergedOriginalPrice?: string | null;
   mergedCallToAction?: string | null;
+  mergedStylePresetId?: string | null;
+  mergedColorPalette?: string | null;
   combinedCustomInstructions?: string;
   snapshot: Record<string, unknown>;
 }
@@ -174,6 +176,16 @@ export class PostPaymentRegenerationService {
         ? validated.callToAction
         : (snapshot.callToAction as string | null | undefined);
 
+    const mergedStylePresetId =
+      validated.stylePresetId !== undefined
+        ? validated.stylePresetId?.trim() || null
+        : ((snapshot.stylePresetId as string | undefined) ?? null);
+
+    const mergedColorPalette =
+      validated.colorPalette !== undefined
+        ? validated.colorPalette?.trim() || null
+        : ((snapshot.colorPalette as string | undefined) ?? null);
+
     const baseCardImageDataUrl =
       (order.cleanMasterImageDataUrl as string | undefined) ||
       (snapshot.cleanMasterImageDataUrl as string | undefined) ||
@@ -183,6 +195,7 @@ export class PostPaymentRegenerationService {
     const combinedCustomInstructions = resolveRegenerationStyleInstructions(
       snapshot.customStyleInstructions as string | undefined,
       currentAdjustment,
+      validated.colorPalette,
     );
 
     const generateInput: GenerateAdCardInput = {
@@ -204,8 +217,7 @@ export class PostPaymentRegenerationService {
       referenceImageDataUrl:
         (snapshot.referenceImageDataUrl as string | undefined) || undefined,
       baseCardImageDataUrl,
-      stylePresetId:
-        (snapshot.stylePresetId as string | undefined) || undefined,
+      stylePresetId: mergedStylePresetId || undefined,
       customStyleInstructions: combinedCustomInstructions || undefined,
     };
 
@@ -215,6 +227,8 @@ export class PostPaymentRegenerationService {
       mergedPromoPrice,
       mergedOriginalPrice,
       mergedCallToAction,
+      mergedStylePresetId,
+      mergedColorPalette,
       combinedCustomInstructions,
       snapshot,
     };
@@ -238,6 +252,12 @@ export class PostPaymentRegenerationService {
         : {}),
       ...(context.mergedCallToAction !== undefined
         ? { callToAction: context.mergedCallToAction }
+        : {}),
+      ...(context.mergedStylePresetId !== undefined
+        ? { stylePresetId: context.mergedStylePresetId }
+        : {}),
+      ...(context.mergedColorPalette !== undefined
+        ? { colorPalette: context.mergedColorPalette }
         : {}),
       ...(context.combinedCustomInstructions
         ? { customStyleInstructions: context.combinedCustomInstructions }
@@ -274,15 +294,28 @@ export class PostPaymentRegenerationService {
 
 /**
  * Isola o ajuste atual do cliente sem acumular diretrizes conflitantes de rodadas anteriores,
- * preservando eventuais instruções originais de estilo definidas no briefing inicial.
+ * combinando a nova paleta de cores (se fornecida) e preservando eventuais instruções originais de estilo definidas no briefing inicial.
  */
 function resolveRegenerationStyleInstructions(
   originalStyleInstructions: string | undefined,
   currentAdjustmentPrompt: string | undefined,
+  colorPalette?: string | null,
 ): string | undefined {
-  if (!currentAdjustmentPrompt) {
+  const adjustmentParts: string[] = [];
+
+  if (colorPalette?.trim()) {
+    adjustmentParts.push(`Paleta de cores: ${colorPalette.trim()}`);
+  }
+
+  if (currentAdjustmentPrompt?.trim()) {
+    adjustmentParts.push(currentAdjustmentPrompt.trim());
+  }
+
+  if (adjustmentParts.length === 0) {
     return originalStyleInstructions;
   }
+
+  const combinedAdjustment = adjustmentParts.join(". ");
 
   const cleanOriginal = originalStyleInstructions
     ? originalStyleInstructions
@@ -291,6 +324,6 @@ function resolveRegenerationStyleInstructions(
     : "";
 
   return cleanOriginal
-    ? `${cleanOriginal}. Ajuste solicitado pelo cliente: ${currentAdjustmentPrompt}`
-    : `Ajuste solicitado pelo cliente: ${currentAdjustmentPrompt}`;
+    ? `${cleanOriginal}. Ajuste solicitado pelo cliente: ${combinedAdjustment}`
+    : `Ajuste solicitado pelo cliente: ${combinedAdjustment}`;
 }

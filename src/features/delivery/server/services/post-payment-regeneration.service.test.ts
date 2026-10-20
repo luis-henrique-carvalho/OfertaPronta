@@ -9,6 +9,7 @@ import type {
   GenerateAdCardInput,
   GenerateAdCardResult,
 } from "../../../promotions/server/services/ai-card-generator.service";
+import { requestRegenerationInputSchema } from "../../data/delivery.schemas";
 
 const FAKE_PNG_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
@@ -344,6 +345,130 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
       expect(lastCallArgs.customStyleInstructions).not.toContain(
         "Mudar a logo para verde",
       );
+    });
+
+    it("should update stylePresetId when a new stylePresetId is explicitly provided", async () => {
+      const order = await createTestOrder("PAID");
+      await deliveryService.ensureDeliveryExports(order.id);
+
+      await service.regenerateOrderCard({
+        orderId: order.id,
+        stylePresetId: "burger-dark-bold",
+      });
+
+      expect(mockGenerateAdCard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stylePresetId: "burger-dark-bold",
+        }),
+      );
+
+      const [updatedOrder] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, order.id));
+
+      const snapshot = updatedOrder.frozenSnapshot as Record<string, unknown>;
+      expect(snapshot.stylePresetId).toBe("burger-dark-bold");
+    });
+
+    it("should combine colorPalette with original customStyleInstructions into AI instructions", async () => {
+      const order = await createTestOrder("PAID");
+      await deliveryService.ensureDeliveryExports(order.id);
+
+      await service.regenerateOrderCard({
+        orderId: order.id,
+        colorPalette: "Preto e Dourado",
+      });
+
+      expect(mockGenerateAdCard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customStyleInstructions:
+            "Estilo rústico escuro. Ajuste solicitado pelo cliente: Paleta de cores: Preto e Dourado",
+        }),
+      );
+
+      const [updatedOrder] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, order.id));
+
+      const snapshot = updatedOrder.frozenSnapshot as Record<string, unknown>;
+      expect(snapshot.colorPalette).toBe("Preto e Dourado");
+      expect(snapshot.customStyleInstructions).toContain(
+        "Paleta de cores: Preto e Dourado",
+      );
+    });
+
+    it("should combine both colorPalette and customAdjustmentPrompt with original style instructions", async () => {
+      const order = await createTestOrder("PAID");
+      await deliveryService.ensureDeliveryExports(order.id);
+
+      await service.regenerateOrderCard({
+        orderId: order.id,
+        colorPalette: "Vermelho e Amarelo",
+        customAdjustmentPrompt: "Destaque mais as chamas na carne",
+      });
+
+      expect(mockGenerateAdCard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customStyleInstructions:
+            "Estilo rústico escuro. Ajuste solicitado pelo cliente: Paleta de cores: Vermelho e Amarelo. Destaque mais as chamas na carne",
+        }),
+      );
+    });
+
+    it("should isolate colorPalette across successive regenerations without stacking stale palettes", async () => {
+      const order = await createTestOrder("PAID");
+      await deliveryService.ensureDeliveryExports(order.id);
+
+      // Rodada 1: Dourado e Preto
+      await service.regenerateOrderCard({
+        orderId: order.id,
+        colorPalette: "Dourado e Preto",
+      });
+
+      // Rodada 2: Vermelho e Amarelo
+      await service.regenerateOrderCard({
+        orderId: order.id,
+        colorPalette: "Vermelho e Amarelo",
+      });
+
+      const lastCallArgs =
+        mockGenerateAdCard.mock.calls[
+          mockGenerateAdCard.mock.calls.length - 1
+        ][0];
+      expect(lastCallArgs.customStyleInstructions).toContain(
+        "Paleta de cores: Vermelho e Amarelo",
+      );
+      expect(lastCallArgs.customStyleInstructions).not.toContain(
+        "Dourado e Preto",
+      );
+    });
+  });
+
+  describe("requestRegenerationInputSchema Schema Validation", () => {
+    it("should validate successfully with stylePresetId and colorPalette", () => {
+      const input = {
+        orderId: crypto.randomUUID(),
+        stylePresetId: "market-fresh",
+        colorPalette: "Verde e Branco",
+      };
+
+      const parsed = requestRegenerationInputSchema.parse(input);
+      expect(parsed.stylePresetId).toBe("market-fresh");
+      expect(parsed.colorPalette).toBe("Verde e Branco");
+    });
+
+    it("should validate successfully with null/undefined for stylePresetId and colorPalette", () => {
+      const input = {
+        orderId: crypto.randomUUID(),
+        stylePresetId: null,
+        colorPalette: null,
+      };
+
+      const parsed = requestRegenerationInputSchema.parse(input);
+      expect(parsed.stylePresetId).toBeNull();
+      expect(parsed.colorPalette).toBeNull();
     });
   });
 });

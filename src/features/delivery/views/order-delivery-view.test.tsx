@@ -49,7 +49,7 @@ const mockDeliveryDetails: DeliveryDetailsResult = {
     "https://ofertapronta.com/pedido/6ba7b810-9dad-11d1-80b4-00c04fd430c8",
 };
 
-describe("OrderDeliveryView Component", () => {
+describe("OrderDeliveryView Component (Redesign Simplificado)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.defineProperty(navigator, "clipboard", {
@@ -65,57 +65,67 @@ describe("OrderDeliveryView Component", () => {
     cleanup();
   });
 
-  it("renders celebration banner, preview tabs and download actions correctly", () => {
+  it("renders compact status bar, unified hero preview and dynamic download button correctly", () => {
     render(<OrderDeliveryView initialDetails={mockDeliveryDetails} />, {
       wrapper: createWrapper(),
     });
 
-    // Banner de status
+    // 1. Barra compacta de status
     expect(screen.getByText("Pagamento Confirmado")).toBeDefined();
     expect(screen.getByText("Quarta da Pizza")).toBeDefined();
     expect(screen.getByText(/Pizzaria Bela Napoli/)).toBeDefined();
 
-    // Abas do preview
-    expect(screen.getByText("Feed (1080×1350)")).toBeDefined();
-    expect(screen.getByText("Story (1080×1920)")).toBeDefined();
+    // 2. Abas do Hero
+    expect(screen.getByRole("tab", { name: /Feed/i })).toBeDefined();
+    expect(screen.getByRole("tab", { name: /Story/i })).toBeDefined();
 
-    // Botões de download
+    // 3. Botão primário dinâmico sincronizado com a aba ativa inicial (Feed)
     expect(
-      screen.getByRole("button", { name: "Baixar Feed (1080×1350)" }),
-    ).toBeDefined();
-    expect(
-      screen.getByRole("button", { name: "Baixar Story (1080×1920)" }),
+      screen.getByRole("button", { name: "Baixar Feed em HD" }),
     ).toBeDefined();
 
-    // WhatsApp share
+    // 4. Ações de WhatsApp e Copiar Link integradas no Hero
     expect(
-      screen.getByRole("button", { name: "Enviar artes para meu WhatsApp" }),
+      screen.getByRole("button", { name: "Salvar no WhatsApp" }),
     ).toBeDefined();
     expect(
       screen.getByRole("button", { name: "Copiar link permanente" }),
     ).toBeDefined();
 
-    // Painel de IA
+    // 5. Painel simplificado com chips rápidos de intenção
+    expect(screen.getByText("Precisa de algum ajuste na arte?")).toBeDefined();
+    expect(screen.getByText("3 de 3 ajustes restantes")).toBeDefined();
+    expect(screen.getByRole("button", { name: /Mudar Preço/i })).toBeDefined();
     expect(
-      screen.getByText("Refinar com Inteligência Artificial"),
+      screen.getByRole("button", { name: /Corrigir Título/i }),
     ).toBeDefined();
-    expect(screen.getByText("Ajustes restantes: 3 de 3")).toBeDefined();
+    expect(screen.getByRole("button", { name: /Trocar Cores/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Outro Ajuste/i })).toBeDefined();
   });
 
-  it("switches tabs between Feed and Story views", () => {
+  it("synchronizes the dynamic primary download button when switching tabs between Feed and Story", () => {
     render(<OrderDeliveryView initialDetails={mockDeliveryDetails} />, {
       wrapper: createWrapper(),
     });
 
-    const feedTab = screen.getByRole("tab", { name: /Feed/i });
-    const storyTab = screen.getByRole("tab", { name: /Story/i });
-
-    expect(feedTab).toBeDefined();
-    expect(storyTab).toBeDefined();
+    // Inicialmente no Feed
+    expect(
+      screen.getByRole("button", { name: "Baixar Feed em HD" }),
+    ).toBeDefined();
     expect(screen.getByAltText(/Arte de Feed/i)).toBeDefined();
+
+    // Clica na aba Story
+    const storyTab = screen.getByRole("tab", { name: /Story/i });
+    fireEvent.click(storyTab);
+
+    // O botão primário dinâmico agora sincroniza para "Baixar Story em HD"
+    expect(
+      screen.getByRole("button", { name: "Baixar Story em HD" }),
+    ).toBeDefined();
+    expect(screen.getByAltText(/Arte de Story/i)).toBeDefined();
   });
 
-  it("triggers download action when clicking download buttons", async () => {
+  it("triggers download action for active format when clicking primary download button", async () => {
     const mockRecordDownload = vi.fn().mockResolvedValue({
       success: true,
       downloadCount: 1,
@@ -130,7 +140,7 @@ describe("OrderDeliveryView Component", () => {
     );
 
     const downloadFeedBtn = screen.getByRole("button", {
-      name: "Baixar Feed (1080×1350)",
+      name: "Baixar Feed em HD",
     });
     fireEvent.click(downloadFeedBtn);
 
@@ -146,7 +156,7 @@ describe("OrderDeliveryView Component", () => {
     expect(screen.getByText(/1 download realizado/i)).toBeDefined();
   });
 
-  it("copies permanent order URL when clicking copy button", async () => {
+  it("copies permanent order URL when clicking copy button with visual feedback", async () => {
     render(<OrderDeliveryView initialDetails={mockDeliveryDetails} />, {
       wrapper: createWrapper(),
     });
@@ -165,10 +175,10 @@ describe("OrderDeliveryView Component", () => {
     expect(screen.getByText("Copiado!")).toBeDefined();
   });
 
-  it("reactively updates preview and quota count when AI refinement completes", async () => {
+  it("switches refinement chips and applies AI adjustment reactively", async () => {
     const updatedDetails: DeliveryDetailsResult = {
       ...mockDeliveryDetails,
-      offerTitle: "Quarta da Pizza Especialíssimo",
+      offerTitle: "Quarta da Pizza Família",
       regenerationsUsed: 1,
       remainingRegenerations: 2,
       feedCardUrl: "https://example.com/feed-refined.png",
@@ -185,24 +195,69 @@ describe("OrderDeliveryView Component", () => {
       { wrapper: createWrapper() },
     );
 
-    const titleInput = screen.getByLabelText("Título da Promoção");
+    // Clica no chip Corrigir Título
+    const titleChip = screen.getByRole("button", { name: /Corrigir Título/i });
+    fireEvent.click(titleChip);
+
+    const titleInput = screen.getByLabelText("Novo Título da Oferta");
     fireEvent.change(titleInput, {
-      target: { value: "Quarta da Pizza Especialíssimo" },
+      target: { value: "Quarta da Pizza Família" },
     });
 
     const submitBtn = screen.getByRole("button", {
-      name: "Aplicar Ajuste com IA",
+      name: "Gerar Ajuste com IA",
     });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(mockRegenFn).toHaveBeenCalled();
+      expect(mockRegenFn).toHaveBeenCalledWith({
+        data: {
+          orderId: mockDeliveryDetails.orderId,
+          offerTitle: "Quarta da Pizza Família",
+        },
+      });
     });
 
-    // O título no banner e o badge de cota devem atualizar reativamente
+    // O status no topo e o contador de cotas atualizam reativamente
     expect(
-      screen.getAllByText("Quarta da Pizza Especialíssimo").length,
+      screen.getAllByText("Quarta da Pizza Família").length,
     ).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Ajustes restantes: 2 de 3")).toBeDefined();
+    expect(screen.getByText("2 de 3 ajustes restantes")).toBeDefined();
+  });
+
+  it("displays warm welcoming message and new offer button when quota is exhausted or window expired", () => {
+    const exhaustedDetails: DeliveryDetailsResult = {
+      ...mockDeliveryDetails,
+      canRegenerate: false,
+      regenerationsUsed: 3,
+      remainingRegenerations: 0,
+    };
+
+    const mockNavigateHome = vi.fn();
+
+    render(
+      <OrderDeliveryView
+        initialDetails={exhaustedDetails}
+        onNavigateHome={mockNavigateHome}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    // Mensagem calorosa acolhedora
+    expect(
+      screen.getByText("Suas artes estão prontas e salvas!"),
+    ).toBeDefined();
+    expect(
+      screen.getByText(/Você aproveitou todos os 3 ajustes inclusos no pedido/),
+    ).toBeDefined();
+
+    // Botão destacado para criar nova oferta
+    const newOfferBtn = screen.getByRole("button", {
+      name: "Criar Nova Oferta",
+    });
+    expect(newOfferBtn).toBeDefined();
+
+    fireEvent.click(newOfferBtn);
+    expect(mockNavigateHome).toHaveBeenCalledTimes(1);
   });
 });

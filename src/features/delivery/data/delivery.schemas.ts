@@ -25,6 +25,8 @@ export const requestRegenerationInputSchema = z.object({
   promoPrice: z.string().min(1, "Preço promocional é obrigatório").optional(),
   originalPrice: z.string().optional().nullable(),
   callToAction: z.string().optional().nullable(),
+  stylePresetId: z.string().optional().nullable(),
+  colorPalette: z.string().optional().nullable(),
   customAdjustmentPrompt: z
     .string()
     .max(500, "Instrução não pode exceder 500 caracteres")
