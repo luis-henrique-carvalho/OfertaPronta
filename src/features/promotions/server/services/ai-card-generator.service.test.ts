@@ -89,7 +89,10 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
     const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
 
     expect(callArgs.config?.responseModalities).toEqual(["image"]);
-    expect(callArgs.config?.responseFormat?.image?.aspectRatio).toBe("4:5");
+    expect(callArgs.config?.imageConfig).toEqual({
+      aspectRatio: "4:5",
+      imageSize: "1K",
+    });
 
     const promptText = callArgs.contents.find(
       (c: unknown) => typeof c === "string",
@@ -117,7 +120,10 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
     const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
 
     expect(callArgs.config?.responseModalities).toEqual(["image"]);
-    expect(callArgs.config?.responseFormat?.image?.aspectRatio).toBe("9:16");
+    expect(callArgs.config?.imageConfig).toEqual({
+      aspectRatio: "9:16",
+      imageSize: "1K",
+    });
 
     const promptText = callArgs.contents.find(
       (c: unknown) => typeof c === "string",
@@ -265,7 +271,7 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
       '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Feira & Hortifrúti Natural" ---',
     );
     expect(promptText).toContain("Verde esmeralda");
-    expect(promptText).toContain("Luz natural difusa da manhã");
+    expect(promptText).toContain("Luz natural difusa matinal suave");
     expect(promptText).toContain("Usar iluminação solar suave de manhã cedo.");
   });
 
@@ -316,9 +322,9 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
     expect(promptText).toContain(
       '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Forno a Lenha Rústico" ---',
     );
-    expect(promptText).toContain("Terracota queimado");
+    expect(promptText).toContain("Madeira escura queimada");
     expect(promptText).toContain(
-      "Luz quente dourada emanando de forno a lenha",
+      "Luz lateral dourada e quente proveniente do fogo do forno",
     );
   });
 
@@ -564,6 +570,232 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
         "data:image/png;base64,mockLogoBase64",
       );
       expect(cardInput.promoPrice).toBe("");
+    });
+  });
+
+  describe("Compilador Narrativo de 4 Camadas e Blueprints Fotográficos (Ticket 02)", () => {
+    it("deve compilar as 4 camadas narrativas estruturadas no prompt com enquadramento full-bleed e setup óptico", async () => {
+      const fakeClient = createFakeGeminiClient();
+      const input: GenerateAdCardInput = {
+        ...baseInput,
+        businessSegment: "supermarket",
+        stylePresetId: "market-discount",
+      };
+
+      await generateAdCardImage(input, fakeClient);
+
+      const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+      expect(callArgs.config?.imageConfig).toEqual({
+        aspectRatio: "4:5",
+        imageSize: "1K",
+      });
+
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain(
+        "--- ARQUITETURA DE COMPOSIÇÃO EM 4 CAMADAS (STEP-BY-STEP) ---",
+      );
+
+      // Camada 1: Full-bleed e paleta HEX
+      expect(promptText).toContain("CAMADA 1 — FUNDO FULL-BLEED & ATMOSFERA:");
+      expect(promptText).toContain(
+        "full-bleed edge-to-edge preenchendo 100% do canvas até as 4 extremidades sem bordas ou margens externas vazias",
+      );
+      expect(promptText).toContain("Paleta cromática do preset (HEX):");
+      expect(promptText).toContain("#EF4444");
+      expect(promptText).toContain("#FBBF24");
+
+      // Camada 2: Óptica fotográfica e iluminação
+      expect(promptText).toContain(
+        "CAMADA 2 — SUJEITO HERO & ÓPTICA FOTOGRÁFICA COMERCIAL:",
+      );
+      expect(promptText).toContain("50mm f/4");
+      expect(promptText).toContain("Iluminação de estúdio 3 pontos");
+      expect(promptText).toContain("sombras de contato realistas");
+      expect(promptText).toContain("Picanha Bovina Fatiada 1kg");
+
+      // Camada 3: Geometria de grid e tipografia descritiva
+      expect(promptText).toContain(
+        "CAMADA 3 — GEOMETRIA DE GRID, SAFE ZONE & TIPOGRAFIA DESCRITIVA:",
+      );
+      expect(promptText).toContain("Cabeçalho vibrante em faixa superior");
+      expect(promptText).toContain(
+        "Sans-serif geométrica condensada ultra-bold",
+      );
+      expect(promptText).toContain("Supermercado Compre Bem");
+
+      // Camada 4: Ancoragem de preço e rodapé
+      expect(promptText).toContain(
+        "CAMADA 4 — ANCORAGEM DE PREÇO & RODAPÉ COMERCIAL:",
+      );
+      expect(promptText).toContain(
+        "Container de preço promocional em destaque",
+      );
+      expect(promptText).toContain(
+        "Selo estrelado ou circular de alto impacto",
+      );
+      expect(promptText).toContain("R$ 49,90");
+      expect(promptText).toContain("De R$ 69,90");
+      expect(promptText).toContain("Aproveite hoje mesmo!");
+      expect(promptText).toContain("(11) 98888-7777");
+    });
+
+    it("deve aplicar safe zone de 15% na Camada 3 e aspect ratio 9:16 quando targetAspectRatio for story", async () => {
+      const fakeClient = createFakeGeminiClient();
+      const input: GenerateAdCardInput = {
+        ...baseInput,
+        targetAspectRatio: "story",
+        stylePresetId: "market-discount",
+      };
+
+      await generateAdCardImage(input, fakeClient);
+
+      const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+      expect(callArgs.config?.imageConfig).toEqual({
+        aspectRatio: "9:16",
+        imageSize: "1K",
+      });
+
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain(
+        "CAMADA 3 — GEOMETRIA DE GRID, SAFE ZONE & TIPOGRAFIA DESCRITIVA:",
+      );
+      expect(promptText).toContain("SAFE ZONE OBRIGATÓRIA");
+      expect(promptText).toContain("15% da altura no topo e 15% na base");
+    });
+
+    it("deve aplicar prioridade cromática na Camada 1 quando referenceImageDataUrl estiver presente", async () => {
+      const fakeClient = createFakeGeminiClient();
+      const inputWithRef: GenerateAdCardInput = {
+        ...baseInput,
+        referenceImageDataUrl: `data:image/jpeg;base64,${fakeBase64Png}`,
+        stylePresetId: "market-discount",
+      };
+
+      await generateAdCardImage(inputWithRef, fakeClient);
+
+      const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain("CAMADA 1 — FUNDO FULL-BLEED & ATMOSFERA:");
+      expect(promptText).toContain(
+        "Prioridade cromática: adaptar e priorizar a paleta de cores da Imagem de Referência ou Paleta Personalizada indicada pelo cliente",
+      );
+      expect(promptText).not.toContain("Paleta cromática do preset (HEX):");
+    });
+
+    it("deve aplicar prioridade cromática na Camada 1 quando customStyleInstructions estiver presente", async () => {
+      const fakeClient = createFakeGeminiClient();
+      const inputWithCustomInstructions: GenerateAdCardInput = {
+        ...baseInput,
+        customStyleInstructions: "Tons de verde oliva e dourado metálico",
+        stylePresetId: "market-discount",
+      };
+
+      await generateAdCardImage(inputWithCustomInstructions, fakeClient);
+
+      const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain("CAMADA 1 — FUNDO FULL-BLEED & ATMOSFERA:");
+      expect(promptText).toContain(
+        "Prioridade cromática: adaptar e priorizar a paleta de cores da Imagem de Referência ou Paleta Personalizada indicada pelo cliente",
+      );
+    });
+
+    it("deve incluir fidelidade visual da foto do produto na Camada 2 quando productImageDataUrl for fornecida", async () => {
+      const fakeClient = createFakeGeminiClient();
+      const inputWithProduct: GenerateAdCardInput = {
+        ...baseInput,
+        productImageDataUrl: `data:image/png;base64,${fakeBase64Png}`,
+      };
+
+      await generateAdCardImage(inputWithProduct, fakeClient);
+
+      const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain(
+        "CAMADA 2 — SUJEITO HERO & ÓPTICA FOTOGRÁFICA COMERCIAL:",
+      );
+      expect(promptText).toContain(
+        "Preservar e destacar com máxima fidelidade visual a FOTO DO PRODUTO FORNECIDA",
+      );
+    });
+
+    it("deve aplicar diretriz estrita de card institucional sem container de preço na Camada 4 quando promoPrice for vazio", async () => {
+      const fakeClient = createFakeGeminiClient();
+      const inputInstitutional: GenerateAdCardInput = {
+        ...baseInput,
+        promoPrice: "",
+        originalPrice: null,
+      };
+
+      await generateAdCardImage(inputInstitutional, fakeClient);
+
+      const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain(
+        "CAMADA 4 — ANCORAGEM DE PREÇO & RODAPÉ COMERCIAL:",
+      );
+      expect(promptText).toContain(
+        'Diretriz de card institucional sem nenhum container de preço e proibindo expressamente "R$ 0,00" ou valores monetários.',
+      );
+      expect(promptText).not.toContain(
+        "Container de preço promocional em destaque",
+      );
+    });
+
+    it("deve incluir setup fotográfico gastronômico (macro 85mm f/2.8) e tipografia slab-serif para o preset rustic-wood da pizzaria", async () => {
+      const fakeClient = createFakeGeminiClient();
+      const inputPizza: GenerateAdCardInput = {
+        ...baseInput,
+        businessSegment: "pizzeria",
+        stylePresetId: "pizza-rustic-wood",
+        offerTitle: "Pizza Margherita Especial",
+      };
+
+      await generateAdCardImage(inputPizza, fakeClient);
+
+      const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain(
+        "CAMADA 2 — SUJEITO HERO & ÓPTICA FOTOGRÁFICA COMERCIAL:",
+      );
+      expect(promptText).toContain(
+        "Lente macro gastronômica 85mm f/2.8 em ângulo elevado de 45°",
+      );
+
+      expect(promptText).toContain(
+        "CAMADA 3 — GEOMETRIA DE GRID, SAFE ZONE & TIPOGRAFIA DESCRITIVA:",
+      );
+      expect(promptText).toContain(
+        "Slab-serif robusta de inspiração artesanal",
+      );
+
+      expect(promptText).toContain(
+        "CAMADA 4 — ANCORAGEM DE PREÇO & RODAPÉ COMERCIAL:",
+      );
+      expect(promptText).toContain(
+        "Selo circular tipo carimbo artesanal ou etiqueta rústica preenchida na cor de acento com alto contraste.",
+      );
     });
   });
 });

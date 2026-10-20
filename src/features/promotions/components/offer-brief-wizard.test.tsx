@@ -368,9 +368,11 @@ describe("OfferBriefWizard Component & AI Generation Flow", () => {
     // Verificar se os estilos de beleza são exibidos e se 'Glamour Rose Gold & Editorial' está selecionado
     await waitFor(() => {
       expect(screen.getByText(/Glamour Rose Gold & Editorial/i)).toBeDefined();
-      expect(screen.getByText(/Barber Club Retrô & Couro/i)).toBeDefined();
-      expect(screen.getByText(/Clean Estética & Spa/i)).toBeDefined();
-      expect(screen.getByText(/Urban Fade & Neon Barber/i)).toBeDefined();
+      expect(
+        screen.getByText(/Barbearia Retrô Couro & Madeira/i),
+      ).toBeDefined();
+      expect(screen.getByText(/Clínica & Estética Serenity/i)).toBeDefined();
+      expect(screen.getByText(/Degradê Urbano & Streetwear/i)).toBeDefined();
     });
 
     // O estilo padrão 'Glamour Rose Gold & Editorial' deve estar selecionado com aria-pressed="true"
