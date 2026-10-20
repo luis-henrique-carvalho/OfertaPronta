@@ -90,29 +90,6 @@ export function AdCardCheckoutShowcase({
             isStory ? "max-w-[260px]" : "max-w-[320px]"
           }`}
         >
-          {/* Badge flutuante de alto contraste */}
-          <div className="pointer-events-none absolute left-2 right-2 top-2 z-10 flex justify-center">
-            <Badge
-              variant="outline"
-              className="border-emerald-600/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-800 shadow-sm backdrop-blur-sm dark:text-emerald-300"
-            >
-              <Sparkles className="mr-1 size-3 text-emerald-600 dark:text-emerald-400" />
-              Alta Resolução (1080p) sem Marca d&apos;Água após Pix
-            </Badge>
-          </div>
-
-          {/* Sutil marca d'água central de prévia */}
-          <div className="pointer-events-none absolute inset-0 z-[5] flex items-center justify-center">
-            <div className="-rotate-12 select-none rounded-lg border border-white/20 bg-black/40 px-3.5 py-1.5 shadow-md backdrop-blur-[2px]">
-              <Typography
-                variant="muted"
-                className="text-[11px] font-black uppercase tracking-widest text-white/90"
-              >
-                Prévia Protegida
-              </Typography>
-            </div>
-          </div>
-
           {previewCardImageUrl ? (
             <>
               {/* shadcn-ignore: layout de moldura estrutural do aspect-ratio */}
@@ -167,6 +144,17 @@ export function AdCardCheckoutShowcase({
               </Typography>
             </div>
           )}
+        </div>
+
+        {/* Aviso de liberação de alta resolução - posicionado limpo fora da imagem do card */}
+        <div className="flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1.5 text-center">
+          <Sparkles className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <Typography
+            variant="muted"
+            className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300"
+          >
+            Alta Resolução (1080p) sem Marca d&apos;Água após Pix
+          </Typography>
         </div>
 
         {/* shadcn-ignore: layout da faixa de resumo de valor */}
