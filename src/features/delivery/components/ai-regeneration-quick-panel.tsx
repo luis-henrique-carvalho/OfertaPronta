@@ -209,6 +209,7 @@ export function AiRegenerationQuickPanel({
   if (!isEligible) {
     return (
       <QuickPanelExpiredCard
+        id="painel-edicao-ia"
         remainingRegenerations={remainingRegenerations}
         maxRegenerations={maxRegenerations}
         onNavigateHome={onNavigateHome}
@@ -219,6 +220,7 @@ export function AiRegenerationQuickPanel({
 
   return (
     <Card
+      id="painel-edicao-ia"
       className={`w-full border-border bg-card shadow-sm ${className ?? ""}`}
     >
       <QuickPanelHeader

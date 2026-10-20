@@ -8,6 +8,7 @@ import {
   Copy,
   Check,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import type { DownloadFormat } from "../data/delivery.schemas";
 
@@ -16,9 +17,11 @@ export interface DeliveryHeroActionsProps {
   isDownloading: boolean;
   isCurrentFormatDownloading: boolean;
   isCopied: boolean;
+  remainingRegenerations?: number;
   onDownload: () => void;
   onOpenWhatsapp: () => void;
   onCopyLink: () => void;
+  onEditCard?: () => void;
 }
 
 export function DeliveryHeroActions({
@@ -26,9 +29,11 @@ export function DeliveryHeroActions({
   isDownloading,
   isCurrentFormatDownloading,
   isCopied,
+  remainingRegenerations,
   onDownload,
   onOpenWhatsapp,
   onCopyLink,
+  onEditCard,
 }: DeliveryHeroActionsProps) {
   return (
     <div className="flex flex-col gap-2 pt-1">
@@ -107,6 +112,25 @@ export function DeliveryHeroActions({
           )}
         </Button>
       </div>
+
+      {onEditCard && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 w-full gap-1.5 border-primary/25 bg-primary/5 text-xs font-bold text-primary hover:bg-primary/10"
+          onClick={onEditCard}
+          aria-label="Editar ou ajustar arte com IA"
+        >
+          <Sparkles className="size-3.5 text-primary" data-icon="inline-start" />
+          <span>
+            Editar / Ajustar Arte com IA
+            {remainingRegenerations !== undefined && remainingRegenerations > 0
+              ? ` (${remainingRegenerations} restantes)`
+              : ""}
+          </span>
+        </Button>
+      )}
     </div>
   );
 }

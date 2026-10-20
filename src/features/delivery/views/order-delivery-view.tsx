@@ -129,7 +129,14 @@ export function OrderDeliveryView({
         permanentOrderUrl={details.permanentOrderUrl}
         customerWhatsapp={details.customerWhatsapp}
         downloadCount={details.downloadCount}
+        remainingRegenerations={details.remainingRegenerations}
         onDownload={triggerDownload}
+        onEditCard={() => {
+          const el = document.getElementById("painel-edicao-ia");
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth" });
+          }
+        }}
         isDownloading={isDownloading}
         activeFormat={activeDownloadFormat}
       />

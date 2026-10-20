@@ -4,6 +4,7 @@ import { Typography } from "@/components/ui/typography";
 import { ShieldCheck, PlusCircle } from "lucide-react";
 
 export interface QuickPanelExpiredCardProps {
+  id?: string;
   remainingRegenerations: number;
   maxRegenerations: number;
   onNavigateHome?: () => void;
@@ -11,6 +12,7 @@ export interface QuickPanelExpiredCardProps {
 }
 
 export function QuickPanelExpiredCard({
+  id,
   remainingRegenerations,
   maxRegenerations,
   onNavigateHome,
@@ -26,6 +28,7 @@ export function QuickPanelExpiredCard({
 
   return (
     <Card
+      id={id}
       className={`w-full border-border bg-card shadow-sm ${className ?? ""}`}
     >
       <CardContent className="flex flex-col items-center gap-3 p-5 text-center sm:p-6">

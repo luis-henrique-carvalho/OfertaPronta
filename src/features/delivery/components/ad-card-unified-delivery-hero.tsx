@@ -18,7 +18,9 @@ export interface AdCardUnifiedDeliveryHeroProps {
   permanentOrderUrl: string;
   customerWhatsapp?: string | null;
   downloadCount?: number;
+  remainingRegenerations?: number;
   onDownload: (format: DownloadFormat) => Promise<void> | void;
+  onEditCard?: () => void;
   isDownloading?: boolean;
   activeFormat?: DownloadFormat | null;
   defaultTab?: DownloadFormat;
@@ -35,7 +37,9 @@ export function AdCardUnifiedDeliveryHero({
   permanentOrderUrl,
   customerWhatsapp,
   downloadCount = 0,
+  remainingRegenerations,
   onDownload,
+  onEditCard,
   isDownloading = false,
   activeFormat = null,
   defaultTab = "feed",
@@ -134,9 +138,11 @@ export function AdCardUnifiedDeliveryHero({
           isDownloading={isDownloading}
           isCurrentFormatDownloading={isCurrentFormatDownloading}
           isCopied={isCopied}
+          remainingRegenerations={remainingRegenerations}
           onDownload={handleDownload}
           onOpenWhatsapp={handleOpenWhatsapp}
           onCopyLink={handleCopyLink}
+          onEditCard={onEditCard}
         />
 
         <div className="flex items-center justify-between border-t border-border/50 pt-1 text-muted-foreground">
