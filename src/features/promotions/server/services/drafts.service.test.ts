@@ -123,6 +123,88 @@ describe("Drafts Service (Deep Domain Module)", () => {
       expect(saved.customStyleInstructions).toBe("Iluminação de estúdio suave");
     });
 
+    it("persists cardIntent, customIntentText and logoImageDataUrl correctly", async () => {
+      const pngData =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      const created = await saveOfferDraft({
+        businessSegment: "fashion",
+        businessName: "Boutique Flor de Lis",
+        offerTitle: "Vestido Longo Seda Pura",
+        promoPrice: "R$ 199,90",
+        cardIntent: "new-arrival",
+        customIntentText: "Chegaram as novidades da estação",
+        logoImageDataUrl: pngData,
+      });
+
+      expect(created.cardIntent).toBe("new-arrival");
+      expect(created.customIntentText).toBe("Chegaram as novidades da estação");
+      expect(created.logoImageDataUrl).toBe(pngData);
+
+      const fetched = await getOfferDraft(created.id);
+      expect(fetched).not.toBeNull();
+      expect(fetched?.cardIntent).toBe("new-arrival");
+      expect(fetched?.customIntentText).toBe(
+        "Chegaram as novidades da estação",
+      );
+      expect(fetched?.logoImageDataUrl).toBe(pngData);
+    });
+
+    it("defaults cardIntent to promo and nullable fields to null when not provided", async () => {
+      const created = await saveOfferDraft({
+        businessSegment: "pizzeria",
+        businessName: "Pizzaria Napoli",
+        offerTitle: "Pizza Calabresa",
+        promoPrice: "R$ 45,00",
+      });
+
+      expect(created.cardIntent).toBe("promo");
+      expect(created.customIntentText).toBeNull();
+      expect(created.logoImageDataUrl).toBeNull();
+
+      const fetched = await getOfferDraft(created.id);
+      expect(fetched?.cardIntent).toBe("promo");
+      expect(fetched?.customIntentText).toBeNull();
+      expect(fetched?.logoImageDataUrl).toBeNull();
+    });
+
+    it("updates cardIntent, customIntentText and logoImageDataUrl on conflict", async () => {
+      const pngLogo1 =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const pngLogo2 =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
+      const initial = await saveOfferDraft({
+        businessSegment: "fashion",
+        businessName: "Loja A",
+        offerTitle: "Promoção",
+        promoPrice: "R$ 50,00",
+        cardIntent: "promo",
+        logoImageDataUrl: pngLogo1,
+      });
+
+      const updated = await saveOfferDraft({
+        id: initial.id,
+        businessSegment: "fashion",
+        businessName: "Loja A",
+        offerTitle: "Novidade Exclusiva",
+        promoPrice: "R$ 80,00",
+        cardIntent: "custom",
+        customIntentText: "Comemoração de 5 anos da loja",
+        logoImageDataUrl: pngLogo2,
+      });
+
+      expect(updated.id).toBe(initial.id);
+      expect(updated.cardIntent).toBe("custom");
+      expect(updated.customIntentText).toBe("Comemoração de 5 anos da loja");
+      expect(updated.logoImageDataUrl).toBe(pngLogo2);
+
+      const fetched = await getOfferDraft(initial.id);
+      expect(fetched?.cardIntent).toBe("custom");
+      expect(fetched?.customIntentText).toBe("Comemoração de 5 anos da loja");
+      expect(fetched?.logoImageDataUrl).toBe(pngLogo2);
+    });
+
     it("retrieves saved draft by ID with getOfferDraft", async () => {
       const created = await saveOfferDraft({
         businessSegment: "burger-shop",

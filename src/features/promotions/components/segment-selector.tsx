@@ -17,6 +17,7 @@ import {
   Flame,
   UtensilsCrossed,
   Store,
+  Shirt,
   CheckCircle2,
   type LucideIcon,
 } from "lucide-react";
@@ -27,6 +28,7 @@ interface SegmentSelectorProps {
 }
 
 const SEGMENT_ICONS: Record<BusinessSegment, LucideIcon> = {
+  fashion: Shirt,
   supermarket: ShoppingCart,
   "beauty-salon": Sparkles,
   pizzeria: Pizza,

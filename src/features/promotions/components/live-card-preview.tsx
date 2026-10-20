@@ -20,6 +20,7 @@ import {
   UtensilsCrossed,
   Pizza,
   Store,
+  Shirt,
   type LucideIcon,
 } from "lucide-react";
 import { CardArtCanvas } from "./card-art-canvas";
@@ -45,6 +46,7 @@ export interface LiveCardPreviewProps {
 }
 
 const SEGMENT_ICONS: Record<BusinessSegment, LucideIcon> = {
+  fashion: Shirt,
   supermarket: ShoppingBag,
   "beauty-salon": Sparkles,
   pizzeria: Pizza,

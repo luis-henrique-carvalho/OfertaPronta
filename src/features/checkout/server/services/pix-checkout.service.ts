@@ -61,6 +61,12 @@ export class PixCheckoutService {
       customStyleInstructions: draft.customStyleInstructions,
       previewCardImageUrl: draft.previewCardImageUrl,
       cleanMasterImageDataUrl: draft.cleanMasterImageDataUrl,
+
+      // Metadados do Épico 6 congelados para regenerações idênticas
+      cardIntent: draft.cardIntent || "promo",
+      customIntentText: draft.customIntentText || null,
+      logoImageDataUrl: draft.logoImageDataUrl || null,
+
       planId: plan.id,
       planName: plan.name,
       amountCents: plan.amountCents,

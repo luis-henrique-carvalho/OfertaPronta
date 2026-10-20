@@ -3,6 +3,7 @@ import { serverEnv } from "@/config/server-env";
 import {
   type BusinessSegment,
   type CardAspectRatio,
+  type CardIntent,
 } from "../../data/offer-brief.schema";
 import { resolveArtDirectionDirective } from "../../data/style-presets-catalog";
 import { createServerLogger } from "@/server/logger";
@@ -16,7 +17,7 @@ export interface GenerateAdCardInput {
   targetAspectRatio?: CardAspectRatio;
   businessName: string;
   offerTitle: string;
-  promoPrice: string;
+  promoPrice?: string | null;
   originalPrice?: string | null;
   callToAction?: string | null;
   whatsapp?: string | null;
@@ -25,6 +26,9 @@ export interface GenerateAdCardInput {
   baseCardImageDataUrl?: string | null;
   stylePresetId?: string | null;
   customStyleInstructions?: string | null;
+  logoImageDataUrl?: string | null;
+  cardIntent?: CardIntent | null;
+  customIntentText?: string | null;
 }
 
 export interface GenerateAdCardResult {
@@ -92,6 +96,13 @@ const SEGMENT_ART_DIRECTIVES: Record<
   BusinessSegment,
   { segmentTitle: string; visualStyle: string; atmosphere: string }
 > = {
+  fashion: {
+    segmentTitle: "Moda & Roupas",
+    visualStyle:
+      "Visual clean, moderno e refinado de vitrine de boutique ou lookbook de moda. Tons harmônicos (bege, linho, off-white, rosé ou preto premium). Iluminação suave de estúdio fotográfico, enquadramento limpo e minimalista valorizando o tecido, caimento e elegância das peças.",
+    atmosphere:
+      "Elegância contemporânea, estilo autêntico, tendência de moda, sofisticação e excelente custo-benefício.",
+  },
   supermarket: {
     segmentTitle: "Supermercado & Hortifrúti",
     visualStyle:
@@ -162,6 +173,8 @@ export async function generateAdCardImage(
     hasReferenceImage: !!input.referenceImageDataUrl,
     hasBaseCardImage: !!input.baseCardImageDataUrl,
     hasStylePreset: !!input.stylePresetId,
+    hasLogoImage: !!input.logoImageDataUrl,
+    cardIntent: input.cardIntent,
   });
 
   try {
@@ -303,6 +316,14 @@ function buildMultimodalPromptParts(
       "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA): Use esta imagem como base gráfica principal. Mantenha rigorosamente todos os elementos visuais idênticos, aplicando EXCLUSIVAMENTE a alteração solicitada.",
     );
 
+    if (input.logoImageDataUrl) {
+      appendInlineInputPart(
+        parts,
+        input.logoImageDataUrl,
+        "LOGOTIPO DA LOJA FORNECIDO: Mantenha a fidelidade absoluta ao logotipo oficial.",
+      );
+    }
+
     if (input.productImageDataUrl) {
       appendInlineInputPart(
         parts,
@@ -319,6 +340,14 @@ function buildMultimodalPromptParts(
     SEGMENT_ART_DIRECTIVES.supermarket;
 
   parts.push(buildPromptText(input, segmentConfig));
+
+  if (input.logoImageDataUrl) {
+    appendInlineInputPart(
+      parts,
+      input.logoImageDataUrl,
+      "LOGOTIPO DA LOJA FORNECIDO: Incorpore fielmente este logotipo no anúncio (posicionado no topo, canto superior ou no rodapé do card). Preserve rigorosamente suas cores, proporção, contraste e legibilidade sem distorções.",
+    );
+  }
 
   if (input.productImageDataUrl) {
     appendInlineInputPart(
@@ -339,6 +368,31 @@ function buildMultimodalPromptParts(
   return parts;
 }
 
+function resolveIntentDirective(
+  intent?: CardIntent | null,
+  customText?: string | null,
+): string {
+  const currentIntent = intent ?? "promo";
+  switch (currentIntent) {
+    case "promo":
+      return "OBJETIVO DO ANÚNCIO (PROMOÇÃO): Foco absoluto em apelo promocional marcante, senso de oportunidade e alto contraste no preço.";
+    case "new-arrival":
+      return "OBJETIVO DO ANÚNCIO (NOVIDADE / LANÇAMENTO): Foco editorial em sofisticação, novidade e apresentação impecável de coleção ou lançamento ('Novidade!', 'Chegou!', 'Chegou Novidade!', 'Nova Coleção').";
+    case "special-date":
+      return "OBJETIVO DO ANÚNCIO (DATA COMEMORATIVA): Foco em ambientação temática e emotiva da data comemorativa anunciada.";
+    case "announcement":
+      return "OBJETIVO DO ANÚNCIO (COMUNICADO / INAUGURAÇÃO): Foco em clareza institucional, impacto visual de inauguração/evento e destaque para data/local.";
+    case "schedule":
+      return "OBJETIVO DO ANÚNCIO (HORÁRIO DE FUNCIONAMENTO / AVISO): Foco em legibilidade máxima do comunicado de horário de atendimento ou feriado.";
+    case "custom": {
+      const customDetail = customText?.trim() ? `: ${customText.trim()}` : "";
+      return `OBJETIVO DO ANÚNCIO (PERSONALIZADO): Foco no objetivo e mensagem personalizada informada pelo cliente${customDetail}.`;
+    }
+    default:
+      return "OBJETIVO DO ANÚNCIO: Foco em apelo visual e comunicação clara da oferta.";
+  }
+}
+
 function buildSurgicalEditPromptText(input: GenerateAdCardInput): string {
   const isStory = input.targetAspectRatio === "story";
   const proportionDirectives = isStory
@@ -348,6 +402,13 @@ function buildSurgicalEditPromptText(input: GenerateAdCardInput): string {
   const requestedAdjustment = input.customStyleInstructions?.trim()
     ? input.customStyleInstructions.trim()
     : "Atualizar os dados da oferta preservando a identidade visual.";
+
+  const hasPrice = Boolean(
+    input.promoPrice && input.promoPrice.trim().length > 0,
+  );
+  const priceLine = hasPrice
+    ? `- Preço Promocional: "${input.promoPrice}"${input.originalPrice ? ` (De: "${input.originalPrice}")` : ""}`
+    : "- Preço: Nenhum (Card Institucional / Informativo sem valor monetário)";
 
   return `
 Você é um diretor de arte e designer gráfico sênior executando uma EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE.
@@ -361,7 +422,7 @@ Uma IMAGEM BASE DO CARD PUBLICITÁRIO já aprovada pelo cliente está anexa.
 4. DADOS DA OFERTA A MANTER:
 - Estabelecimento: "${input.businessName}"
 - Título da Oferta: "${input.offerTitle}"
-- Preço Promocional: "${input.promoPrice}"${input.originalPrice ? ` (De: "${input.originalPrice}")` : ""}${input.callToAction ? `\n- Chamada para Ação: "${input.callToAction}"` : ""}${input.whatsapp ? `\n- Contato Comercial: "${input.whatsapp}"` : ""}
+${priceLine}${input.callToAction ? `\n- Chamada para Ação: "${input.callToAction}"` : ""}${input.whatsapp ? `\n- Contato Comercial: "${input.whatsapp}"` : ""}
 
 ${proportionDirectives}
 Todo o restante da imagem original deve permanecer visualmente idêntico à imagem base fornecida.
@@ -394,9 +455,20 @@ function buildPromptText(
     input.stylePresetId,
   );
 
-  const priceInstructions = input.originalPrice
-    ? `PREÇO PROMOCIONAL EM DESTAQUE MÁXIMO: Exibir claramente "De ${input.originalPrice} Por ${input.promoPrice}", garantindo que o valor promocional "${input.promoPrice}" tenha o maior tamanho visual, cor chamativa e contraste absoluto da peça.`
-    : `PREÇO PROMOCIONAL EM DESTAQUE MÁXIMO: Exibir "${input.promoPrice}" em caixa alta e tamanho grande com contraste visual dominante.`;
+  const hasPrice = Boolean(
+    input.promoPrice && input.promoPrice.trim().length > 0,
+  );
+
+  const priceInstructions = hasPrice
+    ? input.originalPrice
+      ? `PREÇO PROMOCIONAL EM DESTAQUE MÁXIMO: Exibir claramente "De ${input.originalPrice} Por ${input.promoPrice}", garantindo que o valor promocional "${input.promoPrice}" tenha o maior tamanho visual, cor chamativa e contraste absoluto da peça.`
+      : `PREÇO PROMOCIONAL EM DESTAQUE MÁXIMO: Exibir "${input.promoPrice}" em caixa alta e tamanho grande com contraste visual dominante.`
+    : "ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica. É expressamente proibido inserir 'R$ 0,00' ou valores inventados.";
+
+  const intentDirectiveText = resolveIntentDirective(
+    input.cardIntent,
+    input.customIntentText,
+  );
 
   const ctaInstruction = input.callToAction
     ? `CHAMADA PARA AÇÃO: Incluir selo ou faixa com "${input.callToAction}".`
@@ -408,6 +480,10 @@ function buildPromptText(
 
   const customInstructions = input.customStyleInstructions
     ? `INSTRUÇÕES ADICIONAIS DO CLIENTE: ${input.customStyleInstructions}`
+    : "";
+
+  const logoNote = input.logoImageDataUrl
+    ? "- LOGOTIPO DA LOJA FORNECIDO: Posicione o logotipo no topo, canto superior ou rodapé mantendo a fidelidade, integridade e legibilidade da marca sem distorções."
     : "";
 
   const productNote = input.productImageDataUrl
@@ -428,6 +504,18 @@ function buildPromptText(
 - SAFE ZONE OBRIGATÓRIA (Margem de Segurança para Stories/Status): Deixar 15% da altura no topo e 15% na base totalmente livres de textos importantes, preços, títulos ou logos, pois serão encobertos pela interface do Instagram/WhatsApp (foto de perfil, barra de status, caixa de resposta e navegação). Todo o conteúdo textual, título e preço DEVE estar estritamente concentrado na zona segura vertical central.`
     : `- Proporção Obrigatória: 4:5 vertical (master 1080x1350 para Feed do Instagram).`;
 
+  const visualHierarchy = hasPrice
+    ? `1. TÍTULO DA OFERTA ("${input.offerTitle}"): tipografia publicitária moderna, legível e nítida.
+2. PREÇO PROMOCIONAL ("${input.promoPrice}"): elemento mais chamativo e impactante da peça.
+3. PRODUTO/SERVIÇO: renderizado no centro focal da composição com iluminação atraente e realista.
+4. NOME DO ESTABELECIMENTO ("${input.businessName}"): integrado harmonicamente no topo ou rodapé.
+5. CARD COMPLETO: todo o layout deve ser sintetizado como uma única peça gráfica acabada, sem bordas brancas sobressalentes ou marcas d'água artificiais.`
+    : `1. TÍTULO OU MENSAGEM PRINCIPAL ("${input.offerTitle}"): tipografia publicitária moderna, legível e nítida com destaque visual prioritário.
+2. ELEMENTO VISUAL CENTRAL: renderizado no centro focal da composição com iluminação atraente e estética profissional.
+3. NOME DO ESTABELECIMENTO ("${input.businessName}"): integrado harmonicamente no topo ou rodapé.
+4. MENSAGEM INSTITUCIONAL / COMUNICADO: foco total na clareza informativa, sem nenhum preço ou valor monetário na arte gráfica.
+5. CARD COMPLETO: todo o layout deve ser sintetizado como uma única peça gráfica acabada, sem bordas brancas sobressalentes ou marcas d'água artificiais.`;
+
   return `
 Você é um diretor de arte publicitário sênior especialista em anúncios e cards promocionais para ${audienceText}.
 Crie um CARD PUBLICITÁRIO COMPLETO, profissional, esteticamente impecável e pronto para postagem imediata.
@@ -439,20 +527,17 @@ Crie um CARD PUBLICITÁRIO COMPLETO, profissional, esteticamente impecável e pr
 - ${priceInstructions}
 ${ctaInstruction}
 ${whatsappInstruction}
+- ${intentDirectiveText}
 
 --- DIRETRIZES DE DIREÇÃO DE ARTE E DESIGN GRÁFICO ---
 ${proportionDirectives}
 - Estilo Visual do Segmento: ${segmentConfig.visualStyle}
 - Clima e Atmosfera Geral: ${segmentConfig.atmosphere}
 ${artDirectiveText ? `\n${artDirectiveText}\n` : ""}
-${productNote ? `${productNote}\n` : ""}${referenceNote ? `${referenceNote}\n` : ""}${customInstructions ? `- ${customInstructions}` : ""}
+${logoNote ? `${logoNote}\n` : ""}${productNote ? `${productNote}\n` : ""}${referenceNote ? `${referenceNote}\n` : ""}${customInstructions ? `- ${customInstructions}` : ""}
 
 --- HIERARQUIA VISUAL OBRIGATÓRIA ---
-1. TÍTULO DA OFERTA ("${input.offerTitle}"): tipografia publicitária moderna, legível e nítida.
-2. PREÇO PROMOCIONAL ("${input.promoPrice}"): elemento mais chamativo e impactante da peça.
-3. PRODUTO/SERVIÇO: renderizado no centro focal da composição com iluminação atraente e realista.
-4. NOME DO ESTABELECIMENTO ("${input.businessName}"): integrado harmonicamente no topo ou rodapé.
-5. CARD COMPLETO: todo o layout deve ser sintetizado como uma única peça gráfica acabada, sem bordas brancas sobressalentes ou marcas d'água artificiais.
+${visualHierarchy}
 `.trim();
 }
 

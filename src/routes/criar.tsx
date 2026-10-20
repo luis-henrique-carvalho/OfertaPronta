@@ -1,25 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { OfferBriefWizard } from "@/features/promotions/components/offer-brief-wizard";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { OfferCreationWizard } from "@/features/promotions/components/offer-creation-wizard";
 import { Typography } from "@/components/ui/typography";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Store } from "lucide-react";
-import { VariantA } from "@/features/promotions/components/prototype/variant-a-bite-sized";
-
-export interface CriarSearch {
-  variant?: string;
-}
 
 export const Route = createFileRoute("/criar")({
-  validateSearch: (search: Record<string, unknown>): CriarSearch => {
-    return {
-      variant: typeof search.variant === "string" ? search.variant : "A",
-    };
-  },
   component: CriarPageComponent,
 });
 
 function CriarPageComponent() {
-  const { variant = "A" } = Route.useSearch();
+  const navigate = useNavigate();
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -48,9 +38,16 @@ function CriarPageComponent() {
         </div>
       </header>
 
-      {/* Main Content: Fluxo A (Micro-Passos & Rodapé Fixo) */}
-      <main className="flex-1 pb-16">
-        {variant === "orig" ? <OfferBriefWizard /> : <VariantA />}
+      {/* Main Content: Fluxo Oficial em Micro-Passos com Rodapé Fixo */}
+      <main className="flex-1">
+        <OfferCreationWizard
+          onNavigateToCheckout={(orderId) => {
+            navigate({
+              to: "/checkout/$orderId",
+              params: { orderId },
+            });
+          }}
+        />
       </main>
 
       {/* Footer minimalista */}

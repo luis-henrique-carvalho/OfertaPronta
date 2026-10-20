@@ -15,9 +15,10 @@ export {
 } from "./style-presets-catalog";
 
 /**
- * 6 Segmentos Oficiais de Microempresários atendidos pelo OfertaPronta.
+ * 7 Segmentos Oficiais de Microempresários atendidos pelo OfertaPronta.
  */
 export const BUSINESS_SEGMENTS = [
+  "fashion",
   "supermarket",
   "beauty-salon",
   "pizzeria",
@@ -27,6 +28,17 @@ export const BUSINESS_SEGMENTS = [
 ] as const;
 
 export type BusinessSegment = (typeof BUSINESS_SEGMENTS)[number];
+
+export const CARD_INTENTS = [
+  "promo",
+  "new-arrival",
+  "special-date",
+  "announcement",
+  "schedule",
+  "custom",
+] as const;
+
+export type CardIntent = (typeof CARD_INTENTS)[number];
 
 export const CARD_ASPECT_RATIOS = ["feed", "story"] as const;
 export type CardAspectRatio = (typeof CARD_ASPECT_RATIOS)[number];
@@ -59,6 +71,39 @@ export interface SegmentCatalogItem {
 }
 
 export const SEGMENT_CATALOG: Record<BusinessSegment, SegmentCatalogItem> = {
+  fashion: {
+    id: "fashion",
+    label: "Moda & Roupas",
+    shortDescription:
+      "Roupas femininas, masculinas, moda íntima, calçados e acessórios.",
+    placeholders: {
+      businessName: "Boutique Bella Flor",
+      offerTitle: "Vestido Midi Canelado Elegance",
+      promoPrice: "R$ 89,90",
+      originalPrice: "R$ 129,90",
+      callToAction: "Garanta o seu look!",
+    },
+    exampleOffers: [
+      {
+        title: "Vestido Midi Canelado Elegance",
+        promoPrice: "R$ 89,90",
+        originalPrice: "R$ 129,90",
+        stylePresetId: "fashion-boutique",
+      },
+      {
+        title: "Conjunto Moletom Casual Confort",
+        promoPrice: "R$ 119,90",
+        originalPrice: "R$ 159,90",
+        stylePresetId: "fashion-modern",
+      },
+    ],
+    stylePresets: getSegmentPresets("fashion") as [
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
+      CuratedStylePreset,
+    ],
+  },
   supermarket: {
     id: "supermarket",
     label: "Supermercado & Hortifrúti",
@@ -302,28 +347,57 @@ export function deriveVisualInputMode(input: {
 }
 
 /**
- * Validação rigorosa do briefing para geração do card completo.
+ * Validação rigorosa do briefing para geração com verificação condicional de preço.
  */
-export const offerBriefSchema = z.object({
-  businessSegment: z.enum(BUSINESS_SEGMENTS),
-  targetAspectRatio: z.enum(CARD_ASPECT_RATIOS).default("feed"),
-  businessName: z
-    .string()
-    .trim()
-    .min(1, "Nome do estabelecimento é obrigatório"),
-  offerTitle: z
-    .string()
-    .trim()
-    .min(1, "Título ou produto da oferta é obrigatório"),
-  promoPrice: z.string().trim().min(1, "Preço promocional é obrigatório"),
-  originalPrice: z.string().trim().optional(),
-  callToAction: z.string().trim().optional(),
-  whatsapp: z.string().trim().optional(),
-  productImageDataUrl: imageDataUrlSchema.optional(),
-  referenceImageDataUrl: imageDataUrlSchema.optional(),
-  stylePresetId: z.string().trim().optional(),
-  customStyleInstructions: z.string().trim().optional(),
-});
+export const offerBriefSchema = z
+  .object({
+    businessSegment: z.enum(BUSINESS_SEGMENTS),
+    targetAspectRatio: z.enum(CARD_ASPECT_RATIOS).default("feed"),
+    cardIntent: z.enum(CARD_INTENTS).default("promo"),
+    customIntentText: z.string().trim().optional(),
+    businessName: z
+      .string()
+      .trim()
+      .min(1, "Nome do estabelecimento é obrigatório"),
+    offerTitle: z
+      .string()
+      .trim()
+      .min(1, "Título ou mensagem da oferta é obrigatório"),
+    promoPrice: z.string().trim().optional(),
+    originalPrice: z.string().trim().optional(),
+    callToAction: z.string().trim().optional(),
+    whatsapp: z.string().trim().optional(),
+    productImageDataUrl: imageDataUrlSchema.optional(),
+    referenceImageDataUrl: imageDataUrlSchema.optional(),
+    logoImageDataUrl: imageDataUrlSchema.optional(),
+    stylePresetId: z.string().trim().optional(),
+    customStyleInstructions: z.string().trim().optional(),
+  })
+  .superRefine((data, ctx) => {
+    // 1. Preço obrigatório exclusivamente se intent === "promo"
+    if (
+      data.cardIntent === "promo" &&
+      (!data.promoPrice || data.promoPrice.trim().length === 0)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["promoPrice"],
+        message: "Preço promocional é obrigatório para anúncios de promoção",
+      });
+    }
+
+    // 2. Se intent === "custom", texto do objetivo personalizado é obrigatório
+    if (
+      data.cardIntent === "custom" &&
+      (!data.customIntentText || data.customIntentText.trim().length === 0)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["customIntentText"],
+        message: "Descreva o tipo de card que você deseja criar",
+      });
+    }
+  });
 
 export type OfferBrief = z.infer<typeof offerBriefSchema>;
 
@@ -332,7 +406,7 @@ export type OfferBrief = z.infer<typeof offerBriefSchema>;
  */
 export const saveOfferDraftSchema = z.object({
   id: z.string().optional(),
-  businessSegment: z.enum(BUSINESS_SEGMENTS).default("supermarket"),
+  businessSegment: z.enum(BUSINESS_SEGMENTS).default("fashion"),
   targetAspectRatio: z.enum(CARD_ASPECT_RATIOS).default("feed"),
   businessName: z.string().default(""),
   offerTitle: z.string().default(""),
@@ -346,6 +420,11 @@ export const saveOfferDraftSchema = z.object({
   customStyleInstructions: z.string().optional().nullable(),
   cleanMasterImageDataUrl: z.string().optional().nullable(),
   previewCardImageUrl: z.string().optional().nullable(),
+
+  // Novos campos do Épico 6
+  cardIntent: z.enum(CARD_INTENTS).default("promo"),
+  customIntentText: z.string().optional().nullable(),
+  logoImageDataUrl: imageDataUrlSchema.optional().nullable(),
 });
 
 export type SaveOfferDraftInput = z.input<typeof saveOfferDraftSchema>;

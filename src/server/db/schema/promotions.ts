@@ -17,6 +17,12 @@ export const drafts = pgTable("drafts", {
   cleanMasterImageDataUrl: text("clean_master_image_data_url"),
   previewCardImageUrl: text("preview_card_image_url"),
   aiGenerationCount: integer("ai_generation_count").notNull().default(0),
+
+  // === NOVAS COLUNAS DO ÉPICO 6 ===
+  cardIntent: text("card_intent").notNull().default("promo"),
+  customIntentText: text("custom_intent_text"),
+  logoImageDataUrl: text("logo_image_data_url"),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

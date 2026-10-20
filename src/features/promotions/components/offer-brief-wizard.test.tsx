@@ -20,11 +20,14 @@ import type {
 import type { SaveOfferDraftInput } from "../data/offer-brief.schema";
 
 function createMockDraft(overrides: Partial<OfferDraft> = {}): OfferDraft {
-  const { targetAspectRatio, ...restOverrides } = overrides;
+  const { targetAspectRatio, cardIntent, ...restOverrides } = overrides;
   return {
     id: "draft-123",
     businessSegment: "supermarket",
     targetAspectRatio: targetAspectRatio ?? "feed",
+    cardIntent: cardIntent ?? "promo",
+    customIntentText: null,
+    logoImageDataUrl: null,
     businessName: "Mercado Central",
     offerTitle: "Oferta",
     promoPrice: "R$ 10,00",

@@ -5,7 +5,13 @@ import {
   type GenerateAdCardInput,
   type GoogleGenAIClient,
 } from "./ai-card-generator.service";
-import { BUSINESS_SEGMENTS } from "../../data/offer-brief.schema";
+import {
+  BUSINESS_SEGMENTS,
+  CARD_INTENTS,
+  type CardIntent,
+} from "../../data/offer-brief.schema";
+import { buildAdCardInput } from "./preview-generator.service";
+import type { OfferDraft } from "./drafts.service";
 
 describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
   const fakeBase64Png =
@@ -392,5 +398,172 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
     expect(promptText).toContain("PRESERVAÇÃO ESTRITA");
     expect(promptText).toContain("Mudar a logo para verde");
     expect(promptText).toContain("PROIBIDO REINVENTAR");
+  });
+
+  describe("Épico 6: Logotipo Multimodal, Objetivos de Anúncio e Preço Opcional", () => {
+    it("deve incluir logotipo como InlineDataPart e instruções de posicionamento sem distorção quando logoImageDataUrl for fornecido", async () => {
+      const fakeClient = createFakeGeminiClient();
+      const inputWithLogo: GenerateAdCardInput = {
+        ...baseInput,
+        logoImageDataUrl: `data:image/png;base64,${fakeBase64Png}`,
+      };
+
+      await generateAdCardImage(inputWithLogo, fakeClient);
+
+      const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+      const logoPart = callArgs.contents.find(
+        (c: unknown) =>
+          typeof c === "object" &&
+          c !== null &&
+          "inlineData" in c &&
+          (c as { inlineData: { data: string } }).inlineData.data ===
+            fakeBase64Png,
+      );
+
+      expect(logoPart).toBeDefined();
+
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+      expect(promptText).toContain("LOGOTIPO DA LOJA FORNECIDO");
+      expect(promptText).toMatch(/topo|canto superior|rodapé/i);
+      expect(promptText).toMatch(/fidelidade|legibilidade/i);
+      expect(promptText).toMatch(/distorç/i);
+    });
+
+    it("deve injetar diretriz textual de objetivo específica para cada um dos 6 cardIntent", async () => {
+      const intentExpectations: Record<CardIntent, string[]> = {
+        promo: ["apelo promocional marcante", "alto contraste no preço"],
+        "new-arrival": ["sofisticação", "novidade"],
+        "special-date": ["ambientação temática", "data comemorativa"],
+        announcement: ["clareza institucional", "inauguração"],
+        schedule: ["legibilidade", "horário de atendimento"],
+        custom: ["Festival de Inverno com Rodízio", "personalizada"],
+      };
+
+      for (const intent of CARD_INTENTS) {
+        const fakeClient = createFakeGeminiClient();
+        const input: GenerateAdCardInput = {
+          ...baseInput,
+          cardIntent: intent,
+          customIntentText:
+            intent === "custom" ? "Festival de Inverno com Rodízio" : undefined,
+        };
+
+        await generateAdCardImage(input, fakeClient);
+
+        const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+        const promptText = callArgs.contents.find(
+          (c: unknown) => typeof c === "string",
+        ) as string;
+
+        for (const expectedPhrase of intentExpectations[intent]) {
+          expect(promptText.toLowerCase()).toContain(
+            expectedPhrase.toLowerCase(),
+          );
+        }
+      }
+    });
+
+    it("deve tratar ausência ou vazio de promoPrice com supressão estrita de preço proibindo 'R$ 0,00'", async () => {
+      const fakeClient = createFakeGeminiClient();
+      const inputWithoutPrice: GenerateAdCardInput = {
+        ...baseInput,
+        promoPrice: "",
+        originalPrice: null,
+      };
+
+      await generateAdCardImage(inputWithoutPrice, fakeClient);
+
+      const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain(
+        "ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica. É expressamente proibido inserir 'R$ 0,00' ou valores inventados.",
+      );
+      expect(promptText).not.toContain("PREÇO PROMOCIONAL (");
+      expect(promptText).not.toContain('Exibir ""');
+      expect(promptText).not.toContain('Exibir "null"');
+      expect(promptText).not.toContain('Exibir "undefined"');
+      expect(promptText).not.toContain('Exibir "R$ 0,00"');
+    });
+
+    it("deve suportar geração com promoPrice undefined ou null", async () => {
+      const fakeClient = createFakeGeminiClient();
+      const inputWithoutPrice: GenerateAdCardInput = {
+        ...baseInput,
+        promoPrice: undefined,
+        originalPrice: undefined,
+      };
+
+      await generateAdCardImage(inputWithoutPrice, fakeClient);
+
+      const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain(
+        "ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica. É expressamente proibido inserir 'R$ 0,00' ou valores inventados.",
+      );
+    });
+
+    it("deve aplicar diretrizes de boutique e iluminação suave para o segmento fashion", async () => {
+      const fakeClient = createFakeGeminiClient();
+      const inputFashion: GenerateAdCardInput = {
+        ...baseInput,
+        businessSegment: "fashion",
+        offerTitle: "Coleção Outono/Inverno",
+      };
+
+      await generateAdCardImage(inputFashion, fakeClient);
+
+      const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain("Moda & Roupas");
+      expect(promptText).toContain("vitrine de boutique ou lookbook de moda");
+      expect(promptText).toContain("Iluminação suave de estúdio fotográfico");
+    });
+
+    it("deve repassar logoImageDataUrl, cardIntent e customIntentText do draft para o AdCardInput em buildAdCardInput", () => {
+      const draft: OfferDraft = {
+        id: "draft-test-1",
+        businessSegment: "fashion",
+        targetAspectRatio: "feed",
+        businessName: "Boutique Elegance",
+        offerTitle: "Nova Coleção Primavera",
+        promoPrice: "",
+        originalPrice: null,
+        callToAction: "Visite nossa loja",
+        whatsapp: "(11) 99999-0000",
+        productImageDataUrl: null,
+        referenceImageDataUrl: null,
+        stylePresetId: "fashion-minimal-boutique",
+        customStyleInstructions: null,
+        cleanMasterImageDataUrl: null,
+        previewCardImageUrl: null,
+        cardIntent: "new-arrival",
+        customIntentText: "Coleção exclusiva",
+        logoImageDataUrl: "data:image/png;base64,mockLogoBase64",
+        aiGenerationCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const cardInput = buildAdCardInput(draft);
+
+      expect(cardInput.businessSegment).toBe("fashion");
+      expect(cardInput.cardIntent).toBe("new-arrival");
+      expect(cardInput.customIntentText).toBe("Coleção exclusiva");
+      expect(cardInput.logoImageDataUrl).toBe(
+        "data:image/png;base64,mockLogoBase64",
+      );
+      expect(cardInput.promoPrice).toBe("");
+    });
   });
 });

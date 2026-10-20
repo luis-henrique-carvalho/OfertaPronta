@@ -153,6 +153,9 @@ describe("PixCheckoutService Deep Module", () => {
       expect(snapshot.originalPrice).toBe("R$ 44,90");
       expect(snapshot.cleanMasterImageDataUrl).toBe(cleanMasterUrl);
       expect(snapshot.previewCardImageUrl).toBe(watermarkedPreview);
+      expect(snapshot.cardIntent).toBe("promo");
+      expect(snapshot.customIntentText).toBeNull();
+      expect(snapshot.logoImageDataUrl).toBeNull();
       expect(snapshot.planId).toBe("single_campaign");
       expect(snapshot.planName).toBe("Campanha Avulsa");
       expect(snapshot.amountCents).toBe(990);
@@ -241,6 +244,42 @@ describe("PixCheckoutService Deep Module", () => {
 
       expect(chargeRow.amountCents).toBe(1490);
       expect(fakePushinPay.chargesCreated.at(-1)?.valueCents).toBe(1490);
+    });
+
+    it("should freeze explicit Epic 6 fields (cardIntent, customIntentText, logoImageDataUrl) into frozenSnapshot", async () => {
+      const pngLogo =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      const draft = await saveOfferDraft({
+        businessSegment: "fashion",
+        businessName: "Boutique Elegance",
+        offerTitle: "Desfile Nova Estação",
+        promoPrice: "",
+        cardIntent: "new-arrival",
+        customIntentText: "Exibição de novos modelos",
+        logoImageDataUrl: pngLogo,
+      });
+
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewCardImage",
+      );
+
+      const result = await service.initiateCheckout({
+        draftId: draft.id,
+      });
+
+      const [orderRow] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, result.orderId));
+
+      const snapshot = orderRow.frozenSnapshot as Record<string, unknown>;
+      expect(snapshot).toBeDefined();
+      expect(snapshot.businessSegment).toBe("fashion");
+      expect(snapshot.cardIntent).toBe("new-arrival");
+      expect(snapshot.customIntentText).toBe("Exibição de novos modelos");
+      expect(snapshot.logoImageDataUrl).toBe(pngLogo);
     });
   });
 

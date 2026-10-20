@@ -11,25 +11,25 @@ Evolução dos schemas centrais de dados da aplicação para suportar o novo flu
 
 **Blocked by:** None (can start immediately)
 
-**Status:** `ready-for-agent`
+**Status:** `completed`
 
 ## Acceptance Criteria (BDD)
 
-- [ ] **Segmento Fashion em Schemas**:
+- [x] **Segmento Fashion em Schemas**:
   - `BUSINESS_SEGMENTS` contém `"fashion"`.
   - `saveOfferDraftSchema` aceita `businessSegment: "fashion"`.
-- [ ] **Novas Colunas na Tabela `drafts`**:
+- [x] **Novas Colunas na Tabela `drafts`**:
   - `drafts.cardIntent` (`text` com default `"promo"`).
   - `drafts.customIntentText` (`text`, nullable).
   - `drafts.logoImageDataUrl` (`text`, nullable).
   - `saveOfferDraft` persiste e recupera com sucesso os três campos no PostgreSQL via Drizzle.
-- [ ] **Validação Condicional Zod**:
+- [x] **Validação Condicional Zod**:
   - Dado um rascunho com `cardIntent: "promo"`, quando submetido sem `promoPrice`, a validação falha indicando que o preço promocional é obrigatório.
   - Dado um rascunho com `cardIntent: "new-arrival"` (ou `special-date`, `announcement`, `schedule`), quando submetido sem `promoPrice`, a validação passa com sucesso.
   - Dado um rascunho com `cardIntent: "custom"`, quando submetido sem `customIntentText`, a validação falha exigindo a descrição do objetivo.
-- [ ] **Snapshot Congelado do Pedido**:
+- [x] **Snapshot Congelado do Pedido**:
   - Quando um pedido é criado via `initiateCheckout`, o objeto `frozenSnapshot` gravado na tabela `orders` inclui `cardIntent`, `customIntentText` e `logoImageDataUrl`.
-- [ ] **Suíte de Testes Automatizados**:
+- [x] **Suíte de Testes Automatizados**:
   - Testes unitários cobrindo o schema Zod (`offer-brief.schema.test.ts`).
   - Testes cobrindo persistência de rascunhos (`drafts.service.test.ts`).
   - Testes cobrindo congelamento do snapshot (`pix-checkout.service.test.ts`).

@@ -7,26 +7,26 @@ Evolução do módulo profundo `AdCardGenerator` (`src/features/promotions/serve
 
 **Blocked by:** `01: Schemas de Banco, Zod e Snapshot Congelado com Preço Condicional`
 
-**Status:** `ready-for-agent`
+**Status:** `completed`
 
 ## Acceptance Criteria (BDD)
 
-- [ ] **Interface Pública Atualizada**:
+- [x] **Interface Pública Atualizada**:
   - `GenerateAdCardInput` recebe `logoImageDataUrl?: string | null`, `cardIntent?: CardIntent | null`, e `customIntentText?: string | null`.
-- [ ] **Logotipo Multimodal**:
+- [x] **Logotipo Multimodal**:
   - Quando `logoImageDataUrl` for fornecido, a imagem em base64 é incluída em `parts` como `InlineDataPart`.
   - O prompt de texto instrui o modelo a posicionar o logotipo no topo, canto superior ou rodapé mantendo a fidelidade, integridade e legibilidade da marca sem distorções.
-- [ ] **Diretriz de Objetivo do Anúncio (`cardIntent`)**:
+- [x] **Diretriz de Objetivo do Anúncio (`cardIntent`)**:
   - Para `promo`: foca em apelo promocional e alto contraste no preço.
   - Para `new-arrival`: foca em apresentação sofisticada de nova coleção ou lançamento ("Novidade!", "Chegou!").
   - Para `special-date`: foca em ambientação temática da data comemorativa anunciada.
   - Para `announcement`: foca em impacto de inauguração/evento e destaque da data/horário.
   - Para `schedule`: foca em legibilidade do comunicado de horário de atendimento/feriado.
   - Para `custom`: injeta o `customIntentText` fornecido pelo comerciante como foco da peça.
-- [ ] **Tratamento de Ausência de Preço**:
-  - Se `promoPrice` for vazio ou indefinido, o prompt instrui expressamente: *"ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica."*
+- [x] **Tratamento de Ausência de Preço**:
+  - Se `promoPrice` for vazio ou indefinido, o prompt instrui expressamente: *"ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica. É expressamente proibido inserir 'R$ 0,00' ou valores inventados."*
   - Não renderiza valores nulos ou artificiais como "R$ 0,00".
-- [ ] **Segmento Moda & Roupas (`fashion`)**:
+- [x] **Segmento Moda & Roupas (`fashion`)**:
   - Mapeamento em `SEGMENT_ART_DIRECTIVES` para `fashion` com visual de boutique, vitrine elegante e iluminação suave de estúdio de moda.
-- [ ] **Suíte de Testes Automatizados**:
+- [x] **Suíte de Testes Automatizados**:
   - Testes unitários em `ai-card-generator.service.test.ts` cobrindo chamadas com logo, diferentes intents e geração sem preço.

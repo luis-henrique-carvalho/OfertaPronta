@@ -1,22 +1,25 @@
 import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { CheckCircle2 } from "lucide-react";
-import {
-  PROTOTYPE_CATALOG,
-  type PrototypeSegment,
-} from "../prototype-catalog-data";
+import { cn } from "@/lib/utils";
+import type { BusinessSegment } from "../../data/offer-brief.schema";
+import { getAllCreationSegments } from "../../data/creation-catalog";
 
-interface Step1SegmentProps {
-  segment: PrototypeSegment;
-  onSelectSegment: (segment: PrototypeSegment) => void;
+export interface Step1SegmentSelectProps {
+  segment: BusinessSegment;
+  onSelectSegment: (segment: BusinessSegment) => void;
+  className?: string;
 }
 
-export function VariantAStep1Segment({
+export function Step1SegmentSelect({
   segment,
   onSelectSegment,
-}: Step1SegmentProps) {
+  className,
+}: Step1SegmentSelectProps) {
+  const segments = getAllCreationSegments();
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className={cn("flex flex-col gap-4", className)}>
       <div className="space-y-1">
         <Typography
           variant="h3"
@@ -30,26 +33,31 @@ export function VariantAStep1Segment({
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 pt-1">
-        {Object.values(PROTOTYPE_CATALOG).map((item) => {
+        {segments.map((item) => {
           const Icon = item.icon;
           const isSelected = segment === item.id;
+
           return (
             <Button
               key={item.id}
               type="button"
               variant={isSelected ? "default" : "outline"}
+              data-testid={`segment-option-${item.id}`}
+              aria-pressed={isSelected}
+              aria-label={`Selecionar segmento ${item.label}`}
               onClick={() => onSelectSegment(item.id)}
-              className={`h-auto min-h-[68px] flex flex-col items-start justify-center p-3 rounded-2xl border transition-all text-left ${
+              className={cn(
+                "h-auto min-h-[68px] flex flex-col items-start justify-center p-3 rounded-2xl border transition-all text-left min-w-0 select-none",
                 isSelected
-                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                  : "border-border bg-card hover:border-primary/50 text-foreground"
-              }`}
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm ring-1 ring-primary"
+                  : "border-border bg-card hover:border-primary/50 text-foreground",
+              )}
             >
               <div className="flex w-full items-center justify-between">
                 <Icon className="size-5 shrink-0" />
                 {isSelected && <CheckCircle2 className="size-4 shrink-0" />}
               </div>
-              <span className="mt-1.5 text-xs sm:text-sm font-bold leading-tight">
+              <span className="mt-1.5 text-xs sm:text-sm font-bold leading-tight truncate w-full">
                 {item.label}
               </span>
             </Button>

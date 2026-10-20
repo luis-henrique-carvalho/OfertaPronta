@@ -58,18 +58,24 @@ describe("StylePresetsCatalog (style-presets-catalog.ts)", () => {
       }
     });
 
-    it("deve conter identificadores únicos globais entre todos os 24 estilos do catálogo", () => {
+    it("deve conter identificadores únicos globais entre todos os 28 estilos do catálogo", () => {
       const allIds = BUSINESS_SEGMENTS.flatMap((segment) =>
         getSegmentPresets(segment).map((preset) => preset.id),
       );
 
-      expect(allIds).toHaveLength(24);
+      expect(allIds).toHaveLength(28);
       const uniqueIds = new Set(allIds);
-      expect(uniqueIds.size).toBe(24);
+      expect(uniqueIds.size).toBe(28);
     });
 
     it("deve conter os IDs canônicos esperados por segmento", () => {
       const expectedIdsBySegment: Record<BusinessSegment, string[]> = {
+        fashion: [
+          "fashion-boutique",
+          "fashion-modern",
+          "fashion-vibrant",
+          "fashion-bazaar",
+        ],
         supermarket: [
           "market-discount",
           "market-fresh",

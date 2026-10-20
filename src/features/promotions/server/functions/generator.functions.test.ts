@@ -68,6 +68,9 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       customStyleInstructions: null,
       cleanMasterImageDataUrl: null,
       previewCardImageUrl: null,
+      cardIntent: "promo",
+      customIntentText: null,
+      logoImageDataUrl: null,
       aiGenerationCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -204,6 +207,9 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
         referenceImageDataUrl: null,
         stylePresetId: "pizza-rustic-wood",
         customStyleInstructions: null,
+        cardIntent: "promo",
+        customIntentText: null,
+        logoImageDataUrl: null,
       });
       expect(watermark).toHaveBeenCalledWith(syntheticBuffer);
       expect(updateDraftPreview).toHaveBeenCalledWith(

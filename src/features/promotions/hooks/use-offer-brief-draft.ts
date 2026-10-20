@@ -1,7 +1,8 @@
-import { useState, useCallback, useTransition } from "react";
+import { useState, useCallback, useTransition, useMemo } from "react";
 import type {
   BusinessSegment,
   CardAspectRatio,
+  CardIntent,
   SaveOfferDraftInput,
 } from "../data/offer-brief.schema";
 import {
@@ -16,6 +17,8 @@ import {
   generatePreviewFn,
   type GeneratePreviewResponse,
 } from "../server/functions/generator.functions";
+import { initiateCheckoutFn as defaultInitiateCheckoutFn } from "../../checkout/server/functions/checkout.functions";
+import type { InitiateCheckoutInput } from "../../checkout/data/checkout.schemas";
 
 export type GenerationStage = "briefing" | "composing" | "watermarking";
 
@@ -44,6 +47,18 @@ export type GenerateAiPreviewResult =
       aiGenerationCount?: number;
     };
 
+export type GenerateCardAndCheckoutResult =
+  | {
+      success: true;
+      orderId: string;
+    }
+  | {
+      success: false;
+      error: GenerationError;
+      code: string;
+      message: string;
+    };
+
 export type SaveDraftFunction = (args: {
   data: SaveOfferDraftInput;
 }) => Promise<SaveDraftResponse>;
@@ -52,11 +67,19 @@ export type GeneratePreviewFunction = (args: {
   data: { draftId: string };
 }) => Promise<GeneratePreviewResponse>;
 
+export type InitiateCheckoutFunction = (args: {
+  data: InitiateCheckoutInput;
+}) => Promise<{ orderId: string }>;
+
 export interface UseOfferBriefDraftOptions {
-  initialDraft?: Partial<SaveOfferDraftInput> & { aiGenerationCount?: number };
+  initialDraft?: Partial<SaveOfferDraftInput> & {
+    aiGenerationCount?: number;
+    customStyleNote?: string;
+  };
   onSavedSuccess?: (draftId: string) => void;
   saveDraftFn?: SaveDraftFunction;
   generatePreviewFn?: GeneratePreviewFunction;
+  initiateCheckoutFn?: InitiateCheckoutFunction;
 }
 
 export interface FormFieldsState {
@@ -71,10 +94,15 @@ export interface FormFieldsState {
   referenceImageDataUrl?: string;
   stylePresetId?: string;
   customStyleInstructions: string;
+  cardIntent: CardIntent;
+  customIntentText: string;
+  logoImageDataUrl?: string;
+  customStyleNote: string;
 }
 
 function getInitialFields(
-  initialDraft: Partial<SaveOfferDraftInput> | undefined,
+  initialDraft:
+    (Partial<SaveOfferDraftInput> & { customStyleNote?: string }) | undefined,
   segment: BusinessSegment,
 ): FormFieldsState {
   const placeholders = SEGMENT_CATALOG[segment].placeholders;
@@ -91,7 +119,17 @@ function getInitialFields(
     stylePresetId:
       initialDraft?.stylePresetId ??
       SEGMENT_CATALOG[segment].stylePresets[0].id,
-    customStyleInstructions: initialDraft?.customStyleInstructions ?? "",
+    customStyleInstructions:
+      initialDraft?.customStyleInstructions ??
+      initialDraft?.customStyleNote ??
+      "",
+    cardIntent: initialDraft?.cardIntent ?? "promo",
+    customIntentText: initialDraft?.customIntentText ?? "",
+    logoImageDataUrl: initialDraft?.logoImageDataUrl ?? undefined,
+    customStyleNote:
+      initialDraft?.customStyleNote ??
+      initialDraft?.customStyleInstructions ??
+      "",
   };
 }
 
@@ -105,6 +143,8 @@ function buildDraftPayload(
     id: draftId,
     businessSegment,
     targetAspectRatio: fields.targetAspectRatio,
+    cardIntent: fields.cardIntent,
+    customIntentText: fields.customIntentText || null,
     businessName: fields.businessName,
     offerTitle: fields.offerTitle,
     promoPrice: fields.promoPrice,
@@ -113,8 +153,10 @@ function buildDraftPayload(
     whatsapp: fields.whatsapp || null,
     productImageDataUrl: fields.productImageDataUrl || null,
     referenceImageDataUrl: fields.referenceImageDataUrl || null,
+    logoImageDataUrl: fields.logoImageDataUrl || null,
     stylePresetId: fields.stylePresetId || null,
-    customStyleInstructions: fields.customStyleInstructions || null,
+    customStyleInstructions:
+      fields.customStyleNote || fields.customStyleInstructions || null,
     previewCardImageUrl: previewCardImageUrl || null,
   };
 }
@@ -153,44 +195,10 @@ function updateSegmentPlaceholders(
   };
 }
 
-function useDraftFormFields(
-  initialSegment: BusinessSegment,
-  initialDraft?: Partial<SaveOfferDraftInput>,
+function createFieldSetters(
+  setFields: React.Dispatch<React.SetStateAction<FormFieldsState>>,
 ) {
-  const [fields, setFields] = useState<FormFieldsState>(() =>
-    getInitialFields(initialDraft, initialSegment),
-  );
-
-  const applyExample = useCallback(
-    (example: {
-      title: string;
-      promoPrice: string;
-      originalPrice?: string;
-      stylePresetId: string;
-    }) => {
-      setFields((prev) => ({
-        ...prev,
-        offerTitle: example.title,
-        promoPrice: example.promoPrice,
-        originalPrice: example.originalPrice ?? prev.originalPrice,
-        stylePresetId: example.stylePresetId,
-      }));
-    },
-    [],
-  );
-
-  const updateField = useCallback(
-    <K extends keyof FormFieldsState>(field: K, value: FormFieldsState[K]) => {
-      setFields((prev) => ({ ...prev, [field]: value }));
-    },
-    [],
-  );
-
   return {
-    fields,
-    setFields,
-    applyExample,
-    updateField,
     setTargetAspectRatio: (v: CardAspectRatio) =>
       setFields((p) => ({ ...p, targetAspectRatio: v })),
     setBusinessName: (v: string) =>
@@ -217,7 +225,74 @@ function useDraftFormFields(
         ...(v ? { referenceImageDataUrl: undefined } : {}),
       })),
     setCustomStyleInstructions: (v: string) =>
-      setFields((p) => ({ ...p, customStyleInstructions: v })),
+      setFields((p) => ({
+        ...p,
+        customStyleInstructions: v,
+        customStyleNote: v,
+      })),
+    setCardIntent: (intent: CardIntent) =>
+      setFields((p) => ({ ...p, cardIntent: intent })),
+    setCustomIntentText: (text: string) =>
+      setFields((p) => ({ ...p, customIntentText: text })),
+    setLogoImageDataUrl: (url?: string) =>
+      setFields((p) => ({ ...p, logoImageDataUrl: url })),
+    setCustomStyleNote: (note: string) =>
+      setFields((p) => ({
+        ...p,
+        customStyleNote: note,
+        customStyleInstructions: note,
+      })),
+  };
+}
+
+function useDraftFormFields(
+  initialSegment: BusinessSegment,
+  initialDraft?: Partial<SaveOfferDraftInput> & { customStyleNote?: string },
+) {
+  const [fields, setFields] = useState<FormFieldsState>(() =>
+    getInitialFields(initialDraft, initialSegment),
+  );
+
+  const applyExample = useCallback(
+    (example: {
+      title: string;
+      promoPrice?: string;
+      price?: string;
+      originalPrice?: string;
+      stylePresetId?: string;
+    }) => {
+      const priceVal = example.promoPrice ?? example.price;
+      setFields((prev) => ({
+        ...prev,
+        offerTitle: example.title,
+        ...(priceVal !== undefined ? { promoPrice: priceVal } : {}),
+        originalPrice: example.originalPrice ?? prev.originalPrice,
+        ...(example.stylePresetId
+          ? { stylePresetId: example.stylePresetId }
+          : {}),
+      }));
+    },
+    [],
+  );
+
+  const updateField = useCallback(
+    <K extends keyof FormFieldsState>(field: K, value: FormFieldsState[K]) => {
+      setFields((prev) => ({ ...prev, [field]: value }));
+    },
+    [],
+  );
+
+  const fieldSetters = useMemo(
+    () => createFieldSetters(setFields),
+    [setFields],
+  );
+
+  return {
+    fields,
+    setFields,
+    applyExample,
+    updateField,
+    ...fieldSetters,
   };
 }
 
@@ -306,30 +381,208 @@ function startStageProgressTimers(
   };
 }
 
-function handlePreviewRpcError(
-  err: unknown,
-  setGenerationError: (err: GenerationError | null) => void,
-): GenerateAiPreviewResult {
-  console.error(
-    "[useOfferBriefDraft] Erro na chamada RPC de geração de prévia:",
-    err,
+async function callPreviewRpc(
+  draftId: string,
+  genFn: GeneratePreviewFunction,
+): Promise<GeneratePreviewResponse | GenerationError> {
+  try {
+    return await genFn({ data: { draftId } });
+  } catch (err: unknown) {
+    const msg =
+      err instanceof Error
+        ? err.message
+        : "Instabilidade temporária na geração por IA. Por favor, tente novamente.";
+    return { code: "AI_GENERATION_FAILED", message: msg };
+  }
+}
+
+async function callCheckoutRpc(
+  draftId: string,
+  chkFn: InitiateCheckoutFunction,
+  customerWhatsapp?: string,
+): Promise<{ orderId: string } | GenerationError> {
+  try {
+    return await chkFn({
+      data: {
+        draftId,
+        ...(customerWhatsapp ? { customerWhatsapp } : {}),
+      },
+    });
+  } catch (err: unknown) {
+    const msg =
+      err instanceof Error
+        ? err.message
+        : "Falha ao iniciar checkout Pix. Por favor, tente novamente.";
+    return { code: "CHECKOUT_INIT_FAILED", message: msg };
+  }
+}
+
+async function executeContinuousFlow(params: {
+  draftId: string;
+  options: UseOfferBriefDraftOptions;
+  setPreviewCardImageUrl: (url: string | null) => void;
+  setAiGenerationCount: React.Dispatch<React.SetStateAction<number>>;
+  setGenerationError: (err: GenerationError | null) => void;
+  setIsInitiatingCheckout: (val: boolean) => void;
+  customerWhatsapp?: string;
+}): Promise<GenerateCardAndCheckoutResult> {
+  const {
+    draftId,
+    options,
+    setPreviewCardImageUrl,
+    setAiGenerationCount,
+    setGenerationError,
+    setIsInitiatingCheckout,
+    customerWhatsapp,
+  } = params;
+
+  const genFn = options.generatePreviewFn ?? generatePreviewFn;
+  const previewRes = await callPreviewRpc(draftId, genFn);
+  if ("code" in previewRes && !("success" in previewRes)) {
+    setGenerationError(previewRes);
+    return {
+      success: false,
+      error: previewRes,
+      code: previewRes.code,
+      message: previewRes.message,
+    };
+  }
+
+  const res = previewRes as GeneratePreviewResponse;
+  applyPreviewResult(
+    res,
+    setPreviewCardImageUrl,
+    setAiGenerationCount,
+    setGenerationError,
   );
-  const msg =
-    err instanceof Error
-      ? err.message
-      : "Instabilidade temporária na geração por IA. Por favor, tente novamente.";
-  const errObj: GenerationError = {
-    code: "AI_GENERATION_FAILED",
-    message: msg,
-  };
-  setGenerationError(errObj);
-  return { success: false, ...errObj, aiGenerationCount: 0 };
+
+  if (!res.success && res.code !== "AI_QUOTA_EXCEEDED") {
+    const errObj: GenerationError = { code: res.code, message: res.message };
+    return {
+      success: false,
+      error: errObj,
+      code: errObj.code,
+      message: errObj.message,
+    };
+  }
+
+  setIsInitiatingCheckout(true);
+  try {
+    const chkFn = options.initiateCheckoutFn ?? defaultInitiateCheckoutFn;
+    const checkoutRes = await callCheckoutRpc(draftId, chkFn, customerWhatsapp);
+    if ("code" in checkoutRes) {
+      setGenerationError(checkoutRes);
+      return {
+        success: false,
+        error: checkoutRes,
+        code: checkoutRes.code,
+        message: checkoutRes.message,
+      };
+    }
+    setGenerationError(null);
+    return { success: true, orderId: checkoutRes.orderId };
+  } finally {
+    setIsInitiatingCheckout(false);
+  }
+}
+
+interface ContinuousOrchestrationParams {
+  saveDraft: () => Promise<string | null>;
+  saveError: string | null;
+  options: UseOfferBriefDraftOptions;
+  defaultCustomerWhatsapp?: string;
+  setIsGenerating: (v: boolean) => void;
+  setGenerationError: (err: GenerationError | null) => void;
+  setGenerationStage: React.Dispatch<React.SetStateAction<GenerationStage>>;
+  setPreviewCardImageUrl: (url: string | null) => void;
+  setAiGenerationCount: React.Dispatch<React.SetStateAction<number>>;
+}
+
+function useContinuousCheckoutOrchestration(
+  params: ContinuousOrchestrationParams,
+) {
+  const [isInitiatingCheckout, setIsInitiatingCheckout] = useState(false);
+  const {
+    saveDraft,
+    saveError,
+    options,
+    defaultCustomerWhatsapp,
+    setIsGenerating,
+    setGenerationError,
+    setGenerationStage,
+    setPreviewCardImageUrl,
+    setAiGenerationCount,
+  } = params;
+
+  const generateCardAndInitiateCheckout = useCallback(
+    async (overrideParams?: {
+      customerWhatsapp?: string;
+    }): Promise<GenerateCardAndCheckoutResult> => {
+      setIsGenerating(true);
+      setGenerationError(null);
+      setGenerationStage("briefing");
+      const clearTimers = startStageProgressTimers(setGenerationStage);
+
+      try {
+        const currentDraftId = await saveDraft();
+        if (!currentDraftId) {
+          const err: GenerationError = {
+            code: "SAVE_FAILED",
+            message:
+              saveError ||
+              "Não foi possível salvar os dados do rascunho antes da geração.",
+          };
+          setGenerationError(err);
+          return {
+            success: false,
+            error: err,
+            code: err.code,
+            message: err.message,
+          };
+        }
+
+        const rawWhatsapp =
+          overrideParams?.customerWhatsapp ?? defaultCustomerWhatsapp;
+        const customerWhatsapp =
+          rawWhatsapp && rawWhatsapp.trim().length > 0
+            ? rawWhatsapp.trim()
+            : undefined;
+
+        return await executeContinuousFlow({
+          draftId: currentDraftId,
+          options,
+          setPreviewCardImageUrl,
+          setAiGenerationCount,
+          setGenerationError,
+          setIsInitiatingCheckout,
+          customerWhatsapp,
+        });
+      } finally {
+        clearTimers();
+        setIsGenerating(false);
+      }
+    },
+    [
+      saveDraft,
+      saveError,
+      options,
+      defaultCustomerWhatsapp,
+      setIsGenerating,
+      setGenerationError,
+      setGenerationStage,
+      setPreviewCardImageUrl,
+      setAiGenerationCount,
+    ],
+  );
+
+  return { isInitiatingCheckout, generateCardAndInitiateCheckout };
 }
 
 function useAiPreviewGeneration(
   saveDraft: () => Promise<string | null>,
   saveError: string | null,
   options: UseOfferBriefDraftOptions,
+  defaultCustomerWhatsapp?: string,
 ) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStage, setGenerationStage] =
@@ -359,38 +612,40 @@ function useAiPreviewGeneration(
               saveError ||
               "Não foi possível salvar os dados do rascunho antes da geração.",
           };
-          console.error(
-            "[useOfferBriefDraft] Falha ao salvar rascunho antes da geração:",
-            err,
-          );
           setGenerationError(err);
           return { success: false, ...err, aiGenerationCount: 0 };
         }
 
-        console.warn(
-          "[useOfferBriefDraft] Chamando Server Function generatePreviewFn para draftId:",
-          currentDraftId,
-        );
         const genFn = options.generatePreviewFn ?? generatePreviewFn;
-        const res = await genFn({ data: { draftId: currentDraftId } });
-        console.warn(
-          "[useOfferBriefDraft] Resposta recebida de generatePreviewFn:",
-          res,
-        );
+        const res = await callPreviewRpc(currentDraftId, genFn);
+        if ("code" in res && !("success" in res)) {
+          setGenerationError(res);
+          return { success: false, ...res, aiGenerationCount: 0 };
+        }
 
         return applyPreviewResult(
-          res,
+          res as GeneratePreviewResponse,
           setPreviewCardImageUrl,
           setAiGenerationCount,
           setGenerationError,
         );
-      } catch (err: unknown) {
-        return handlePreviewRpcError(err, setGenerationError);
       } finally {
         clearTimers();
         setIsGenerating(false);
       }
     }, [saveDraft, options.generatePreviewFn, saveError]);
+
+  const orchestration = useContinuousCheckoutOrchestration({
+    saveDraft,
+    saveError,
+    options,
+    defaultCustomerWhatsapp,
+    setIsGenerating,
+    setGenerationError,
+    setGenerationStage,
+    setPreviewCardImageUrl,
+    setAiGenerationCount,
+  });
 
   const clearGenerationError = useCallback(() => {
     setGenerationError(null);
@@ -398,6 +653,7 @@ function useAiPreviewGeneration(
 
   return {
     isGenerating,
+    ...orchestration,
     generationStage,
     generationError,
     previewCardImageUrl,
@@ -406,6 +662,63 @@ function useAiPreviewGeneration(
     setPreviewCardImageUrl,
     clearGenerationError,
   };
+}
+
+export function isStep2Valid(fields: {
+  businessName?: string;
+  offerTitle?: string;
+  cardIntent?: CardIntent;
+  promoPrice?: string;
+  customIntentText?: string;
+}): boolean {
+  if (!fields.businessName || !fields.businessName.trim()) return false;
+  if (!fields.offerTitle || !fields.offerTitle.trim()) return false;
+  const intent = fields.cardIntent ?? "promo";
+  if (intent === "promo") {
+    return Boolean(fields.promoPrice && fields.promoPrice.trim().length > 0);
+  }
+  if (intent === "custom") {
+    return Boolean(
+      fields.customIntentText && fields.customIntentText.trim().length > 0,
+    );
+  }
+  return true;
+}
+
+function computeStep2Errors(fields: FormFieldsState): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!fields.businessName || !fields.businessName.trim()) {
+    errors.businessName = "Informe o nome do estabelecimento";
+  }
+  if (!fields.offerTitle || !fields.offerTitle.trim()) {
+    errors.offerTitle = "Informe o título ou mensagem principal";
+  }
+  if (
+    fields.cardIntent === "promo" &&
+    (!fields.promoPrice || !fields.promoPrice.trim())
+  ) {
+    errors.promoPrice = "Informe o preço promocional";
+  }
+  if (
+    fields.cardIntent === "custom" &&
+    (!fields.customIntentText || !fields.customIntentText.trim())
+  ) {
+    errors.customIntentText = "Descreva o tipo de card que você deseja criar";
+  }
+  return errors;
+}
+
+function computeFormErrors(fields: FormFieldsState): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!fields.businessName.trim())
+    errors.businessName = "Informe o nome do estabelecimento";
+  if (!fields.offerTitle.trim())
+    errors.offerTitle = "Informe o título da promoção ou produto";
+  if (fields.cardIntent === "promo" && !fields.promoPrice.trim())
+    errors.promoPrice = "Informe o preço promocional";
+  if (fields.cardIntent === "custom" && !fields.customIntentText.trim())
+    errors.customIntentText = "Descreva o tipo de card que você deseja criar";
+  return errors;
 }
 
 export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
@@ -433,7 +746,12 @@ export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
     options.initialDraft?.previewCardImageUrl ?? null,
   );
 
-  const aiPreview = useAiPreviewGeneration(saveDraft, saveError, options);
+  const aiPreview = useAiPreviewGeneration(
+    saveDraft,
+    saveError,
+    options,
+    fields.whatsapp,
+  );
 
   const handleSegmentChange = useCallback(
     (newSegment: BusinessSegment) => {
@@ -453,17 +771,19 @@ export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
     [applyExample],
   );
 
-  const validateForm = useCallback((): boolean => {
-    const errors: Record<string, string> = {};
-    if (!fields.businessName.trim())
-      errors.businessName = "Informe o nome do estabelecimento";
-    if (!fields.offerTitle.trim())
-      errors.offerTitle = "Informe o título da promoção ou produto";
-    if (!fields.promoPrice.trim())
-      errors.promoPrice = "Informe o preço promocional";
+  const validateStep2 = useCallback((): boolean => {
+    const errors = computeStep2Errors(fields);
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [fields.businessName, fields.offerTitle, fields.promoPrice]);
+  }, [fields]);
+
+  const validateForm = useCallback((): boolean => {
+    const errors = computeFormErrors(fields);
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [fields]);
+
+  const step2Valid = useMemo(() => isStep2Valid(fields), [fields]);
 
   const visualInputMode = deriveVisualInputMode({
     hasProductImage: !!fields.productImageDataUrl,
@@ -481,6 +801,8 @@ export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
     validationErrors,
     saveError,
     isSaving,
+    isStep2Valid: step2Valid,
+    validateStep2,
     setBusinessSegment: handleSegmentChange,
     applyExample: handleApplyExample,
     validateForm,

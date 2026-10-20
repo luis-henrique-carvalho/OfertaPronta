@@ -1,8 +1,10 @@
 import { createServerLogger } from "@/server/logger";
 import {
   BUSINESS_SEGMENTS,
+  CARD_INTENTS,
   type BusinessSegment,
   type CardAspectRatio,
+  type CardIntent,
   generatePreviewInputSchema,
   type GeneratePreviewInput,
 } from "../../data/offer-brief.schema";
@@ -98,6 +100,12 @@ export function buildAdCardInput(draft: OfferDraft): GenerateAdCardInput {
     ? (draft.businessSegment as BusinessSegment)
     : "supermarket";
 
+  const validIntents: readonly string[] = CARD_INTENTS;
+  const cardIntent: CardIntent | undefined =
+    draft.cardIntent && validIntents.includes(draft.cardIntent)
+      ? (draft.cardIntent as CardIntent)
+      : undefined;
+
   return {
     businessSegment,
     targetAspectRatio: (draft.targetAspectRatio as CardAspectRatio) || "feed",
@@ -111,6 +119,9 @@ export function buildAdCardInput(draft: OfferDraft): GenerateAdCardInput {
     referenceImageDataUrl: draft.referenceImageDataUrl,
     stylePresetId: draft.stylePresetId,
     customStyleInstructions: draft.customStyleInstructions,
+    logoImageDataUrl: draft.logoImageDataUrl,
+    cardIntent,
+    customIntentText: draft.customIntentText,
   };
 }
 

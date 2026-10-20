@@ -1,18 +1,21 @@
 import { describe, it, expect } from "vitest";
 import {
   BUSINESS_SEGMENTS,
+  CARD_INTENTS,
   CARD_ASPECT_RATIOS,
   SEGMENT_CATALOG,
   imageDataUrlSchema,
   offerBriefSchema,
   saveOfferDraftSchema,
   deriveVisualInputMode,
+  type CardIntent,
 } from "./offer-brief.schema";
 
 describe("offer-brief.schema", () => {
   describe("BUSINESS_SEGMENTS and SEGMENT_CATALOG", () => {
-    it("should define the 6 expected business segments", () => {
+    it("should define the 7 expected business segments including fashion", () => {
       expect(BUSINESS_SEGMENTS).toEqual([
+        "fashion",
         "supermarket",
         "beauty-salon",
         "pizzeria",
@@ -194,6 +197,163 @@ describe("offer-brief.schema", () => {
         targetAspectRatio: "story",
       });
       expect(parsedDraftStory.targetAspectRatio).toBe("story");
+    });
+
+    it("should export CARD_INTENTS with all 6 commercial goals", () => {
+      expect(CARD_INTENTS).toEqual([
+        "promo",
+        "new-arrival",
+        "special-date",
+        "announcement",
+        "schedule",
+        "custom",
+      ]);
+    });
+
+    it("saveOfferDraftSchema supports cardIntent, customIntentText and logoImageDataUrl", () => {
+      const validPng =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      const parsed = saveOfferDraftSchema.parse({
+        businessSegment: "fashion",
+        businessName: "Boutique Elegance",
+        offerTitle: "Vestido Midi Canelado",
+        cardIntent: "new-arrival",
+        customIntentText: "Chegou a nova coleção de outono",
+        logoImageDataUrl: validPng,
+      });
+
+      expect(parsed.businessSegment).toBe("fashion");
+      expect(parsed.cardIntent).toBe("new-arrival");
+      expect(parsed.customIntentText).toBe("Chegou a nova coleção de outono");
+      expect(parsed.logoImageDataUrl).toBe(validPng);
+    });
+
+    it("saveOfferDraftSchema defaults cardIntent to promo", () => {
+      const parsed = saveOfferDraftSchema.parse({
+        businessSegment: "fashion",
+      });
+      expect(parsed.cardIntent).toBe("promo");
+    });
+
+    describe("Conditional Price Validation in offerBriefSchema", () => {
+      const baseValid = {
+        businessSegment: "fashion" as const,
+        businessName: "Boutique Chic",
+        offerTitle: "Coleção Outono Inverno",
+      };
+
+      it("requires promoPrice when cardIntent is 'promo' (default)", () => {
+        const withoutPrice = {
+          ...baseValid,
+          cardIntent: "promo" as const,
+          promoPrice: "",
+        };
+        const res = offerBriefSchema.safeParse(withoutPrice);
+        expect(res.success).toBe(false);
+        if (!res.success) {
+          const priceIssue = res.error.issues.find((i) =>
+            i.path.includes("promoPrice"),
+          );
+          expect(priceIssue).toBeDefined();
+          expect(priceIssue?.message).toContain(
+            "Preço promocional é obrigatório",
+          );
+        }
+
+        const withPrice = {
+          ...baseValid,
+          cardIntent: "promo" as const,
+          promoPrice: "R$ 99,90",
+        };
+        expect(offerBriefSchema.safeParse(withPrice).success).toBe(true);
+      });
+
+      it("makes promoPrice optional for non-promotional intents (new-arrival, special-date, announcement, schedule)", () => {
+        const nonPromoIntents: CardIntent[] = [
+          "new-arrival",
+          "special-date",
+          "announcement",
+          "schedule",
+        ];
+
+        for (const intent of nonPromoIntents) {
+          // Without promoPrice
+          const resWithoutPrice = offerBriefSchema.safeParse({
+            ...baseValid,
+            cardIntent: intent,
+          });
+          expect(resWithoutPrice.success).toBe(true);
+
+          // With empty promoPrice
+          const resWithEmptyPrice = offerBriefSchema.safeParse({
+            ...baseValid,
+            cardIntent: intent,
+            promoPrice: "",
+          });
+          expect(resWithEmptyPrice.success).toBe(true);
+        }
+      });
+
+      it("makes promoPrice optional for 'custom' intent, but requires customIntentText", () => {
+        // Custom without customIntentText -> should fail
+        const missingCustomText = offerBriefSchema.safeParse({
+          ...baseValid,
+          cardIntent: "custom" as const,
+        });
+        expect(missingCustomText.success).toBe(false);
+        if (!missingCustomText.success) {
+          const customIssue = missingCustomText.error.issues.find((i) =>
+            i.path.includes("customIntentText"),
+          );
+          expect(customIssue).toBeDefined();
+          expect(customIssue?.message).toContain("Descreva o tipo de card");
+        }
+
+        // Custom with whitespace customIntentText -> should fail
+        const whitespaceCustomText = offerBriefSchema.safeParse({
+          ...baseValid,
+          cardIntent: "custom" as const,
+          customIntentText: "   ",
+        });
+        expect(whitespaceCustomText.success).toBe(false);
+
+        // Custom with valid customIntentText and no promoPrice -> should pass
+        const validCustom = offerBriefSchema.safeParse({
+          ...baseValid,
+          cardIntent: "custom" as const,
+          customIntentText: "Anúncio especial de workshop de estilo",
+        });
+        expect(validCustom.success).toBe(true);
+
+        // Custom with valid customIntentText and promoPrice -> should pass
+        const validCustomWithPrice = offerBriefSchema.safeParse({
+          ...baseValid,
+          cardIntent: "custom" as const,
+          customIntentText: "Anúncio especial de workshop de estilo",
+          promoPrice: "R$ 150,00",
+        });
+        expect(validCustomWithPrice.success).toBe(true);
+      });
+
+      it("accepts logoImageDataUrl and validates 4MB limit", () => {
+        const validPng =
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+        const res = offerBriefSchema.safeParse({
+          ...baseValid,
+          cardIntent: "announcement" as const,
+          logoImageDataUrl: validPng,
+        });
+        expect(res.success).toBe(true);
+
+        const invalidLogo = offerBriefSchema.safeParse({
+          ...baseValid,
+          cardIntent: "announcement" as const,
+          logoImageDataUrl: "invalid-not-base64",
+        });
+        expect(invalidLogo.success).toBe(false);
+      });
     });
   });
 });
