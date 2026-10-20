@@ -8,6 +8,7 @@ import type { CheckoutDetailsResult } from "../data/checkout.schemas";
 import { useOrderPolling } from "../hooks/use-order-polling";
 import { usePixCheckout } from "../hooks/use-pix-checkout";
 import { AdCardCheckoutShowcase } from "../components/ad-card-checkout-showcase";
+import { CobrandingDiscountCard } from "../components/cobranding-discount-card";
 import { UnifiedPixPaymentCard } from "../components/unified-pix-payment-card";
 import { DevPaymentSimulatorCard } from "../components/dev-payment-simulator-card";
 import { CheckoutPaidSuccessCard } from "../components/checkout-paid-success-card";
@@ -69,9 +70,25 @@ export function CheckoutView({
     simulatePayment,
     isSimulatingPayment,
     simulatePaymentError,
+    toggleCobranding,
+    isUpdatingCobranding,
   } = usePixCheckout({
     orderId: details.orderId,
+    onCobrandingSuccess: (updated) => {
+      setDetails(updated);
+    },
   });
+
+  const handleToggleCobranding = async (accepted: boolean) => {
+    try {
+      const updated = await toggleCobranding(accepted);
+      if (updated) {
+        setDetails(updated);
+      }
+    } catch {
+      // Falha tratada pelo hook com rollback e toast
+    }
+  };
 
   const handleSimulatePayment = async () => {
     try {
@@ -173,7 +190,25 @@ export function CheckoutView({
         amountCents={details.amountCents}
         planName={frozen.planName}
         maxRegenerations={frozen.maxPostPaymentRegenerations}
+        cobrandingAccepted={details.cobrandingAccepted}
+        cobrandingCreditText={details.cobrandingCreditText}
       />
+
+      {/* Card de Desconto com Assinatura de Marca (Co-branding) */}
+      {details.cobrandingPromotionAvailable !== false && (
+        <CobrandingDiscountCard
+          orderId={details.orderId}
+          isAccepted={details.cobrandingAccepted ?? false}
+          discountPercent={details.cobrandingDiscountPercent ?? 30}
+          originalAmountCents={details.originalAmountCents ?? 990}
+          discountedAmountCents={
+            details.cobrandingAccepted ? details.amountCents : undefined
+          }
+          creditText={details.cobrandingCreditText}
+          isUpdating={isUpdatingCobranding}
+          onToggle={handleToggleCobranding}
+        />
+      )}
 
       {/* Painel Unificado de Pagamento Pix */}
       <UnifiedPixPaymentCard

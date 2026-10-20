@@ -176,3 +176,37 @@ export function listCampaignPlans(
     CAMPAIGN_PLAN_IDS.map((id) => getCampaignPlanById(id, env)),
   );
 }
+
+export interface CobrandingPriceCalculation {
+  originalAmountCents: number;
+  discountAmountCents: number;
+  amountCents: number;
+  discountPercent: number;
+  formattedOriginalPrice: string;
+  formattedDiscountedPrice: string;
+  formattedSavings: string;
+}
+
+export function calculateCobrandingPrice(
+  baseAmountCents: number,
+  discountPercent: number = 30,
+): CobrandingPriceCalculation {
+  const safeDiscountPercent = Math.max(
+    1,
+    Math.min(90, Math.round(discountPercent)),
+  );
+  const discountAmountCents = Math.round(
+    baseAmountCents * (safeDiscountPercent / 100),
+  );
+  const amountCents = Math.max(100, baseAmountCents - discountAmountCents);
+
+  return {
+    originalAmountCents: baseAmountCents,
+    discountAmountCents,
+    amountCents,
+    discountPercent: safeDiscountPercent,
+    formattedOriginalPrice: formatBRL(baseAmountCents),
+    formattedDiscountedPrice: formatBRL(amountCents),
+    formattedSavings: formatBRL(discountAmountCents),
+  };
+}

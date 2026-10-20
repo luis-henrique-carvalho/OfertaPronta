@@ -9,8 +9,10 @@
 
 export {
   applyWatermark,
+  applyCobrandingSignature,
   formatFeedCard,
   formatStoryCard,
   type WatermarkOptions,
   type WatermarkResult,
+  type CobrandingOptions,
 } from "./image-processor";

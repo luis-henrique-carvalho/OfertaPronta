@@ -28,16 +28,30 @@ export type UpdateOrderWhatsappInput = z.infer<
 export const updateWhatsappSchema = updateOrderWhatsappSchema;
 export type UpdateWhatsappInput = UpdateOrderWhatsappInput;
 
+export const updateOrderCobrandingSchema = z.object({
+  orderId: z.string().uuid("orderId deve ser um UUID válido"),
+  cobrandingAccepted: z.boolean(),
+});
+
+export type UpdateOrderCobrandingInput = z.infer<
+  typeof updateOrderCobrandingSchema
+>;
+
 export const checkoutDetailsOutputSchema = z.object({
   orderId: z.string(),
   draftId: z.string(),
   status: z.enum(["PENDING", "PAID", "EXPIRED", "CANCELLED"]),
   amountCents: z.number().int(),
+  originalAmountCents: z.number().int().optional(),
+  cobrandingAccepted: z.boolean().default(false),
+  cobrandingPromotionAvailable: z.boolean().default(true),
+  cobrandingCreditText: z.string().optional(),
+  cobrandingDiscountPercent: z.number().int().default(30),
   customerWhatsapp: z.string().optional(),
   customerEmail: z.string().optional(),
   isDevMode: z.boolean().optional(),
   frozenSnapshot: z.record(
-    z.union([z.string(), z.number(), z.boolean(), z.null()]),
+    z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()]),
   ),
   charge: z
     .object({

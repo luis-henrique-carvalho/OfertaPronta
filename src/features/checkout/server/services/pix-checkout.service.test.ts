@@ -948,4 +948,244 @@ describe("PixCheckoutService Deep Module", () => {
       );
     });
   });
+
+  describe("updateOrderCobranding (Co-branding Discount Toggle & Authority)", () => {
+    it("deve ativar o desconto de co-branding (990 -> 693), expirar cobrança anterior e emitir nova na Pushin Pay", async () => {
+      const draft = await saveOfferDraft({
+        businessSegment: "burger-shop",
+        businessName: "Burger King",
+        offerTitle: "Combo Whopper",
+        promoPrice: "R$ 35,00",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewBurger",
+      );
+
+      const { orderId } = await service.initiateCheckout({ draftId: draft.id });
+      const initialDetails = await service.getCheckoutDetails(orderId);
+      const initialTxId = initialDetails.charge!.txId;
+      expect(initialDetails.amountCents).toBe(990);
+      expect(initialDetails.cobrandingAccepted).toBe(false);
+
+      const updatedDetails = await service.updateOrderCobranding(orderId, true);
+
+      expect(updatedDetails.orderId).toBe(orderId);
+      expect(updatedDetails.amountCents).toBe(693);
+      expect(updatedDetails.originalAmountCents).toBe(990);
+      expect(updatedDetails.cobrandingAccepted).toBe(true);
+      expect(updatedDetails.cobrandingCreditText).toBe(
+        "Design por @ofertapronta",
+      );
+      expect(updatedDetails.charge).not.toBeNull();
+      expect(updatedDetails.charge?.txId).not.toBe(initialTxId);
+      expect(fakePushinPay.chargesCreated.at(-1)?.valueCents).toBe(693);
+
+      // Verify in DB: orders table
+      const [orderRow] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId));
+      expect(orderRow.amountCents).toBe(693);
+      expect(orderRow.cobrandingAccepted).toBe(true);
+      expect(orderRow.cobrandingCreditText).toBe("Design por @ofertapronta");
+
+      const snapshot = orderRow.frozenSnapshot as Record<string, unknown>;
+      expect(snapshot.amountCents).toBe(693);
+      expect(snapshot.originalAmountCents).toBe(990);
+      expect(snapshot.cobrandingAccepted).toBe(true);
+      expect(snapshot.cobrandingDiscountPercent).toBe(30);
+      expect(snapshot.cobrandingCreditText).toBe("Design por @ofertapronta");
+
+      // Verify in DB: old charge is EXPIRED, new charge is PENDING
+      const charges = await db
+        .select()
+        .from(paymentCharges)
+        .where(eq(paymentCharges.orderId, orderId));
+      expect(charges.length).toBe(2);
+
+      const oldCharge = charges.find((c) => c.txId === initialTxId);
+      const newCharge = charges.find(
+        (c) => c.txId === updatedDetails.charge?.txId,
+      );
+      expect(oldCharge?.status).toBe("EXPIRED");
+      expect(newCharge?.status).toBe("PENDING");
+      expect(newCharge?.amountCents).toBe(693);
+    });
+
+    it("deve reverter o desconto de co-branding (693 -> 990) ao desmarcar o switch", async () => {
+      const draft = await saveOfferDraft({
+        businessSegment: "pizzeria",
+        businessName: "Pizzaria Bella",
+        offerTitle: "Pizza Margherita",
+        promoPrice: "R$ 42,00",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewPizza",
+      );
+
+      const { orderId } = await service.initiateCheckout({ draftId: draft.id });
+      // 1. Ativa co-branding
+      await service.updateOrderCobranding(orderId, true);
+      const activeDetails = await service.getCheckoutDetails(orderId);
+      expect(activeDetails.amountCents).toBe(693);
+      expect(activeDetails.cobrandingAccepted).toBe(true);
+
+      const chargeCountBefore = fakePushinPay.chargesCreated.length;
+
+      // 2. Desativa co-branding
+      const revertedDetails = await service.updateOrderCobranding(
+        orderId,
+        false,
+      );
+
+      expect(revertedDetails.amountCents).toBe(990);
+      expect(revertedDetails.cobrandingAccepted).toBe(false);
+      expect(revertedDetails.cobrandingCreditText).toBeUndefined();
+      expect(fakePushinPay.chargesCreated.length).toBe(chargeCountBefore + 1);
+      expect(fakePushinPay.chargesCreated.at(-1)?.valueCents).toBe(990);
+
+      const [orderRow] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId));
+      expect(orderRow.amountCents).toBe(990);
+      expect(orderRow.cobrandingAccepted).toBe(false);
+      expect(orderRow.cobrandingCreditText).toBeNull();
+    });
+
+    it("deve ser estritamente idempotente: toggle com mesmo valor não emite nova cobrança na Pushin Pay", async () => {
+      const draft = await saveOfferDraft({
+        businessSegment: "supermarket",
+        businessName: "Mercadinho",
+        offerTitle: "Leite Integral",
+        promoPrice: "R$ 4,50",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewLeite",
+      );
+
+      const { orderId } = await service.initiateCheckout({ draftId: draft.id });
+      const chargesCountInitial = fakePushinPay.chargesCreated.length;
+
+      // Chama com false (mesmo valor inicial)
+      const res1 = await service.updateOrderCobranding(orderId, false);
+      expect(res1.cobrandingAccepted).toBe(false);
+      expect(fakePushinPay.chargesCreated.length).toBe(chargesCountInitial);
+
+      // Ativa para true
+      await service.updateOrderCobranding(orderId, true);
+      expect(fakePushinPay.chargesCreated.length).toBe(chargesCountInitial + 1);
+
+      // Chama com true novamente
+      const res2 = await service.updateOrderCobranding(orderId, true);
+      expect(res2.cobrandingAccepted).toBe(true);
+      expect(fakePushinPay.chargesCreated.length).toBe(chargesCountInitial + 1);
+    });
+
+    it("deve bloquear alteração de co-branding se o pedido já estiver PAID", async () => {
+      const draft = await saveOfferDraft({
+        businessSegment: "beauty-salon",
+        businessName: "Salão Estilo",
+        offerTitle: "Manicure Especial",
+        promoPrice: "R$ 25,00",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewManicure",
+      );
+
+      const { orderId } = await service.initiateCheckout({ draftId: draft.id });
+      const details = await service.getCheckoutDetails(orderId);
+
+      // Paga o pedido
+      await service.handleWebhookPayment({
+        id: details.charge!.txId,
+        status: "paid",
+        value: 990,
+      });
+
+      await expect(
+        service.updateOrderCobranding(orderId, true),
+      ).rejects.toThrow(
+        "Pedido já está pago; não é possível alterar opção de co-branding (ORDER_ALREADY_PAID)",
+      );
+    });
+
+    it("deve reconciliar co-branding no webhook se o cliente pagar cobrança de valor original (anti-spoofing)", async () => {
+      const draft = await saveOfferDraft({
+        businessSegment: "restaurant",
+        businessName: "Bistrô",
+        offerTitle: "Prato do Dia",
+        promoPrice: "R$ 30,00",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewBistro",
+      );
+
+      const { orderId } = await service.initiateCheckout({ draftId: draft.id });
+      const initialDetails = await service.getCheckoutDetails(orderId);
+      const initialTxId = initialDetails.charge!.txId;
+
+      // Cliente ativou o switch (emitiu cobrança de 693)
+      await service.updateOrderCobranding(orderId, true);
+
+      // Mas o webhook notifica pagamento do QR Code antigo de 990
+      await service.handleWebhookPayment({
+        id: initialTxId,
+        status: "paid",
+        value: 990,
+      });
+
+      const [orderRow] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId));
+      expect(orderRow.status).toBe("PAID");
+      expect(orderRow.amountCents).toBe(990);
+      // Reconciliado para false pois o cliente pagou o valor integral sem desconto
+      expect(orderRow.cobrandingAccepted).toBe(false);
+      expect(orderRow.cobrandingCreditText).toBeNull();
+    });
+
+    it("deve reconciliar co-branding no webhook se o cliente pagar cobrança com desconto", async () => {
+      const draft = await saveOfferDraft({
+        businessSegment: "restaurant",
+        businessName: "Bistrô 2",
+        offerTitle: "Prato do Dia",
+        promoPrice: "R$ 30,00",
+      });
+      await updateDraftPreviewCard(
+        draft.id,
+        "data:image/webp;base64,previewBistro2",
+      );
+
+      const { orderId } = await service.initiateCheckout({ draftId: draft.id });
+      // Cliente ativa o switch (693 centavos)
+      const discountedDetails = await service.updateOrderCobranding(
+        orderId,
+        true,
+      );
+      const discountedTxId = discountedDetails.charge!.txId;
+
+      // Webhook confirma pagamento da cobrança de 693
+      await service.handleWebhookPayment({
+        id: discountedTxId,
+        status: "paid",
+        value: 693,
+      });
+
+      const [orderRow] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId));
+      expect(orderRow.status).toBe("PAID");
+      expect(orderRow.amountCents).toBe(693);
+      expect(orderRow.cobrandingAccepted).toBe(true);
+      expect(orderRow.cobrandingCreditText).toBe("Design por @ofertapronta");
+    });
+  });
 });

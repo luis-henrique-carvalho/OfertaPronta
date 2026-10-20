@@ -8,6 +8,7 @@ import {
   getCampaignPlan,
   getDefaultCampaignPlan,
   listCampaignPlans,
+  calculateCobrandingPrice,
 } from "./campaign-catalog";
 import * as checkoutCampaignCatalog from "../features/checkout/data/campaign-catalog";
 
@@ -263,6 +264,55 @@ describe("CampaignCatalog", () => {
     });
   });
 
+  describe("calculateCobrandingPrice", () => {
+    it("calcula corretamente com preço padrão de 990 centavos e 30% de desconto", () => {
+      const calc = calculateCobrandingPrice(990, 30);
+
+      expect(calc).toEqual({
+        originalAmountCents: 990,
+        discountAmountCents: 297,
+        amountCents: 693,
+        discountPercent: 30,
+        formattedOriginalPrice: "R$ 9,90",
+        formattedDiscountedPrice: "R$ 6,93",
+        formattedSavings: "R$ 2,97",
+      });
+    });
+
+    it("utiliza 30% como valor padrão quando discountPercent não é informado", () => {
+      const calc = calculateCobrandingPrice(990);
+
+      expect(calc.discountPercent).toBe(30);
+      expect(calc.amountCents).toBe(693);
+      expect(calc.discountAmountCents).toBe(297);
+    });
+
+    it("calcula valores com centavos inteiros para diferentes preços e descontos", () => {
+      const calcCustom = calculateCobrandingPrice(1490, 20);
+
+      expect(calcCustom.originalAmountCents).toBe(1490);
+      expect(calcCustom.discountPercent).toBe(20);
+      expect(calcCustom.discountAmountCents).toBe(298);
+      expect(calcCustom.amountCents).toBe(1192);
+      expect(calcCustom.formattedOriginalPrice).toBe("R$ 14,90");
+      expect(calcCustom.formattedDiscountedPrice).toBe("R$ 11,92");
+      expect(calcCustom.formattedSavings).toBe("R$ 2,98");
+    });
+
+    it("restringe o percentual de desconto seguro entre 1% e 90%", () => {
+      const calcZero = calculateCobrandingPrice(990, 0);
+      expect(calcZero.discountPercent).toBe(1);
+
+      const calcExcessive = calculateCobrandingPrice(990, 99);
+      expect(calcExcessive.discountPercent).toBe(90);
+    });
+
+    it("garante um piso mínimo de 100 centavos no valor final", () => {
+      const calcLow = calculateCobrandingPrice(120, 90);
+      expect(calcLow.amountCents).toBe(100);
+    });
+  });
+
   describe("checkout feature re-export", () => {
     it("re-exports entire campaign catalog surface", () => {
       expect(checkoutCampaignCatalog.CAMPAIGN_PLAN_IDS).toEqual(
@@ -272,6 +322,9 @@ describe("CampaignCatalog", () => {
         getDefaultCampaignPlan(),
       );
       expect(typeof checkoutCampaignCatalog.getCampaignPlanById).toBe(
+        "function",
+      );
+      expect(typeof checkoutCampaignCatalog.calculateCobrandingPrice).toBe(
         "function",
       );
     });

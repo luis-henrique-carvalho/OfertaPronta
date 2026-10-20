@@ -2,6 +2,7 @@ import type {
   InitiateCheckoutInput,
   OrderIdInput,
   UpdateOrderWhatsappInput,
+  UpdateOrderCobrandingInput,
   CheckoutDetailsResult,
   CheckPaymentStatusResult,
 } from "../../data/checkout.schemas";
@@ -73,4 +74,15 @@ export async function executeSimulateDevPayment(
 ): Promise<{ success: boolean; orderId: string }> {
   const s = service ?? new PixCheckoutService();
   return s.simulateDevPayment(data.orderId);
+}
+
+/**
+ * Função executora pura para alternar o co-branding / desconto no pedido.
+ */
+export async function executeUpdateOrderCobranding(
+  data: UpdateOrderCobrandingInput,
+  service?: PixCheckoutService,
+): Promise<CheckoutDetailsResult> {
+  const s = service ?? new PixCheckoutService();
+  return s.updateOrderCobranding(data.orderId, data.cobrandingAccepted);
 }

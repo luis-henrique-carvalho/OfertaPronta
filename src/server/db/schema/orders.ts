@@ -3,6 +3,7 @@ import {
   uuid,
   text,
   integer,
+  boolean,
   timestamp,
   jsonb,
 } from "drizzle-orm/pg-core";
@@ -15,6 +16,8 @@ export const orders = pgTable("orders", {
   planId: text("plan_id").notNull().default("single_campaign"),
   status: text("status").notNull().default("PENDING"),
   amountCents: integer("amount_cents").notNull(),
+  cobrandingAccepted: boolean("cobranding_accepted").notNull().default(false),
+  cobrandingCreditText: text("cobranding_credit_text"),
   cleanMasterImageDataUrl: text("clean_master_image_data_url"),
   frozenSnapshot: jsonb("frozen_snapshot").notNull(),
   customerEmail: text("customer_email"),
@@ -31,6 +34,33 @@ export const orders = pgTable("orders", {
 
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
+
+export interface OrderFrozenSnapshot {
+  draftId: string;
+  businessSegment: string;
+  targetAspectRatio: string;
+  businessName?: string;
+  offerTitle: string;
+  promoPrice?: string;
+  originalPrice?: string;
+  callToAction?: string;
+  whatsapp?: string | null;
+  productImageDataUrl?: string | null;
+  referenceImageDataUrl?: string | null;
+  previewCardImageUrl?: string | null;
+  cleanMasterImageDataUrl?: string | null;
+
+  // Metadados comerciais e co-branding
+  planId: string;
+  planName: string;
+  amountCents: number;
+  originalAmountCents: number;
+  cobrandingAccepted: boolean;
+  cobrandingDiscountPercent: number | null;
+  cobrandingCreditText: string | null;
+  maxPostPaymentRegenerations: number;
+  frozenAt: string;
+}
 
 export const paymentCharges = pgTable("payment_charges", {
   id: uuid("id").defaultRandom().primaryKey(),

@@ -3,9 +3,11 @@ import {
   initiateCheckoutSchema,
   orderIdSchema,
   updateOrderWhatsappSchema,
+  updateOrderCobrandingSchema,
   type InitiateCheckoutInput,
   type OrderIdInput,
   type UpdateOrderWhatsappInput,
+  type UpdateOrderCobrandingInput,
   type CheckoutDetailsResult,
   type CheckPaymentStatusResult,
 } from "../../data/checkout.schemas";
@@ -16,6 +18,7 @@ import {
   executeUpdateOrderWhatsapp,
   executeRegenerateExpiredCharge,
   executeSimulateDevPayment,
+  executeUpdateOrderCobranding,
 } from "../services/checkout-runners.service";
 
 /**
@@ -75,4 +78,15 @@ export const simulateDevPaymentFn = createServerFn({ method: "POST" })
   .validator((input: unknown): OrderIdInput => orderIdSchema.parse(input))
   .handler(async ({ data }): Promise<{ success: boolean; orderId: string }> => {
     return executeSimulateDevPayment(data);
+  });
+
+/**
+ * Server Function RPC: Alterna a opção de co-branding / desconto no pedido.
+ */
+export const updateOrderCobrandingFn = createServerFn({ method: "POST" })
+  .validator((input: unknown): UpdateOrderCobrandingInput =>
+    updateOrderCobrandingSchema.parse(input),
+  )
+  .handler(async ({ data }): Promise<CheckoutDetailsResult> => {
+    return executeUpdateOrderCobranding(data);
   });

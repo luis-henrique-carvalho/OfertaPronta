@@ -230,6 +230,90 @@ export async function applyWatermark(
   };
 }
 
+export interface CobrandingOptions {
+  creditText?: string;
+  aspectRatio?: "feed" | "story";
+}
+
+/**
+ * Renderiza uma assinatura vetorial elegante em container translúcido de alto contraste
+ * no rodapé do card nos formatos Feed (1080x1350) e Story (1080x1920).
+ */
+export async function applyCobrandingSignature(
+  imageBuffer: Buffer,
+  options?: CobrandingOptions,
+): Promise<Buffer> {
+  const metadata = await sharp(imageBuffer).metadata();
+  const width = metadata.width ?? 1080;
+  const height = metadata.height ?? 1350;
+  const isStory = options?.aspectRatio === "story" || height > 1600;
+
+  const creditText =
+    (options?.creditText ?? "").trim() || "Design por @ofertapronta";
+  const escapedText = escapeXml(creditText);
+
+  // Calibração de dimensões e posições
+  // Feed (1080×1350): Y centralizado em 1315px (margem inferior de 35px)
+  // Story (1080×1920): Y centralizado em 1835px (acima da barra de resposta do Instagram)
+  const posY = isStory ? 1835 : 1315;
+  const fontSize = isStory ? 24 : 22;
+  const pillPaddingX = 20;
+  const pillHeight = 36;
+  const pillRadius = 18;
+
+  // Largura estimada do container pill com base na contagem de caracteres
+  const charWidth = fontSize * 0.58;
+  const estimatedTextWidth = Math.ceil(creditText.length * charWidth);
+  const pillWidth = estimatedTextWidth + pillPaddingX * 2;
+  const pillX = Math.round((width - pillWidth) / 2);
+  const pillY = posY - Math.round(pillHeight / 2);
+  const textBaselineY = posY + Math.round(fontSize * 0.35);
+
+  const svgOverlay = Buffer.from(`
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.5"/>
+        </filter>
+      </defs>
+      <!-- Pill translúcido de alto contraste que garante legibilidade sobre qualquer fundo -->
+      <rect
+        x="${pillX}"
+        y="${pillY}"
+        width="${pillWidth}"
+        height="${pillHeight}"
+        rx="${pillRadius}"
+        ry="${pillRadius}"
+        fill="rgba(0, 0, 0, 0.55)"
+        stroke="rgba(255, 255, 255, 0.22)"
+        stroke-width="1"
+        filter="url(#shadow)"
+      />
+      <!-- Texto vetorial nítido -->
+      <text
+        x="${Math.round(width / 2)}"
+        y="${textBaselineY}"
+        text-anchor="middle"
+        font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="${fontSize}"
+        font-weight="600"
+        letter-spacing="0.4"
+        fill="#FFFFFF"
+      >${escapedText}</text>
+    </svg>
+  `);
+
+  return sharp(imageBuffer)
+    .composite([
+      {
+        input: svgOverlay,
+        blend: "over",
+      },
+    ])
+    .png()
+    .toBuffer();
+}
+
 function escapeXml(unsafe: string): string {
   return unsafe
     .replace(/&/g, "&amp;")

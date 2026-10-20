@@ -5,6 +5,7 @@ import {
   checkPaymentStatusFn,
   updateOrderWhatsappFn,
   regenerateExpiredChargeFn,
+  updateOrderCobrandingFn,
 } from "./checkout.functions";
 import {
   executeInitiateCheckout,
@@ -12,12 +13,14 @@ import {
   executeCheckPaymentStatus,
   executeUpdateOrderWhatsapp,
   executeRegenerateExpiredCharge,
+  executeUpdateOrderCobranding,
 } from "../services/checkout-runners.service";
 import {
   initiateCheckoutSchema,
   orderIdSchema,
   updateOrderWhatsappSchema,
   updateWhatsappSchema,
+  updateOrderCobrandingSchema,
   checkoutDetailsOutputSchema,
   checkPaymentStatusOutputSchema,
   type CheckoutDetailsResult,
@@ -155,6 +158,45 @@ describe("Checkout Server Functions (RPC & Server-Only Boundaries)", () => {
       });
     });
 
+    describe("updateOrderCobrandingSchema", () => {
+      const validUuid = "123e4567-e89b-12d3-a456-426614174000";
+
+      it("aceita orderId UUID válido e cobrandingAccepted booleano", () => {
+        const resTrue = updateOrderCobrandingSchema.safeParse({
+          orderId: validUuid,
+          cobrandingAccepted: true,
+        });
+        expect(resTrue.success).toBe(true);
+
+        const resFalse = updateOrderCobrandingSchema.safeParse({
+          orderId: validUuid,
+          cobrandingAccepted: false,
+        });
+        expect(resFalse.success).toBe(true);
+      });
+
+      it("rejeita orderId que não seja UUID ou ausente", () => {
+        const notUuid = updateOrderCobrandingSchema.safeParse({
+          orderId: "invalid-uuid",
+          cobrandingAccepted: true,
+        });
+        expect(notUuid.success).toBe(false);
+
+        const missing = updateOrderCobrandingSchema.safeParse({
+          cobrandingAccepted: true,
+        });
+        expect(missing.success).toBe(false);
+      });
+
+      it("rejeita cobrandingAccepted que não seja booleano", () => {
+        const invalidType = updateOrderCobrandingSchema.safeParse({
+          orderId: validUuid,
+          cobrandingAccepted: "true",
+        });
+        expect(invalidType.success).toBe(false);
+      });
+    });
+
     describe("checkoutDetailsOutputSchema", () => {
       it("valida objeto DTO completo de retorno do checkout", () => {
         const sample: CheckoutDetailsResult = {
@@ -162,6 +204,11 @@ describe("Checkout Server Functions (RPC & Server-Only Boundaries)", () => {
           draftId: "draft-123",
           status: "PENDING",
           amountCents: 990,
+          originalAmountCents: 990,
+          cobrandingAccepted: false,
+          cobrandingPromotionAvailable: true,
+          cobrandingCreditText: undefined,
+          cobrandingDiscountPercent: 30,
           customerWhatsapp: "11999998888",
           customerEmail: "user@example.com",
           frozenSnapshot: { title: "Promoção de Teste" },
@@ -220,6 +267,12 @@ describe("Checkout Server Functions (RPC & Server-Only Boundaries)", () => {
       expect(typeof regenerateExpiredChargeFn).toBe("function");
       expect(regenerateExpiredChargeFn.method).toBe("POST");
     });
+
+    it("updateOrderCobrandingFn deve ser POST", () => {
+      expect(updateOrderCobrandingFn).toBeDefined();
+      expect(typeof updateOrderCobrandingFn).toBe("function");
+      expect(updateOrderCobrandingFn.method).toBe("POST");
+    });
   });
 
   describe("3. Execution Handlers & Service Delegation", () => {
@@ -247,6 +300,9 @@ describe("Checkout Server Functions (RPC & Server-Only Boundaries)", () => {
         draftId: "draft-abc-123",
         status: "PENDING",
         amountCents: 990,
+        cobrandingAccepted: false,
+        cobrandingPromotionAvailable: true,
+        cobrandingDiscountPercent: 30,
         customerWhatsapp: "11988887777",
         customerEmail: undefined,
         frozenSnapshot: { title: "Pizza" },
@@ -313,6 +369,9 @@ describe("Checkout Server Functions (RPC & Server-Only Boundaries)", () => {
         draftId: "draft-abc-123",
         status: "PENDING",
         amountCents: 990,
+        cobrandingAccepted: false,
+        cobrandingPromotionAvailable: true,
+        cobrandingDiscountPercent: 30,
         customerWhatsapp: "11988887777",
         customerEmail: undefined,
         frozenSnapshot: { title: "Pizza" },
@@ -338,6 +397,37 @@ describe("Checkout Server Functions (RPC & Server-Only Boundaries)", () => {
         validOrderId,
       );
       expect(result).toEqual(sampleRegenerated);
+    });
+
+    it("executeUpdateOrderCobranding delega para service.updateOrderCobranding e retorna detalhes atualizados", async () => {
+      const sampleResult: CheckoutDetailsResult = {
+        orderId: validOrderId,
+        draftId: "draft-abc-123",
+        status: "PENDING",
+        amountCents: 693,
+        originalAmountCents: 990,
+        cobrandingAccepted: true,
+        cobrandingPromotionAvailable: true,
+        cobrandingCreditText: "Design por @ofertapronta",
+        cobrandingDiscountPercent: 30,
+        frozenSnapshot: { title: "Pizza" },
+        charge: null,
+      };
+
+      const mockService = {
+        updateOrderCobranding: vi.fn().mockResolvedValue(sampleResult),
+      } as unknown as PixCheckoutService;
+
+      const result = await executeUpdateOrderCobranding(
+        { orderId: validOrderId, cobrandingAccepted: true },
+        mockService,
+      );
+
+      expect(mockService.updateOrderCobranding).toHaveBeenCalledWith(
+        validOrderId,
+        true,
+      );
+      expect(result).toEqual(sampleResult);
     });
 
     it("propaga erros lançados pelo PixCheckoutService", async () => {
