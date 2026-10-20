@@ -1,4 +1,31 @@
 export {
+  AdCardCheckoutShowcase,
+  type AdCardCheckoutShowcaseProps,
+} from "./ad-card-checkout-showcase";
+
+export {
+  UnifiedPixPaymentCard,
+  type UnifiedPixPaymentCardProps,
+} from "./unified-pix-payment-card";
+
+export {
+  PixExpiredAlert,
+  type PixExpiredAlertProps,
+} from "./pix-expired-alert";
+
+export {
+  PixCopiaColaTab,
+  type PixCopiaColaTabProps,
+} from "./pix-copia-cola-tab";
+
+export { PixQrCodeTab, type PixQrCodeTabProps } from "./pix-qr-code-tab";
+
+export {
+  PixWhatsappAccordion,
+  type PixWhatsappAccordionProps,
+} from "./pix-whatsapp-accordion";
+
+export {
   OrderSummaryCard,
   type OrderSummaryCardProps,
 } from "./order-summary-card";

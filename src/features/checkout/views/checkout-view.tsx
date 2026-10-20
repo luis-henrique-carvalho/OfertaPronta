@@ -7,11 +7,8 @@ import { ShieldCheck, ArrowLeft, Store } from "lucide-react";
 import type { CheckoutDetailsResult } from "../data/checkout.schemas";
 import { useOrderPolling } from "../hooks/use-order-polling";
 import { usePixCheckout } from "../hooks/use-pix-checkout";
-import { OrderSummaryCard } from "../components/order-summary-card";
-import { PixCopiaEColaCard } from "../components/pix-copia-cola-card";
-import { PixQrCodeCard } from "../components/pix-qr-code-card";
-import { PaymentPollingIndicator } from "../components/payment-polling-indicator";
-import { OrderWhatsappRecoveryCard } from "../components/order-whatsapp-recovery-card";
+import { AdCardCheckoutShowcase } from "../components/ad-card-checkout-showcase";
+import { UnifiedPixPaymentCard } from "../components/unified-pix-payment-card";
 import { DevPaymentSimulatorCard } from "../components/dev-payment-simulator-card";
 import { CheckoutPaidSuccessCard } from "../components/checkout-paid-success-card";
 
@@ -54,7 +51,7 @@ export function CheckoutView({
     }, 1200);
   };
 
-  const { isPaid, status, isExpired, refetch, isFetching } = useOrderPolling({
+  const { isPaid, status, refetch, isFetching } = useOrderPolling({
     orderId: details.orderId,
     initialStatus: details.status,
     onPaymentConfirmed: () => {
@@ -167,51 +164,33 @@ export function CheckoutView({
         />
       )}
 
-      {/* Resumo do Pedido */}
-      <OrderSummaryCard
-        amountCents={details.amountCents}
+      {/* Showcase Visual do Card Gerado (Conversão Máxima) */}
+      <AdCardCheckoutShowcase
+        previewCardImageUrl={previewCardImageUrl}
         offerTitle={offerTitle}
         businessName={businessName}
-        previewCardImageUrl={previewCardImageUrl}
         targetAspectRatio={targetAspectRatio}
+        amountCents={details.amountCents}
         planName={frozen.planName}
         maxRegenerations={frozen.maxPostPaymentRegenerations}
       />
 
-      {/* Indicador de Status / Polling em Tempo Real */}
-      <PaymentPollingIndicator
+      {/* Painel Unificado de Pagamento Pix */}
+      <UnifiedPixPaymentCard
+        copiaECola={details.charge?.copiaECola}
+        qrCodeBase64={details.charge?.qrCodeBase64}
+        amountCents={details.amountCents}
         status={status}
         expiresAt={details.charge?.expiresAt}
+        isCopied={isCopied}
+        onCopyPix={copyPixCode}
         isChecking={isFetching}
         onCheckNow={handleCheckNow}
         onRegenerateCharge={handleRegenerate}
         isRegenerating={isRegenerating}
-      />
-
-      {/* Copia e Cola Pix */}
-      {!isExpired && details.charge?.copiaECola && (
-        <PixCopiaEColaCard
-          amountCents={details.amountCents}
-          copiaECola={details.charge.copiaECola}
-          isCopied={isCopied}
-          onCopy={copyPixCode}
-        />
-      )}
-
-      {/* QR Code Visual Pix */}
-      {!isExpired && details.charge?.qrCodeBase64 && (
-        <PixQrCodeCard
-          amountCents={details.amountCents}
-          qrCodeBase64={details.charge.qrCodeBase64}
-          defaultOpen={false}
-        />
-      )}
-
-      {/* WhatsApp para Envio do Link de Download */}
-      <OrderWhatsappRecoveryCard
         initialWhatsapp={initialWhatsapp}
         onSaveWhatsapp={updateWhatsapp}
-        isSaving={isUpdatingWhatsapp}
+        isSavingWhatsapp={isUpdatingWhatsapp}
       />
 
       {/* Segurança e Rodapé */}

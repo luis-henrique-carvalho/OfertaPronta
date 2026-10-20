@@ -12,6 +12,34 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CheckoutView } from "./checkout-view";
 import type { CheckoutDetailsResult } from "../data/checkout.schemas";
 
+vi.mock("../server/functions/checkout.functions", () => ({
+  updateOrderWhatsappFn: vi.fn().mockResolvedValue({ success: true }),
+  regenerateExpiredChargeFn: vi.fn().mockResolvedValue({
+    orderId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+    draftId: "draft-mock-123",
+    status: "PENDING",
+    amountCents: 990,
+    charge: {
+      txId: "tx-new",
+      copiaECola: "00020126580014br.gov.bcb.pix0136testnew",
+      qrCodeBase64: "data:image/png;base64,new",
+      expiresAt: new Date(Date.now() + 1800000).toISOString(),
+      status: "PENDING",
+    },
+    frozenSnapshot: {},
+  }),
+  simulateDevPaymentFn: vi.fn().mockResolvedValue({
+    success: true,
+    orderId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+  }),
+  checkPaymentStatusFn: vi.fn().mockResolvedValue({
+    orderId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+    status: "PENDING",
+    isPaid: false,
+    isExpired: false,
+  }),
+}));
+
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -68,7 +96,7 @@ describe("CheckoutView Component", () => {
     cleanup();
   });
 
-  it("renders order summary details correctly", () => {
+  it("renders order showcase and payment details correctly", () => {
     render(<CheckoutView initialDetails={mockCheckoutDetails} />, {
       wrapper: createWrapper(),
     });
@@ -76,8 +104,12 @@ describe("CheckoutView Component", () => {
     expect(screen.getByText("Super Promoção de Carnes")).toBeDefined();
     expect(screen.getByText("Açougue do Bairro")).toBeDefined();
     expect(screen.getAllByText(/R\$\s*9,90/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Feed + Story")).toBeDefined();
+    expect(
+      screen.getByText("Alta Resolução (1080p) sem Marca d'Água após Pix"),
+    ).toBeDefined();
     expect(screen.getByText("Copiar Código Pix")).toBeDefined();
-    expect(screen.getByText("Aguardando pagamento via Pix...")).toBeDefined();
+    expect(screen.getByText("Aguardando pagamento Pix")).toBeDefined();
   });
 
   it("copies Pix code when user clicks copy button", async () => {
@@ -95,6 +127,87 @@ describe("CheckoutView Component", () => {
     });
 
     expect(screen.getByText("Código Pix Copiado!")).toBeDefined();
+  });
+
+  it("switches tabs between Copia e Cola and QR Code smoothly", () => {
+    render(<CheckoutView initialDetails={mockCheckoutDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    const copiaColaTab = screen.getByRole("tab", { name: /pix copia e cola/i });
+    const qrCodeTab = screen.getByRole("tab", { name: /qr code/i });
+
+    expect(copiaColaTab.getAttribute("data-state")).toBe("active");
+    expect(qrCodeTab.getAttribute("data-state")).toBe("inactive");
+
+    fireEvent.click(qrCodeTab);
+
+    expect(qrCodeTab.getAttribute("data-state")).toBe("active");
+    expect(
+      screen.getByRole("img", {
+        name: /QR Code Pix Dinâmico para Pagamento de R\$\s*9,90/i,
+      }),
+    ).toBeDefined();
+  });
+
+  it("expands WhatsApp accordion and saves recovery number", async () => {
+    render(<CheckoutView initialDetails={mockCheckoutDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    const accordionTrigger = screen.getByText(
+      "Receber link também no WhatsApp (opcional)",
+    );
+    fireEvent.click(accordionTrigger);
+
+    const phoneInput = screen.getByPlaceholderText("(11) 99999-9999");
+    expect(phoneInput).toBeDefined();
+
+    fireEvent.change(phoneInput, { target: { value: "11999998888" } });
+
+    const saveBtn = screen.getByRole("button", { name: /salvar/i });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Contato de recuperação salvo com sucesso!"),
+      ).toBeDefined();
+    });
+  });
+
+  it("opens zoom dialog when user clicks maximize button on preview", () => {
+    render(<CheckoutView initialDetails={mockCheckoutDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    const zoomBtn = screen.getByRole("button", {
+      name: /ver arte em tamanho ampliado/i,
+    });
+    fireEvent.click(zoomBtn);
+
+    expect(
+      screen.getByRole("img", {
+        name: /Ampliação da arte: Super Promoção de Carnes/i,
+      }),
+    ).toBeDefined();
+  });
+
+  it("renders showcase correctly when targetAspectRatio is story", () => {
+    const storyDetails: CheckoutDetailsResult = {
+      ...mockCheckoutDetails,
+      frozenSnapshot: {
+        ...mockCheckoutDetails.frozenSnapshot,
+        targetAspectRatio: "story",
+      },
+    };
+
+    render(<CheckoutView initialDetails={storyDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(
+      screen.getByText(/Formato Principal: Story \(9:16\) \+ Feed/i),
+    ).toBeDefined();
   });
 
   it("renders expired state when status is EXPIRED", () => {
@@ -130,7 +243,7 @@ describe("CheckoutView Component", () => {
     expect(screen.getByText("Pagamento Pix Confirmado!")).toBeDefined();
   });
 
-  it("renders custom dynamic amountCents across summary, copia e cola, and qr code", () => {
+  it("renders custom dynamic amountCents across showcase, copia e cola, and qr code", () => {
     const customDetails: CheckoutDetailsResult = {
       ...mockCheckoutDetails,
       amountCents: 1490,
@@ -145,7 +258,7 @@ describe("CheckoutView Component", () => {
       wrapper: createWrapper(),
     });
 
-    // Resumo do pedido
+    // Resumo do pedido / Showcase
     expect(screen.getByText("Campanha Promocional Especial")).toBeDefined();
     expect(
       screen.getByText(
@@ -157,11 +270,9 @@ describe("CheckoutView Component", () => {
     const priceElements = screen.getAllByText(/R\$\s*14,90/);
     expect(priceElements.length).toBeGreaterThanOrEqual(2);
 
-    // Abrir o QR Code colapsado para expor a imagem
-    const toggleQrBtn = screen.getByRole("button", {
-      name: /mostrar qr code/i,
-    });
-    fireEvent.click(toggleQrBtn);
+    // Alternar para a aba QR Code para expor a imagem com alt formatado
+    const qrCodeTab = screen.getByRole("tab", { name: /qr code/i });
+    fireEvent.click(qrCodeTab);
 
     // Alt do QR Code
     const qrImg = screen.getByRole("img", {
