@@ -34,11 +34,26 @@ export const requestLoggingMiddleware = createMiddleware().server(
 
         const status = response?.status ?? 200;
 
-        log.info(`Request completed: ${request.method} ${path}`, {
+        const logPayload = {
           requestId,
           status,
           durationMs,
-        });
+        };
+
+        if (status >= 500) {
+          log.error(
+            `Request completed with server error: ${request.method} ${path}`,
+            undefined,
+            logPayload,
+          );
+        } else if (status >= 400) {
+          log.warn(
+            `Request completed with client error: ${request.method} ${path}`,
+            logPayload,
+          );
+        } else {
+          log.info(`Request completed: ${request.method} ${path}`, logPayload);
+        }
 
         if (response) {
           response.headers.set("x-request-id", requestId);
@@ -56,3 +71,37 @@ export const requestLoggingMiddleware = createMiddleware().server(
     });
   },
 );
+
+/**
+ * Middleware de Server Function do TanStack Start.
+ * Executa no servidor antes e depois de cada createServerFn handler.
+ * Captura qualquer exceção não tratada (erros de IA, banco de dados, zod)
+ * e gera um log ERROR estruturado antes que o TanStack Start serialize o erro para $TSR/Error.
+ */
+export const serverFnLoggingMiddleware = createMiddleware({
+  type: "function",
+}).server(async ({ next, serverFnMeta }) => {
+  const log = createServerLogger("server.fn");
+  const fnName = serverFnMeta?.name || serverFnMeta?.id || "anonymousServerFn";
+  const filename = serverFnMeta?.filename;
+  const startTime = Date.now();
+
+  try {
+    const result = await next();
+    const durationMs = Date.now() - startTime;
+    log.debug(`Server function executada com sucesso: ${fnName}`, {
+      functionName: fnName,
+      filename,
+      durationMs,
+    });
+    return result;
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error(`Server function falhou: ${fnName}`, error, {
+      functionName: fnName,
+      filename,
+      durationMs,
+    });
+    throw error;
+  }
+});

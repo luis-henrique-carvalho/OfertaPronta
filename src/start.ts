@@ -1,5 +1,8 @@
 import { createStart, createCsrfMiddleware } from "@tanstack/react-start";
-import { requestLoggingMiddleware } from "@/server/logger/middleware";
+import {
+  requestLoggingMiddleware,
+  serverFnLoggingMiddleware,
+} from "@/server/logger/middleware";
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [
@@ -8,4 +11,5 @@ export const startInstance = createStart(() => ({
     }),
     requestLoggingMiddleware,
   ],
+  functionMiddleware: [serverFnLoggingMiddleware],
 }));
