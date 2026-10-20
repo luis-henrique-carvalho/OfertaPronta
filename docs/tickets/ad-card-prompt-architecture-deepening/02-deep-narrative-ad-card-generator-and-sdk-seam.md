@@ -7,7 +7,7 @@
 
 **Blocked by:** `01-canonical-style-catalog-and-art-direction-blueprint.md` (consome `resolveArtDirectionDirective`, `getPresetById`, `getSegmentPresets` e `LAYOUT_VARIANT_BLUEPRINTS` de `style-presets-catalog.ts`)
 
-**Status:** `pending`
+**Status:** `completed`
 
 ## Escopo de Arquivos
 
@@ -16,11 +16,11 @@
 
 ## Acceptance Criteria (BDD)
 
-- [ ] **Given** `generateAdCardImage(input, client)` em `src/features/promotions/server/services/ai-card-generator.service.ts`, **When** invocado para `targetAspectRatio: "feed"` (default) ou `"story"`, **Then** chama `geminiClient.models.generateContent` com `model: "gemini-nano-banana-2.1"`, `config.responseModalities: ["image"]` e `config.imageConfig: { aspectRatio: "4:5" | "9:16", imageSize: "1K" }`.
-- [ ] **Given** uma geração completa de card (`baseCardImageDataUrl` ausente), **When** `buildPromptText` compila o prompt textual, **Then** estrutura a direção de arte nas **4 Camadas Narrativas Progressivas**:
+- [x] **Given** `generateAdCardImage(input, client)` em `src/features/promotions/server/services/ai-card-generator.service.ts`, **When** invocado para `targetAspectRatio: "feed"` (default) ou `"story"`, **Then** chama `geminiClient.models.generateContent` com `model: "gemini-nano-banana-2.1"`, `config.responseModalities: ["image"]` e `config.imageConfig: { aspectRatio: "4:5" | "9:16", imageSize: "1K" }`.
+- [x] **Given** uma geração completa de card (`baseCardImageDataUrl` ausente), **When** `buildPromptText` compila o prompt textual, **Then** estrutura a direção de arte nas **4 Camadas Narrativas Progressivas**:
   - `CAMADA 1 — FUNDO FULL-BLEED & ATMOSFERA`: enquadramento positivo *full-bleed edge-to-edge* preenchendo 100% do canvas até as 4 extremidades sem margens externas, aplicando os códigos HEX do preset (`bgColor`, `accentColor`, `textColor`) ou cedendo prioridade cromática quando `referenceImageDataUrl` ou `customStyleInstructions` estiverem presentes.
   - `CAMADA 2 — SUJEITO HERO & ÓPTICA FOTOGRÁFICA COMERCIAL`: ângulo de câmera, lente comercial (`85mm f/2.8`, `50mm f/2.8`, etc.), iluminação física de estúdio e sombras de contato do `LayoutVariant`, preservando com fidelidade a `FOTO DO PRODUTO` quando anexada.
   - `CAMADA 3 — GEOMETRIA DE GRID, SAFE ZONE & TIPOGRAFIA DESCRITIVA`: posicionamento espacial do `LayoutVariant`, família tipográfica descritiva, incorporação do `LOGOTIPO DA LOJA FORNECIDO` quando anexo, e `SAFE ZONE OBRIGATÓRIA` (`15% da altura no topo e 15% na base`) quando `targetAspectRatio === "story"`.
   - `CAMADA 4 — ANCORAGEM DE PREÇO & RODAPÉ COMERCIAL`: container de preço promocional em destaque máximo na cor `accentColor` quando `promoPrice` estiver preenchido, ou diretriz institucional estrita proibindo preços e `'R$ 0,00'` quando `promoPrice` for vazio, mais CTA e WhatsApp no rodapé.
-- [ ] **Given** todos os contratos existentes de `ai-card-generator.service.ts`, **When** a suíte de testes é executada, **Then** todas as invariantes anteriores permanecem intactas (`EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE`, `PRESERVAÇÃO ESTRITA`, `PROIBIDO REINVENTAR`, `SAFE ZONE OBRIGATÓRIA`, `15% da altura no topo e 15% na base`, `LOGOTIPO DA LOJA FORNECIDO`, `ESTE É UM CARD INSTITUCIONAL / INFORMATIVO`, `DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL`, tratamento de erros `SAFETY_BLOCK`, `NO_IMAGE_RETURNED`, `RATE_LIMIT`, `TIMEOUT`, `CONFIG_ERROR`).
-- [ ] **Given** a suíte `src/features/promotions/server/services/ai-card-generator.service.test.ts`, **When** `pnpm vitest run src/features/promotions/server/services/ai-card-generator.service.test.ts && pnpm typecheck` é executado, **Then** todos os testes unitários (incluindo novos testes para `imageConfig`, 4 camadas narrativas, óptica fotográfica e adaptação cromática) passam em 1-2s com zero erros de TypeScript.
+- [x] **Given** todos os contratos existentes de `ai-card-generator.service.ts`, **When** a suíte de testes é executada, **Then** todas as invariantes anteriores permanecem intactas (`EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE`, `PRESERVAÇÃO ESTRITA`, `PROIBIDO REINVENTAR`, `SAFE ZONE OBRIGATÓRIA`, `15% da altura no topo e 15% na base`, `LOGOTIPO DA LOJA FORNECIDO`, `ESTE É UM CARD INSTITUCIONAL / INFORMATIVO`, `DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL`, tratamento de erros `SAFETY_BLOCK`, `NO_IMAGE_RETURNED`, `RATE_LIMIT`, `TIMEOUT`, `CONFIG_ERROR`).
+- [x] **Given** a suíte `src/features/promotions/server/services/ai-card-generator.service.test.ts`, **When** `pnpm vitest run src/features/promotions/server/services/ai-card-generator.service.test.ts && pnpm typecheck` é executado, **Then** todos os testes unitários (incluindo novos testes para `imageConfig`, 4 camadas narrativas, óptica fotográfica e adaptação cromática) passam em 1-2s com zero erros de TypeScript.

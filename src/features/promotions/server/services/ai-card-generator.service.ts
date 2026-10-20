@@ -5,7 +5,14 @@ import {
   type CardAspectRatio,
   type CardIntent,
 } from "../../data/offer-brief.schema";
-import { resolveArtDirectionDirective } from "../../data/style-presets-catalog";
+import {
+  resolveArtDirectionDirective,
+  getPresetById,
+  getSegmentPresets,
+  LAYOUT_VARIANT_BLUEPRINTS,
+  type CuratedStylePreset,
+  type LayoutVariantBlueprint,
+} from "../../data/style-presets-catalog";
 import { createServerLogger } from "@/server/logger";
 
 const log = createServerLogger("promotions.ai-card-generator");
@@ -80,6 +87,10 @@ export interface GoogleGenAIClient {
       contents: Array<string | InlineDataPart>;
       config?: {
         responseModalities?: string[];
+        imageConfig?: {
+          aspectRatio?: string;
+          imageSize?: string;
+        };
         responseFormat?: {
           image?: {
             aspectRatio?: string;
@@ -183,11 +194,9 @@ export async function generateAdCardImage(
       contents: promptParts,
       config: {
         responseModalities: ["image"],
-        responseFormat: {
-          image: {
-            aspectRatio: geminiAspectRatio,
-            imageSize: "2K",
-          },
+        imageConfig: {
+          aspectRatio: geminiAspectRatio,
+          imageSize: "1K",
         },
       },
     });
@@ -446,75 +455,211 @@ function appendInlineInputPart(
   }
 }
 
-function buildPromptText(
-  input: GenerateAdCardInput,
-  segmentConfig: (typeof SEGMENT_ART_DIRECTIVES)[BusinessSegment],
+function buildProportionDirectives(isStory: boolean): {
+  audienceText: string;
+  proportionDirectives: string;
+} {
+  if (isStory) {
+    return {
+      audienceText:
+        "redes sociais (Instagram Stories, Reels e WhatsApp Status 9:16)",
+      proportionDirectives: `- Proporção Obrigatória: 9:16 vertical (master 1080x1920 para Stories e WhatsApp Status).
+- SAFE ZONE OBRIGATÓRIA (Margem de Segurança para Stories/Status): Deixar 15% da altura no topo e 15% na base totalmente livres de textos importantes, preços, títulos ou logos, pois serão encobertos pela interface do Instagram/WhatsApp (foto de perfil, barra de status, caixa de resposta e navegação). Todo o conteúdo textual, título e preço DEVE estar estritamente concentrado na zona segura vertical central.`,
+    };
+  }
+
+  return {
+    audienceText: "redes sociais (Instagram Feed 4:5 e WhatsApp)",
+    proportionDirectives:
+      "- Proporção Obrigatória: 4:5 vertical (master 1080x1350 para Feed do Instagram).",
+  };
+}
+
+function resolvePriceInstructions(
+  hasPrice: boolean,
+  promoPrice?: string | null,
+  originalPrice?: string | null,
 ): string {
-  const artDirectiveText = resolveArtDirectionDirective(
-    input.businessSegment,
-    input.stylePresetId,
-  );
+  if (!hasPrice) {
+    return "ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica. É expressamente proibido inserir 'R$ 0,00' ou valores inventados.";
+  }
 
-  const hasPrice = Boolean(
-    input.promoPrice && input.promoPrice.trim().length > 0,
-  );
+  if (originalPrice) {
+    return `PREÇO PROMOCIONAL EM DESTAQUE MÁXIMO: Exibir claramente "De ${originalPrice} Por ${promoPrice}", garantindo que o valor promocional "${promoPrice}" tenha o maior tamanho visual, cor chamativa e contraste absoluto da peça.`;
+  }
 
-  const priceInstructions = hasPrice
-    ? input.originalPrice
-      ? `PREÇO PROMOCIONAL EM DESTAQUE MÁXIMO: Exibir claramente "De ${input.originalPrice} Por ${input.promoPrice}", garantindo que o valor promocional "${input.promoPrice}" tenha o maior tamanho visual, cor chamativa e contraste absoluto da peça.`
-      : `PREÇO PROMOCIONAL EM DESTAQUE MÁXIMO: Exibir "${input.promoPrice}" em caixa alta e tamanho grande com contraste visual dominante.`
-    : "ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica. É expressamente proibido inserir 'R$ 0,00' ou valores inventados.";
+  return `PREÇO PROMOCIONAL EM DESTAQUE MÁXIMO: Exibir "${promoPrice}" em caixa alta e tamanho grande com contraste visual dominante.`;
+}
 
-  const intentDirectiveText = resolveIntentDirective(
-    input.cardIntent,
-    input.customIntentText,
-  );
+function buildPromptOptionalNotes(input: GenerateAdCardInput): {
+  ctaInstruction: string;
+  whatsappInstruction: string;
+  customInstructions: string;
+  logoNote: string;
+  productNote: string;
+  referenceNote: string;
+} {
+  return {
+    ctaInstruction: input.callToAction
+      ? `CHAMADA PARA AÇÃO: Incluir selo ou faixa com "${input.callToAction}".`
+      : "",
+    whatsappInstruction: input.whatsapp
+      ? `CONTATO COMERCIAL: Exibir "${input.whatsapp}" no rodapé do anúncio.`
+      : "",
+    customInstructions: input.customStyleInstructions
+      ? `INSTRUÇÕES ADICIONAIS DO CLIENTE: ${input.customStyleInstructions}`
+      : "",
+    logoNote: input.logoImageDataUrl
+      ? "- LOGOTIPO DA LOJA FORNECIDO: Posicione o logotipo no topo, canto superior ou rodapé mantendo a fidelidade, integridade e legibilidade da marca sem distorções."
+      : "",
+    productNote: input.productImageDataUrl
+      ? "- FOTO DO PRODUTO FORNECIDA: Preserve e destaque com máxima fidelidade o produto real exibido na imagem anexa, tornando-o o ponto central do card."
+      : "",
+    referenceNote: input.referenceImageDataUrl
+      ? "- IMAGEM DE REFERÊNCIA ESTÉTICA FORNECIDA: Inspire-se na paleta de cores, tipografia e iluminação visual da referência anexa."
+      : "",
+  };
+}
 
-  const ctaInstruction = input.callToAction
-    ? `CHAMADA PARA AÇÃO: Incluir selo ou faixa com "${input.callToAction}".`
-    : "";
+interface CompileFourLayersParams {
+  input: GenerateAdCardInput;
+  segmentAtmosphere: string;
+  preset?: CuratedStylePreset;
+  blueprint: LayoutVariantBlueprint;
+  hasPrice: boolean;
+  hasReferenceImage: boolean;
+  hasCustomPalette: boolean;
+  isStory: boolean;
+}
 
-  const whatsappInstruction = input.whatsapp
-    ? `CONTATO COMERCIAL: Exibir "${input.whatsapp}" no rodapé do anúncio.`
-    : "";
+function compileFourLayersNarrative(
+  params: CompileFourLayersParams,
+): [string, string, string, string] {
+  const {
+    input,
+    segmentAtmosphere,
+    preset,
+    blueprint,
+    hasPrice,
+    hasReferenceImage,
+    hasCustomPalette,
+    isStory,
+  } = params;
 
-  const customInstructions = input.customStyleInstructions
-    ? `INSTRUÇÕES ADICIONAIS DO CLIENTE: ${input.customStyleInstructions}`
-    : "";
+  // CAMADA 1: Fundo Full-Bleed & Atmosfera
+  const swatchesList = preset?.paletteSwatches?.join(", ") ?? "";
+  const chromaticAdaptation =
+    hasReferenceImage || hasCustomPalette
+      ? `Prioridade cromática: adaptar e priorizar a paleta de cores da Imagem de Referência ou Paleta Personalizada indicada pelo cliente, mantendo o enquadramento e harmonia do estilo "${preset?.label ?? "Padrão"}". Cores de base do preset: Fundo ${preset?.mockup.bgColor ?? "#000000"} | Destaque ${preset?.mockup.accentColor ?? "#E11D48"} | Texto ${preset?.mockup.textColor ?? "#FFFFFF"} | Swatches (${swatchesList}).`
+      : `Paleta cromática do preset (HEX): Fundo ${preset?.mockup.bgColor ?? "#000000"} | Destaque ${preset?.mockup.accentColor ?? "#E11D48"} | Texto ${preset?.mockup.textColor ?? "#FFFFFF"} | Swatches (${swatchesList}).`;
 
-  const logoNote = input.logoImageDataUrl
-    ? "- LOGOTIPO DA LOJA FORNECIDO: Posicione o logotipo no topo, canto superior ou rodapé mantendo a fidelidade, integridade e legibilidade da marca sem distorções."
-    : "";
+  const layer1 = `CAMADA 1 — FUNDO FULL-BLEED & ATMOSFERA: Enquadramento positivo full-bleed edge-to-edge preenchendo 100% do canvas até as 4 extremidades sem bordas ou margens externas vazias. Atmosfera visual do segmento: ${segmentAtmosphere}. ${chromaticAdaptation}`;
 
-  const productNote = input.productImageDataUrl
-    ? "- FOTO DO PRODUTO FORNECIDA: Preserve e destaque com máxima fidelidade o produto real exibido na imagem anexa, tornando-o o ponto central do card."
-    : "";
+  // CAMADA 2: Sujeito Hero & Óptica Fotográfica Comercial
+  const productFidelity = input.productImageDataUrl
+    ? `Preservar e destacar com máxima fidelidade visual a FOTO DO PRODUTO FORNECIDA, posicionando o produto real no centro focal da composição.`
+    : `Renderizar "${input.offerTitle}" com iluminação comercial atraente e acabamento realista impecável.`;
 
-  const referenceNote = input.referenceImageDataUrl
-    ? "- IMAGEM DE REFERÊNCIA ESTÉTICA FORNECIDA: Inspire-se na paleta de cores, tipografia e iluminação visual da referência anexa."
-    : "";
+  const layer2 = `CAMADA 2 — SUJEITO HERO & ÓPTICA FOTOGRÁFICA COMERCIAL: Setup óptico e físico: ${blueprint.cameraAndLightingSetup}. Iluminação de estúdio 3 pontos e sombras de contato realistas sobre a base de apoio. Destaque central para "${input.offerTitle}". ${productFidelity}`;
 
-  const isStory = input.targetAspectRatio === "story";
-  const audienceText = isStory
-    ? "redes sociais (Instagram Stories, Reels e WhatsApp Status 9:16)"
-    : "redes sociais (Instagram Feed 4:5 e WhatsApp)";
+  // CAMADA 3: Geometria de Grid, Safe Zone & Tipografia Descritiva
+  const logoPlacement = input.logoImageDataUrl
+    ? `Inclusão do LOGOTIPO DA LOJA FORNECIDO posicionado no topo, canto superior ou rodapé com fidelidade à identidade da marca e sem distorções.`
+    : `Identificação visual clara com o nome do estabelecimento "${input.businessName}".`;
 
-  const proportionDirectives = isStory
-    ? `- Proporção Obrigatória: 9:16 vertical (master 1080x1920 para Stories e WhatsApp Status).
-- SAFE ZONE OBRIGATÓRIA (Margem de Segurança para Stories/Status): Deixar 15% da altura no topo e 15% na base totalmente livres de textos importantes, preços, títulos ou logos, pois serão encobertos pela interface do Instagram/WhatsApp (foto de perfil, barra de status, caixa de resposta e navegação). Todo o conteúdo textual, título e preço DEVE estar estritamente concentrado na zona segura vertical central.`
-    : `- Proporção Obrigatória: 4:5 vertical (master 1080x1350 para Feed do Instagram).`;
+  const safeZoneNote = isStory
+    ? `SAFE ZONE OBRIGATÓRIA: 15% da altura no topo e 15% na base livres de elementos gráficos críticos. Título "${input.offerTitle}" e dados comerciais estritamente posicionados na zona segura central.`
+    : `Respiro balanceado e alinhamento geométrico perfeito respeitando o formato 4:5.`;
 
-  const visualHierarchy = hasPrice
-    ? `1. TÍTULO DA OFERTA ("${input.offerTitle}"): tipografia publicitária moderna, legível e nítida.
-2. PREÇO PROMOCIONAL ("${input.promoPrice}"): elemento mais chamativo e impactante da peça.
+  const layer3 = `CAMADA 3 — GEOMETRIA DE GRID, SAFE ZONE & TIPOGRAFIA DESCRITIVA: Grid espacial do layout: ${blueprint.spatialGrid}. Família tipográfica descritiva: ${blueprint.descriptiveTypography}. Renderização de título legível para "${input.offerTitle}" e estabelecimento "${input.businessName}". ${logoPlacement} ${safeZoneNote}`;
+
+  // CAMADA 4: Ancoragem de Preço & Rodapé Comercial
+  let layer4Price: string;
+  if (hasPrice) {
+    const priceDetail = input.originalPrice
+      ? `com originalPrice tachado ("De ${input.originalPrice}") e valor promocional "${input.promoPrice}" em destaque`
+      : `com valor promocional "${input.promoPrice}" em tamanho dominante`;
+    layer4Price = `Container de preço promocional em destaque (${blueprint.priceBadgeStyle}) na cor de destaque ${preset?.mockup.accentColor ?? "#E11D48"}, ${priceDetail}.`;
+  } else {
+    layer4Price = `Diretriz de card institucional sem nenhum container de preço e proibindo expressamente "R$ 0,00" ou valores monetários.`;
+  }
+
+  const footerDirectives = [
+    input.callToAction ? `Chamada para ação: "${input.callToAction}".` : "",
+    input.whatsapp ? `Rodapé comercial: "${input.whatsapp}".` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const layer4 =
+    `CAMADA 4 — ANCORAGEM DE PREÇO & RODAPÉ COMERCIAL: ${layer4Price} ${footerDirectives || "Rodapé limpo e equilibrado."}`.trim();
+
+  return [layer1, layer2, layer3, layer4];
+}
+
+function buildVisualHierarchy(
+  hasPrice: boolean,
+  offerTitle: string,
+  businessName: string,
+  promoPrice?: string | null,
+): string {
+  if (hasPrice) {
+    return `1. TÍTULO DA OFERTA ("${offerTitle}"): tipografia publicitária moderna, legível e nítida.
+2. PREÇO PROMOCIONAL ("${promoPrice}"): elemento mais chamativo e impactante da peça.
 3. PRODUTO/SERVIÇO: renderizado no centro focal da composição com iluminação atraente e realista.
-4. NOME DO ESTABELECIMENTO ("${input.businessName}"): integrado harmonicamente no topo ou rodapé.
-5. CARD COMPLETO: todo o layout deve ser sintetizado como uma única peça gráfica acabada, sem bordas brancas sobressalentes ou marcas d'água artificiais.`
-    : `1. TÍTULO OU MENSAGEM PRINCIPAL ("${input.offerTitle}"): tipografia publicitária moderna, legível e nítida com destaque visual prioritário.
+4. NOME DO ESTABELECIMENTO ("${businessName}"): integrado harmonicamente no topo ou rodapé.
+5. CARD COMPLETO: todo o layout deve ser sintetizado como uma única peça gráfica acabada, sem bordas brancas sobressalentes ou marcas d'água artificiais.`;
+  }
+
+  return `1. TÍTULO OU MENSAGEM PRINCIPAL ("${offerTitle}"): tipografia publicitária moderna, legível e nítida com destaque visual prioritário.
 2. ELEMENTO VISUAL CENTRAL: renderizado no centro focal da composição com iluminação atraente e estética profissional.
-3. NOME DO ESTABELECIMENTO ("${input.businessName}"): integrado harmonicamente no topo ou rodapé.
+3. NOME DO ESTABELECIMENTO ("${businessName}"): integrado harmonicamente no topo ou rodapé.
 4. MENSAGEM INSTITUCIONAL / COMUNICADO: foco total na clareza informativa, sem nenhum preço ou valor monetário na arte gráfica.
 5. CARD COMPLETO: todo o layout deve ser sintetizado como uma única peça gráfica acabada, sem bordas brancas sobressalentes ou marcas d'água artificiais.`;
+}
+
+function resolvePresetAndBlueprint(
+  businessSegment: BusinessSegment,
+  stylePresetId?: string | null,
+): { preset: CuratedStylePreset; blueprint: LayoutVariantBlueprint } {
+  const presets = getSegmentPresets(businessSegment);
+  const matchedPreset = getPresetById(businessSegment, stylePresetId);
+  const preset = matchedPreset ?? presets[0];
+  const blueprint = preset
+    ? LAYOUT_VARIANT_BLUEPRINTS[preset.mockup.layoutVariant]
+    : LAYOUT_VARIANT_BLUEPRINTS["retail-burst"];
+
+  return { preset, blueprint };
+}
+
+interface AssemblePromptParams {
+  audienceText: string;
+  segmentConfig: (typeof SEGMENT_ART_DIRECTIVES)[BusinessSegment];
+  businessName: string;
+  offerTitle: string;
+  priceInstructions: string;
+  notes: ReturnType<typeof buildPromptOptionalNotes>;
+  intentText: string;
+  proportionDirectives: string;
+  artDirectiveText: string;
+  layers: [string, string, string, string];
+  visualHierarchy: string;
+}
+
+function assemblePromptText(params: AssemblePromptParams): string {
+  const {
+    audienceText,
+    segmentConfig,
+    businessName,
+    offerTitle,
+    priceInstructions,
+    notes,
+    intentText,
+    proportionDirectives,
+    artDirectiveText,
+    layers: [layer1, layer2, layer3, layer4],
+    visualHierarchy,
+  } = params;
 
   return `
 Você é um diretor de arte publicitário sênior especialista em anúncios e cards promocionais para ${audienceText}.
@@ -522,23 +667,107 @@ Crie um CARD PUBLICITÁRIO COMPLETO, profissional, esteticamente impecável e pr
 
 --- DADOS DA OFERTA COMERCIAL ---
 - Segmento do Negócio: ${segmentConfig.segmentTitle}
-- Nome do Estabelecimento: ${input.businessName}
-- Item ou Oferta Anunciada: ${input.offerTitle}
+- Nome do Estabelecimento: ${businessName}
+- Item ou Oferta Anunciada: ${offerTitle}
 - ${priceInstructions}
-${ctaInstruction}
-${whatsappInstruction}
-- ${intentDirectiveText}
+${notes.ctaInstruction}
+${notes.whatsappInstruction}
+- ${intentText}
 
 --- DIRETRIZES DE DIREÇÃO DE ARTE E DESIGN GRÁFICO ---
 ${proportionDirectives}
 - Estilo Visual do Segmento: ${segmentConfig.visualStyle}
 - Clima e Atmosfera Geral: ${segmentConfig.atmosphere}
 ${artDirectiveText ? `\n${artDirectiveText}\n` : ""}
-${logoNote ? `${logoNote}\n` : ""}${productNote ? `${productNote}\n` : ""}${referenceNote ? `${referenceNote}\n` : ""}${customInstructions ? `- ${customInstructions}` : ""}
+${notes.logoNote ? `${notes.logoNote}\n` : ""}${notes.productNote ? `${notes.productNote}\n` : ""}${notes.referenceNote ? `${notes.referenceNote}\n` : ""}${notes.customInstructions ? `- ${notes.customInstructions}` : ""}
+
+--- ARQUITETURA DE COMPOSIÇÃO EM 4 CAMADAS (STEP-BY-STEP) ---
+- ${layer1}
+- ${layer2}
+- ${layer3}
+- ${layer4}
 
 --- HIERARQUIA VISUAL OBRIGATÓRIA ---
 ${visualHierarchy}
 `.trim();
+}
+
+function buildPromptText(
+  input: GenerateAdCardInput,
+  segmentConfig: (typeof SEGMENT_ART_DIRECTIVES)[BusinessSegment],
+): string {
+  const hasPrice = Boolean(
+    input.promoPrice && input.promoPrice.trim().length > 0,
+  );
+  const hasReferenceImage = Boolean(
+    input.referenceImageDataUrl &&
+    input.referenceImageDataUrl.trim().length > 0,
+  );
+  const hasCustomPalette = Boolean(
+    input.customStyleInstructions &&
+    input.customStyleInstructions.trim().length > 0,
+  );
+
+  const { preset, blueprint } = resolvePresetAndBlueprint(
+    input.businessSegment,
+    input.stylePresetId,
+  );
+
+  const artDirectiveText = resolveArtDirectionDirective(
+    input.businessSegment,
+    input.stylePresetId,
+    {
+      hasReferenceImage,
+      hasCustomPalette,
+      cardIntent: input.cardIntent,
+      hasPromoPrice: hasPrice,
+    },
+  );
+
+  const isStory = input.targetAspectRatio === "story";
+  const { audienceText, proportionDirectives } =
+    buildProportionDirectives(isStory);
+  const priceInstructions = resolvePriceInstructions(
+    hasPrice,
+    input.promoPrice,
+    input.originalPrice,
+  );
+  const notes = buildPromptOptionalNotes(input);
+
+  const layers = compileFourLayersNarrative({
+    input,
+    segmentAtmosphere: segmentConfig.atmosphere,
+    preset,
+    blueprint,
+    hasPrice,
+    hasReferenceImage,
+    hasCustomPalette,
+    isStory,
+  });
+
+  const visualHierarchy = buildVisualHierarchy(
+    hasPrice,
+    input.offerTitle,
+    input.businessName,
+    input.promoPrice,
+  );
+
+  return assemblePromptText({
+    audienceText,
+    segmentConfig,
+    businessName: input.businessName,
+    offerTitle: input.offerTitle,
+    priceInstructions,
+    notes,
+    intentText: resolveIntentDirective(
+      input.cardIntent,
+      input.customIntentText,
+    ),
+    proportionDirectives,
+    artDirectiveText,
+    layers,
+    visualHierarchy,
+  });
 }
 
 function parseDataUrl(
