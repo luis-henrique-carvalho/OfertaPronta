@@ -8,6 +8,7 @@ import {
   isReferenceDrivenMode,
   resolveArtDirectionDirective,
   REFERENCE_STYLE_PRESET_ID,
+  AUTHENTIC_PHOTOGRAPHY_DIRECTIVE,
   ZERO_TEXT_OCCLUSION_DIRECTIVE,
 } from "./art-direction-blueprints";
 
@@ -161,6 +162,8 @@ ${artDirectiveSection}
 ${parts.priceLine}${parts.ctaLine}${parts.whatsappLine}
 
 ${parts.proportionDirectives}
+
+${AUTHENTIC_PHOTOGRAPHY_DIRECTIVE}
 
 ${ZERO_TEXT_OCCLUSION_DIRECTIVE}
 

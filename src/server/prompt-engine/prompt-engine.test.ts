@@ -16,7 +16,9 @@ import {
   planDynamicCompositionBrief,
   resolveArtDirectionDirective,
   resolveRegenerationStyleInstructions,
+  AUTHENTIC_PHOTOGRAPHY_DIRECTIVE,
   ZERO_TEXT_OCCLUSION_DIRECTIVE,
+  buildVisualHierarchy,
   RECOMPOSE_INTENT_REGEX,
   type PromptEngineInput,
   type PromptPlannerClient,
@@ -574,6 +576,246 @@ describe("PromptEngine Deep Module", () => {
       expect(typeof parts[0]).toBe("string");
       expect(parts[0]).toContain("Sujeito planejado dinamicamente.");
       expect(parts[0]).toContain("ZERO OCLUSÃO TIPOGRÁFICA");
+    });
+  });
+
+  describe("Autenticidade Fotográfica e Diversificação de Hierarquia Visual", () => {
+    it("deve exportar AUTHENTIC_PHOTOGRAPHY_DIRECTIVE e conter guardrails anti-CGI e contexto brasileiro", () => {
+      expect(AUTHENTIC_PHOTOGRAPHY_DIRECTIVE).toContain(
+        "AUTENTICIDADE FOTOGRÁFICA (ANTI-GENERIC AI LOOK)",
+      );
+      expect(AUTHENTIC_PHOTOGRAPHY_DIRECTIVE).toContain(
+        "fotografia comercial profissional de câmera full-frame",
+      );
+      expect(AUTHENTIC_PHOTOGRAPHY_DIRECTIVE).toContain("ANTI-CLICHÊ DE IA");
+      expect(AUTHENTIC_PHOTOGRAPHY_DIRECTIVE).toContain(
+        "comércio local real do Brasil",
+      );
+    });
+
+    it("deve injetar a diretriz de autenticidade fotográfica no prompt de geração inicial e no recompose", () => {
+      const input = createSampleInput();
+      const prompt = compileDeterministicCardPrompt(input);
+
+      expect(prompt).toContain(
+        "--- DIRETIVA MANDATÓRIA DE AUTENTICIDADE FOTOGRÁFICA (ANTI-GENERIC AI LOOK) ---",
+      );
+
+      const recomposePrompt = buildAdaptiveEditPromptText(
+        {
+          ...input,
+          baseCardImageDataUrl: SAMPLE_BASE64_PNG,
+          customStyleInstructions: "afastar elementos e recompor",
+        },
+        { mode: "RECOMPOSE" },
+      );
+
+      expect(recomposePrompt).toContain(
+        "--- DIRETIVA MANDATÓRIA DE AUTENTICIDADE FOTOGRÁFICA (ANTI-GENERIC AI LOOK) ---",
+      );
+    });
+
+    it("deve diversificar a hierarquia visual para o objetivo 'schedule' (foco em serviço e agendamento)", () => {
+      const hierarchy = buildVisualHierarchy(
+        true,
+        "Corte & Barba Terapia",
+        "Barbearia Retrô",
+        "R$ 80,00",
+        { cardIntent: "schedule" },
+      );
+
+      expect(hierarchy).toContain("TRANSFORMAÇÃO & SERVIÇO EM FOCO");
+      expect(hierarchy).toContain("TÍTULO E CHAMADA DE AGENDAMENTO");
+      expect(hierarchy).toContain("CANAL DE ATENDIMENTO / WHATSAPP");
+      expect(hierarchy).toContain("R$ 80,00");
+    });
+
+    it("deve diversificar a hierarquia visual para o objetivo 'announcement' (foco em mensagem e ambiente, sem preço)", () => {
+      const hierarchy = buildVisualHierarchy(
+        false,
+        "Horário Especial de Fim de Ano",
+        "Supermercado Compre Bem",
+        null,
+        { cardIntent: "announcement" },
+      );
+
+      expect(hierarchy).toContain("MENSAGEM OU COMUNICADO PRINCIPAL");
+      expect(hierarchy).toContain("AMBIENTAÇÃO COMERCIAL AUTÊNTICA");
+      expect(hierarchy).toContain("CARD INFORMATIVO");
+      expect(hierarchy).not.toContain("R$");
+    });
+
+    it("deve diversificar a hierarquia visual para layout 'clean-frame' (composição assimétrica na regra dos terços)", () => {
+      const hierarchy = buildVisualHierarchy(
+        true,
+        "Vestido Linho Puro",
+        "Boutique Bella",
+        "R$ 189,90",
+        { layoutType: "clean-frame", layoutVariant: "clean-minimal" },
+      );
+
+      expect(hierarchy).toContain("PRODUTO HERO EM ENQUADRAMENTO ASSIMÉTRICO");
+      expect(hierarchy).toContain("regra dos terços");
+      expect(hierarchy).toContain("TÍTULO EDITORIAL");
+      expect(hierarchy).toContain("TAG GEOMÉTRICA DE PREÇO");
+    });
+
+    it("deve diversificar a hierarquia visual para layout 'dark-premium' (iluminação chiaroscuro e texturas nobres)", () => {
+      const hierarchy = buildVisualHierarchy(
+        true,
+        "Smash Burger Duplo Artesanal",
+        "Burgueria do Zé",
+        "R$ 38,00",
+        { layoutType: "dark-premium", layoutVariant: "dark-luxury" },
+      );
+
+      expect(hierarchy).toContain("ILUMINAÇÃO CHIAROSCURO & APETITE MÁXIMO");
+      expect(hierarchy).toContain("rim light dourada");
+      expect(hierarchy).toContain(
+        "TÍTULO DA OFERTA COM TIPOGRAFIA SOFISTICADA",
+      );
+      expect(hierarchy).toContain("SELO ARTESANAL / BADGE PREMIUM");
+    });
+
+    it("deve diversificar a hierarquia visual para layout 'vibrant-pop' (perspectiva dinâmica e energia)", () => {
+      const hierarchy = buildVisualHierarchy(
+        true,
+        "Açaí Especial 500ml",
+        "Ponto do Açaí",
+        "R$ 22,00",
+        { layoutType: "vibrant-pop", layoutVariant: "fresh-organic" },
+      );
+
+      expect(hierarchy).toContain("DINÂMICA VISUAL EM PERSPECTIVA");
+      expect(hierarchy).toContain("BADGE DE OFERTA ENERGÉTICO");
+    });
+
+    it("deve compilar prompts diferentes dinamicamente para presets e intenções distintos", () => {
+      const promoInput = createSampleInput({
+        businessSegment: "fashion",
+        stylePresetId: "fashion-boutique",
+        cardIntent: "promo",
+        offerTitle: "Vestido Floral",
+        promoPrice: "R$ 120,00",
+      });
+
+      const scheduleInput = createSampleInput({
+        businessSegment: "beauty-salon",
+        stylePresetId: "salon-glamour",
+        cardIntent: "schedule",
+        offerTitle: "Dia de Noiva",
+        promoPrice: "R$ 350,00",
+      });
+
+      const promptPromo = compileDeterministicCardPrompt(promoInput);
+      const promptSchedule = compileDeterministicCardPrompt(scheduleInput);
+
+      expect(promptPromo).toContain(
+        "PRODUTO HERO EM ENQUADRAMENTO ASSIMÉTRICO",
+      );
+      expect(promptSchedule).toContain("TRANSFORMAÇÃO & SERVIÇO EM FOCO");
+      expect(promptPromo).not.toEqual(promptSchedule);
+    });
+  });
+
+  describe("Arquétipos de Composição Dinâmica (CompositionArchetype)", () => {
+    it("deve aplicar hierarquia 'split-editorial' para qualquer segmento quando indicado pelo arquétipo", () => {
+      const hierarchy = buildVisualHierarchy(
+        true,
+        "Picanha Fatiada Prime 1kg",
+        "Supermercado Compre Bem",
+        "R$ 89,90",
+        { compositionArchetype: "split-editorial" },
+      );
+
+      expect(hierarchy).toContain("PRODUTO HERO EM ENQUADRAMENTO ASSIMÉTRICO");
+      expect(hierarchy).toContain("regra dos terços");
+      expect(hierarchy).toContain("TÍTULO EDITORIAL");
+      expect(hierarchy).toContain("R$ 89,90");
+    });
+
+    it("deve aplicar hierarquia 'hero-bottom-staged' para produtos em base inferior com safe zone superior", () => {
+      const hierarchy = buildVisualHierarchy(
+        true,
+        "Smash Combo com Fritas",
+        "Burgueria Artesanal",
+        "R$ 45,00",
+        { compositionArchetype: "hero-bottom-staged" },
+      );
+
+      expect(hierarchy).toContain("PRODUTO HERO EM BASE CENOGRÁFICA");
+      expect(hierarchy).toContain("45% inferiores");
+      expect(hierarchy).toContain("TÍTULO PRINCIPAL EM 1º PLANO");
+      expect(hierarchy).toContain("R$ 45,00");
+    });
+
+    it("deve aplicar hierarquia 'overhead-flatlay' com visão zenital 90 graus", () => {
+      const hierarchy = buildVisualHierarchy(
+        true,
+        "Pizza Margherita Artesanal",
+        "Pizzaria Bella Itália",
+        "R$ 69,90",
+        { compositionArchetype: "overhead-flatlay" },
+      );
+
+      expect(hierarchy).toContain(
+        "COMPOSIÇÃO ZENITAL FLAT-LAY (90° BIRD'S EYE)",
+      );
+      expect(hierarchy).toContain("visão aérea sofisticada");
+      expect(hierarchy).toContain("R$ 69,90");
+    });
+
+    it("deve aplicar hierarquia 'minimal-negative-space' com respiro amplo e requinte", () => {
+      const hierarchy = buildVisualHierarchy(
+        true,
+        "Clínica Estética & Botox",
+        "Dermato Care",
+        "R$ 490,00",
+        { compositionArchetype: "minimal-negative-space" },
+      );
+
+      expect(hierarchy).toContain(
+        "ESPAÇO NEGATIVO DOMINANTE (60%+ DE RESPIRO)",
+      );
+      expect(hierarchy).toContain("TÍTULO EDITORIAL REFINADO");
+      expect(hierarchy).toContain("R$ 490,00");
+    });
+
+    it("deve permitir que o Gemini 3.8 Flash selecione split-editorial para supermercado e injetar no prompt final", async () => {
+      const input = createSampleInput({
+        businessSegment: "supermarket",
+        stylePresetId: "market-discount",
+        offerTitle: "Picanha Angus 1kg",
+        promoPrice: "R$ 79,90",
+      });
+
+      const mockClient = {
+        models: {
+          generateContent: vi.fn().mockResolvedValue({
+            text: JSON.stringify({
+              compositionArchetype: "split-editorial",
+              subjectAnatomy:
+                "Picanha fatiada apetitosa ocupando a lateral direita.",
+              safeTypographyZone:
+                "Coluna esquerda em espaço negativo com fundo escuro.",
+              antiOcclusionStrategy:
+                "Textos 100% à esquerda sem qualquer sobreposição à carne.",
+              layoutAdaptation: "Divisão 50/50 em formato Feed 4:5.",
+            }),
+          }),
+        },
+      };
+
+      const prompt = await compileDynamicCardPrompt(input, {
+        client: mockClient,
+      });
+
+      expect(prompt).toContain(
+        "Arquétipo de Composição Curado: split-editorial",
+      );
+      expect(prompt).toContain("PRODUTO HERO EM ENQUADRAMENTO ASSIMÉTRICO");
+      expect(prompt).toContain("Picanha Angus 1kg");
+      expect(prompt).toContain("R$ 79,90");
     });
   });
 });

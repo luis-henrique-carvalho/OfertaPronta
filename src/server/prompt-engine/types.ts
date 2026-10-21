@@ -63,11 +63,20 @@ export interface PromptPlannerClient {
   };
 }
 
+export type CompositionArchetype =
+  | "split-editorial"
+  | "hero-bottom-staged"
+  | "diagonal-dynamic"
+  | "overhead-flatlay"
+  | "center-showcase"
+  | "minimal-negative-space";
+
 export interface DynamicCompositionBrief {
   subjectAnatomy: string;
   safeTypographyZone: string;
   antiOcclusionStrategy: string;
   layoutAdaptation: string;
+  compositionArchetype?: CompositionArchetype;
   source: "ai-dynamic" | "deterministic-fallback";
 }
 

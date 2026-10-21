@@ -15,7 +15,7 @@ import {
   type LayoutType,
   type ResolveArtDirectionOptions,
 } from "@/features/promotions/data/style-presets-catalog";
-import type { PromptEngineInput } from "./types";
+import type { CompositionArchetype, PromptEngineInput } from "./types";
 
 export {
   REFERENCE_STYLE_PRESET_ID,
@@ -30,6 +30,15 @@ export {
   type LayoutType,
   type ResolveArtDirectionOptions,
 };
+
+export const AUTHENTIC_PHOTOGRAPHY_DIRECTIVE = [
+  "--- DIRETIVA MANDATÓRIA DE AUTENTICIDADE FOTOGRÁFICA (ANTI-GENERIC AI LOOK) ---",
+  "- ACABAMENTO FOTOGRÁFICO REALISTA: A cena visual DEVE simular uma fotografia comercial profissional de câmera full-frame (sensor 35mm, abertura física f/2.0 a f/2.8), com profundidade de campo ótica natural, e NÃO uma renderização 3D digital, modelo CGI plástico ou ilustração digital.",
+  "- TEXTURA E IMPERFEIÇÕES NATURAIS TÁTEIS: Preserve texturas físicas reais — vapor sutil de comida quente, brilho natural de suculência sem exagero plástico, gotículas de condensação fresca, porosidade dos alimentos, fibras reais de tecidos e granulação fotográfica analógica sutil (estilo ISO 200-400).",
+  "- ILUMINAÇÃO ORGÂNICA E SOMBRAS DE CONTATO: Priorize iluminação natural difusa (luz de janela lateral de estúdio, golden hour ou luz de ambiente comercial acolhedor) com oclusão de ambiente e sombras de contato suaves e realistas projetadas na base de apoio.",
+  "- PROIBIÇÕES EXPRESSAS (ANTI-CLICHÊ DE IA): Proibido acabamento plástico polido, pele encerada/aerografada (airbrushed), brilho artificial excessivo de render 3D, visual de vetor cartoon ou composição de banco de imagens corporativo estéril e despersonalizado.",
+  "- CONTEXTO COMERCIAL LOCAL BRASILEIRO: A ambientação visual deve refletir o comércio local real do Brasil (hamburgueria artesanal com chapa e bancada rústica, hortifrúti fresco de bairro com caixotes de madeira, pizzaria com forno e farinha sutil, salão de beleza contemporâneo brasileiro).",
+].join("\n");
 
 export const ZERO_TEXT_OCCLUSION_DIRECTIVE = [
   "--- REGRA INEGOCIÁVEL DE CAMADA E LEGIBILIDADE (ZERO OCLUSÃO TIPOGRÁFICA / 100% FOREGROUND TEXT PRIORITY) ---",
@@ -234,7 +243,103 @@ export function buildPromptOptionalNotes(input: PromptEngineInput): {
   };
 }
 
-export function buildVisualHierarchy(
+export interface VisualHierarchyOptions {
+  layoutType?: LayoutType;
+  layoutVariant?: LayoutVariant;
+  cardIntent?: CardIntent | null;
+  isStory?: boolean;
+  compositionArchetype?: CompositionArchetype;
+}
+
+function resolveScheduleHierarchy(
+  hasPrice: boolean,
+  offerTitle: string,
+  businessName: string,
+  promoPrice?: string | null,
+): string {
+  if (hasPrice) {
+    return `1. TRANSFORMAÇÃO & SERVIÇO EM FOCO: sujeito ou resultado do serviço demonstrado em 1º plano com iluminação profissional de salão/estúdio.
+2. TÍTULO E CHAMADA DE AGENDAMENTO ("${offerTitle}"): tipografia publicitária moderna e atraente em bloco contrastante e legível.
+3. CONDIÇÃO OU VALOR PROMOCIONAL ("${promoPrice}"): integrado harmonicamente em badge elegante sem poluir a estética.
+4. CANAL DE ATENDIMENTO / WHATSAPP: elemento gráfico de ação rápida incentivando o agendamento imediato.
+5. NOME DO ESTABELECIMENTO ("${businessName}"): assinatura refinada no topo da peça.`;
+  }
+  return `1. TRANSFORMAÇÃO & SERVIÇO EM FOCO: sujeito ou resultado do serviço demonstrado em 1º plano com iluminação profissional de salão/estúdio.
+2. TÍTULO E CHAMADA DE AGENDAMENTO ("${offerTitle}"): tipografia publicitária moderna e atraente em bloco contrastante e legível.
+3. CANAL DE ATENDIMENTO / WHATSAPP: elemento gráfico de ação rápida convidando para agendamento imediato.
+4. NOME DO ESTABELECIMENTO ("${businessName}"): assinatura refinada no topo da peça.
+5. CARD INSTITUCIONAL DE SERVIÇO: foco na transformação e experiência, sem nenhuma menção a preços ou valores monetários.`;
+}
+
+function resolveAnnouncementHierarchy(
+  offerTitle: string,
+  businessName: string,
+): string {
+  return `1. MENSAGEM OU COMUNICADO PRINCIPAL ("${offerTitle}"): tipografia com peso visual prioritário e leitura cristalina em 1º plano.
+2. AMBIENTAÇÃO COMERCIAL AUTÊNTICA: cenário do estabelecimento acolhedor ao fundo com iluminação natural e leve desfoque óptico (bokeh), sem ofuscar os textos.
+3. IDENTIFICAÇÃO DO ESTABELECIMENTO ("${businessName}"): assinatura institucional limpa no topo ou rodapé.
+4. CANAIS DE CONTATO / INFORMAÇÕES: dispostos de maneira organizada e equilibrada na base.
+5. CARD INFORMATIVO: foco total na clareza do comunicado, sem nenhum preço ou valor monetário na arte gráfica.`;
+}
+
+function resolveEditorialHierarchy(
+  hasPrice: boolean,
+  offerTitle: string,
+  businessName: string,
+  promoPrice?: string | null,
+): string {
+  if (hasPrice) {
+    return `1. PRODUTO HERO EM ENQUADRAMENTO ASSIMÉTRICO: produto fotografado na regra dos terços (deslocado levemente para lateral ou terço inferior), com ampla zona negativa de respiro e sombras suaves naturais.
+2. TÍTULO EDITORIAL ("${offerTitle}"): tipografia contemporânea de revista/lookbook alinhada em coluna de texto dedicada, sem sobreposição ao produto.
+3. TAG GEOMÉTRICA DE PREÇO ("${promoPrice}"): badge minimalista elegante ancorado com sutileza na lateral inferior do produto.
+4. ASSINATURA DA MARCA ("${businessName}"): identificação discreta e sofisticada no topo com espaçamento moderno.
+5. COMPOSIÇÃO EDITORIAL EQUILIBRADA: layout refinado e harmônico, valorizando o respiro visual e a elegância.`;
+  }
+  return `1. PRODUTO OU SUJEITO EM ENQUADRAMENTO ASSIMÉTRICO: enquadramento sofisticado na regra dos terços com ampla zona de respiro e luz natural difusa.
+2. TÍTULO EDITORIAL ("${offerTitle}"): tipografia contemporânea de revista/lookbook alinhada com respiro amplo e clareza total.
+3. ASSINATURA DA MARCA ("${businessName}"): identificação discreta e sofisticada no topo.
+4. CARD EDITORIAL / INSTITUCIONAL: estética minimalista impecável, sem menção a preços ou valores numéricos.`;
+}
+
+function resolveCinematicHierarchy(
+  hasPrice: boolean,
+  offerTitle: string,
+  businessName: string,
+  promoPrice?: string | null,
+): string {
+  if (hasPrice) {
+    return `1. PRODUTO COM ILUMINAÇÃO CHIAROSCURO & APETITE MÁXIMO: produto no centro dinâmico com iluminação dramática de recorte (rim light dourada), destacando texturas artesanais nobres, fumaça suave ou brilho de superfície.
+2. TÍTULO DA OFERTA COM TIPOGRAFIA SOFISTICADA ("${offerTitle}"): tipografia de prestígio com alto contraste e elegância marcante.
+3. SELO ARTESANAL / BADGE PREMIUM ("${promoPrice}"): container estilizado com borda metálica ou textura artesanal na cor de destaque.
+4. NOME DO ESTABELECIMENTO ("${businessName}"): assinatura premium no topo central com tracking refinado.
+5. CARD COMPLETO: estética gastronômica/luxuosa imersiva e acabamento de alta gastronomia ou boutique.`;
+  }
+  return `1. ELEMENTO VISUAL COM ILUMINAÇÃO CHIAROSCURO: iluminação dramática de recorte destacando texturas artesanais nobres e profundidade imersiva.
+2. TÍTULO PRINCIPAL ("${offerTitle}"): tipografia de prestígio com alto contraste e elegância marcante.
+3. NOME DO ESTABELECIMENTO ("${businessName}"): assinatura premium no topo central com tracking refinado.
+4. CARD INSTITUCIONAL PREMIUM: foco exclusivo na experiência de luxo ou artesanato, sem preços ou valores monetários.`;
+}
+
+function resolveDynamicPopHierarchy(
+  hasPrice: boolean,
+  offerTitle: string,
+  businessName: string,
+  promoPrice?: string | null,
+): string {
+  if (hasPrice) {
+    return `1. DINÂMICA VISUAL EM PERSPECTIVA: produto capturado em ângulo dinâmico e fresco com iluminação vibrante (luz matinal ou recorte neon expressivo), quebrando a rigidez central estática.
+2. TÍTULO DE ALTO IMPACTO ("${offerTitle}"): tipografia display energética e expressiva fluindo em harmonia com o movimento da arte.
+3. BADGE DE OFERTA ENERGÉTICO ("${promoPrice}"): selo com formato orgânico ou geométrico de alto contraste direcionando a atenção para a oportunidade.
+4. IDENTIFICAÇÃO DA MARCA ("${businessName}"): integrada no cabeçalho ou rodapé dinâmico.
+5. CARD COMPLETO: composição cheia de energia, frescor e atratividade instantânea para feed e stories.`;
+  }
+  return `1. DINÂMICA VISUAL EM PERSPECTIVA: sujeito capturado em ângulo dinâmico e fresco com iluminação vibrante.
+2. TÍTULO DE ALTO IMPACTO ("${offerTitle}"): tipografia display energética e expressiva com leitura imediata.
+3. IDENTIFICAÇÃO DA MARCA ("${businessName}"): integrada no cabeçalho ou rodapé dinâmico.
+4. CARD INSTITUCIONAL DINÂMICO: atmosfera vibrante e positiva, sem nenhuma inserção de preços ou valores numéricos.`;
+}
+
+function resolveStandardRetailHierarchy(
   hasPrice: boolean,
   offerTitle: string,
   businessName: string,
@@ -247,12 +352,201 @@ export function buildVisualHierarchy(
 4. NOME DO ESTABELECIMENTO ("${businessName}"): integrado harmonicamente no topo ou rodapé.
 5. CARD COMPLETO: todo o layout deve ser sintetizado como uma única peça gráfica acabada, sem bordas brancas sobressalentes ou marcas d'água artificiais.`;
   }
-
   return `1. TÍTULO OU MENSAGEM PRINCIPAL ("${offerTitle}"): tipografia publicitária moderna, legível e nítida com destaque visual prioritário.
 2. ELEMENTO VISUAL CENTRAL: renderizado no centro focal da composição com iluminação atraente e estética profissional.
 3. NOME DO ESTABELECIMENTO ("${businessName}"): integrado harmonicamente no topo ou rodapé.
 4. MENSAGEM INSTITUCIONAL / COMUNICADO: foco total na clareza informativa, sem nenhum preço ou valor monetário na arte gráfica.
 5. CARD COMPLETO: todo o layout deve ser sintetizado como uma única peça gráfica acabada, sem bordas brancas sobressalentes ou marcas d'água artificiais.`;
+}
+
+function resolveHeroBottomHierarchy(
+  hasPrice: boolean,
+  offerTitle: string,
+  businessName: string,
+  promoPrice?: string | null,
+): string {
+  if (hasPrice) {
+    return `1. PRODUTO HERO EM BASE CENOGRÁFICA: produto ocupando os 45% inferiores com sombra de contato realista, textura táctil nítida e profundidade de campo rasa (f/2.8).
+2. TÍTULO PRINCIPAL EM 1º PLANO ("${offerTitle}"): tipografia imponente e cristalina ocupando o terço superior seguro sem competir com o produto.
+3. SELO / TAG DE PREÇO EM DESTAQUE ("${promoPrice}"): badge geométrico nítido no terço médio ou lateral, com leitura imediata.
+4. ASSINATURA DO ESTABELECIMENTO ("${businessName}"): integrada discretamente no topo.
+5. HIERARQUIA VERTICAL ESTRUTURADA: transição suave do título no topo até o produto hero na base, garantindo 100% de legibilidade e impacto.`;
+  }
+  return `1. SUJEITO HERO EM BASE CENOGRÁFICA: produto ou sujeito ocupando os 45% inferiores com sombra de contato e profundidade de campo suave.
+2. TÍTULO PRINCIPAL EM 1º PLANO ("${offerTitle}"): tipografia imponente e legível no terço superior seguro.
+3. ASSINATURA DO ESTABELECIMENTO ("${businessName}"): integrada com harmonia no topo.
+4. CARD INSTITUCIONAL HERO: foco na apresentação visual imersiva e presença de marca, sem preços ou valores monetários.`;
+}
+
+function resolveOverheadFlatlayHierarchy(
+  hasPrice: boolean,
+  offerTitle: string,
+  businessName: string,
+  promoPrice?: string | null,
+): string {
+  if (hasPrice) {
+    return `1. COMPOSIÇÃO ZENITAL FLAT-LAY (90° BIRD'S EYE): visão aérea sofisticada com elementos distribuídos harmonicamente sobre superfície rústica ou texturizada com iluminação natural uniforme.
+2. TÍTULO DA OFERTA ("${offerTitle}"): tipografia publicitária nítida ancorada em cartão, bloco sólido ou espaço negativo de alto contraste.
+3. SELO DE PREÇO DESTACADO ("${promoPrice}"): container geométrico de alto impacto visual posicionado estrategicamente no grid.
+4. IDENTIFICAÇÃO DA MARCA ("${businessName}"): assinatura elegante no topo ou rodapé da cena.
+5. COMPOSIÇÃO MULTI-ITEM HARMÔNICA: equilíbrio visual impecável entre o arranjo aéreo dos produtos e a clareza da oferta comercial.`;
+  }
+  return `1. COMPOSIÇÃO ZENITAL FLAT-LAY (90° BIRD'S EYE): visão aérea sofisticada com elementos distribuídos harmonicamente sobre superfície texturizada e luz natural difusa.
+2. TÍTULO OU COMUNICADO ("${offerTitle}"): tipografia nítida posicionada em bloco ou área de respiro com alto contraste.
+3. IDENTIFICAÇÃO DA MARCA ("${businessName}"): assinatura elegante na composição.
+4. CARD INSTITUCIONAL FLAT-LAY: foco no arranjo estético e experiência do cardápio/coleção, sem menção a preços.`;
+}
+
+function resolveMinimalNegativeSpaceHierarchy(
+  hasPrice: boolean,
+  offerTitle: string,
+  businessName: string,
+  promoPrice?: string | null,
+): string {
+  if (hasPrice) {
+    return `1. ESPAÇO NEGATIVO DOMINANTE (60%+ DE RESPIRO): fundo limpo e minimalista com iluminação difusa suave, transmitindo requinte e exclusividade.
+2. TÍTULO EDITORIAL REFINADO ("${offerTitle}"): tipografia de prestígio com espaçamento generoso e leitura cristalina.
+3. ETIQUETA MINIMALISTA DE VALOR ("${promoPrice}"): valor promocional integrado discretamente com sofisticação gráfica.
+4. PRODUTO HERO COMPACTO & NÍTIDO: renderizado com foco óptico impecável sem sobrecarregar a tela.
+5. ASSINATURA DA MARCA ("${businessName}"): posicionada com máxima elegância e respiro.`;
+  }
+  return `1. ESPAÇO NEGATIVO DOMINANTE (60%+ DE RESPIRO): atmosfera minimalista limpa e sofisticada com iluminação natural suave.
+2. TÍTULO EDITORIAL REFINADO ("${offerTitle}"): tipografia de prestígio com espaçamento generoso.
+3. PRODUTO OU SUJEITO COMPACTO & NÍTIDO: enquadramento harmônico e discreto com foco óptico impecável.
+4. ASSINATURA DA MARCA ("${businessName}"): posicionada com máxima elegância e respiro, sem valores monetários.`;
+}
+
+function resolveArchetypeHierarchy(
+  archetype: CompositionArchetype,
+  hasPrice: boolean,
+  offerTitle: string,
+  businessName: string,
+  promoPrice?: string | null,
+): string {
+  switch (archetype) {
+    case "split-editorial":
+      return resolveEditorialHierarchy(
+        hasPrice,
+        offerTitle,
+        businessName,
+        promoPrice,
+      );
+    case "hero-bottom-staged":
+      return resolveHeroBottomHierarchy(
+        hasPrice,
+        offerTitle,
+        businessName,
+        promoPrice,
+      );
+    case "diagonal-dynamic":
+      return resolveDynamicPopHierarchy(
+        hasPrice,
+        offerTitle,
+        businessName,
+        promoPrice,
+      );
+    case "overhead-flatlay":
+      return resolveOverheadFlatlayHierarchy(
+        hasPrice,
+        offerTitle,
+        businessName,
+        promoPrice,
+      );
+    case "center-showcase":
+      return resolveCinematicHierarchy(
+        hasPrice,
+        offerTitle,
+        businessName,
+        promoPrice,
+      );
+    case "minimal-negative-space":
+      return resolveMinimalNegativeSpaceHierarchy(
+        hasPrice,
+        offerTitle,
+        businessName,
+        promoPrice,
+      );
+    default:
+      return resolveStandardRetailHierarchy(
+        hasPrice,
+        offerTitle,
+        businessName,
+        promoPrice,
+      );
+  }
+}
+
+export function buildVisualHierarchy(
+  hasPrice: boolean,
+  offerTitle: string,
+  businessName: string,
+  promoPrice?: string | null,
+  options?: VisualHierarchyOptions,
+): string {
+  const intent = options?.cardIntent;
+  const layoutType = options?.layoutType;
+  const layoutVariant = options?.layoutVariant;
+
+  if (intent === "schedule") {
+    return resolveScheduleHierarchy(
+      hasPrice,
+      offerTitle,
+      businessName,
+      promoPrice,
+    );
+  }
+  if (intent === "announcement") {
+    return resolveAnnouncementHierarchy(offerTitle, businessName);
+  }
+
+  if (options?.compositionArchetype) {
+    return resolveArchetypeHierarchy(
+      options.compositionArchetype,
+      hasPrice,
+      offerTitle,
+      businessName,
+      promoPrice,
+    );
+  }
+  if (layoutType === "clean-frame" || layoutVariant === "clean-minimal") {
+    return resolveEditorialHierarchy(
+      hasPrice,
+      offerTitle,
+      businessName,
+      promoPrice,
+    );
+  }
+  if (
+    layoutType === "dark-premium" ||
+    layoutVariant === "dark-luxury" ||
+    layoutVariant === "rustic-wood"
+  ) {
+    return resolveCinematicHierarchy(
+      hasPrice,
+      offerTitle,
+      businessName,
+      promoPrice,
+    );
+  }
+  if (
+    layoutType === "vibrant-pop" ||
+    layoutVariant === "neon-urban" ||
+    layoutVariant === "fresh-organic"
+  ) {
+    return resolveDynamicPopHierarchy(
+      hasPrice,
+      offerTitle,
+      businessName,
+      promoPrice,
+    );
+  }
+
+  return resolveStandardRetailHierarchy(
+    hasPrice,
+    offerTitle,
+    businessName,
+    promoPrice,
+  );
 }
 
 export interface CompileFourLayersParams {

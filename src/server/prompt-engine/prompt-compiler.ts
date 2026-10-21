@@ -18,12 +18,18 @@ import {
   resolvePresetAndBlueprint,
   resolvePriceInstructions,
   SEGMENT_ART_DIRECTIVES,
+  LAYOUT_VARIANT_BLUEPRINTS,
+  AUTHENTIC_PHOTOGRAPHY_DIRECTIVE,
   ZERO_TEXT_OCCLUSION_DIRECTIVE,
+  type LayoutVariantBlueprint,
 } from "./art-direction-blueprints";
 import { buildAdaptiveEditPromptText } from "./edit-prompt-compiler";
-import { planDynamicCompositionBrief } from "./dynamic-planner";
+import {
+  buildDeterministicCompositionBrief,
+  planDynamicCompositionBrief,
+} from "./dynamic-planner";
 
-export { ZERO_TEXT_OCCLUSION_DIRECTIVE };
+export { AUTHENTIC_PHOTOGRAPHY_DIRECTIVE, ZERO_TEXT_OCCLUSION_DIRECTIVE };
 
 function appendInlineInputPart(
   parts: Array<string | InlineDataPart>,
@@ -55,6 +61,7 @@ function resolveArtAndLayers(
 ): {
   artDirectiveText: string;
   layers: [string, string, string, string];
+  blueprint: LayoutVariantBlueprint;
 } {
   if (options.isReferenceDriven) {
     return {
@@ -64,6 +71,7 @@ function resolveArtAndLayers(
         hasPrice: options.hasPrice,
         isStory: options.isStory,
       }),
+      blueprint: LAYOUT_VARIANT_BLUEPRINTS["retail-burst"],
     };
   }
 
@@ -94,7 +102,7 @@ function resolveArtAndLayers(
     isStory: options.isStory,
   });
 
-  return { artDirectiveText, layers };
+  return { artDirectiveText, layers, blueprint };
 }
 
 interface AssemblePromptParams {
@@ -154,6 +162,8 @@ ${dynamicBriefText ? `\n${dynamicBriefText}\n` : ""}
 - ${layer3}
 - ${layer4}
 
+${AUTHENTIC_PHOTOGRAPHY_DIRECTIVE}
+
 ${ZERO_TEXT_OCCLUSION_DIRECTIVE}
 
 --- HIERARQUIA VISUAL OBRIGATÓRIA ---
@@ -164,13 +174,21 @@ ${visualHierarchy}
 export function formatDynamicCompositionBrief(
   brief: DynamicCompositionBrief,
 ): string {
-  return [
+  const parts = [
     `--- PLANEJAMENTO DE COMPOSIÇÃO DINÂMICA (ETAPA 1 - ${brief.source.toUpperCase()}) ---`,
     `- Diagnóstico de Sujeito: ${brief.subjectAnatomy}`,
     `- Zona Segura para Tipografia: ${brief.safeTypographyZone}`,
     `- Estratégia de Anti-Oclusão: ${brief.antiOcclusionStrategy}`,
     `- Adaptação de Layout: ${brief.layoutAdaptation}`,
-  ].join("\n");
+  ];
+  if (brief.compositionArchetype) {
+    parts.splice(
+      1,
+      0,
+      `- Arquétipo de Composição Curado: ${brief.compositionArchetype}`,
+    );
+  }
+  return parts.join("\n");
 }
 
 /**
@@ -212,14 +230,8 @@ export function compileDeterministicCardPrompt(
     input.originalPrice,
   );
   const notes = buildPromptOptionalNotes(input);
-  const visualHierarchy = buildVisualHierarchy(
-    hasPrice,
-    input.offerTitle,
-    input.businessName,
-    input.promoPrice,
-  );
 
-  const { artDirectiveText, layers } = resolveArtAndLayers(
+  const { artDirectiveText, layers, blueprint } = resolveArtAndLayers(
     input,
     resolvedSegmentConfig,
     {
@@ -228,6 +240,21 @@ export function compileDeterministicCardPrompt(
       hasReferenceImage,
       hasCustomPalette,
       isStory,
+    },
+  );
+
+  const brief = buildDeterministicCompositionBrief(input);
+  const visualHierarchy = buildVisualHierarchy(
+    hasPrice,
+    input.offerTitle,
+    input.businessName,
+    input.promoPrice,
+    {
+      layoutType: blueprint.layoutType,
+      layoutVariant: blueprint.layoutVariant,
+      cardIntent: input.cardIntent,
+      isStory,
+      compositionArchetype: brief.compositionArchetype,
     },
   );
 
@@ -292,14 +319,8 @@ export async function compileDynamicCardPrompt(
     input.originalPrice,
   );
   const notes = buildPromptOptionalNotes(input);
-  const visualHierarchy = buildVisualHierarchy(
-    hasPrice,
-    input.offerTitle,
-    input.businessName,
-    input.promoPrice,
-  );
 
-  const { artDirectiveText, layers } = resolveArtAndLayers(
+  const { artDirectiveText, layers, blueprint } = resolveArtAndLayers(
     input,
     resolvedSegmentConfig,
     {
@@ -314,6 +335,20 @@ export async function compileDynamicCardPrompt(
   // Executa o planejamento da Etapa 1
   const brief = await planDynamicCompositionBrief(input, options);
   const dynamicBriefText = formatDynamicCompositionBrief(brief);
+
+  const visualHierarchy = buildVisualHierarchy(
+    hasPrice,
+    input.offerTitle,
+    input.businessName,
+    input.promoPrice,
+    {
+      layoutType: blueprint.layoutType,
+      layoutVariant: blueprint.layoutVariant,
+      cardIntent: input.cardIntent,
+      isStory,
+      compositionArchetype: brief.compositionArchetype,
+    },
+  );
 
   return assemblePromptText({
     audienceText,
