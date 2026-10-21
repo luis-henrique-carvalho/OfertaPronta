@@ -169,7 +169,8 @@ export function Step4StyleAndPalette({
             </Label>
           </div>
           <Typography variant="muted" className="text-xs">
-            Escolha uma paleta rápida ou escreva suas preferências de estilo (fundo, clima, cores):
+            Escolha uma paleta rápida ou escreva suas preferências de estilo
+            (fundo, clima, cores):
           </Typography>
         </div>
 

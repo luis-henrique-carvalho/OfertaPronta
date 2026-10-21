@@ -310,12 +310,8 @@ describe("OfferBriefWizard Component & AI Generation Flow", () => {
     );
 
     // Seletores de Formato do Card
-    const feedBtn = screen.getByRole("button", {
-      name: /Feed Instagram \(4:5\)/i,
-    });
-    const storyBtn = screen.getByRole("button", {
-      name: /Story & WhatsApp \(9:16\)/i,
-    });
+    const feedBtn = screen.getByTestId("aspect-ratio-feed");
+    const storyBtn = screen.getByTestId("aspect-ratio-story");
     expect(feedBtn).toBeDefined();
     expect(storyBtn).toBeDefined();
     expect(feedBtn.getAttribute("aria-pressed")).toBe("true");
