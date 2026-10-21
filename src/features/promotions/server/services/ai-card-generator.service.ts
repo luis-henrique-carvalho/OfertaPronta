@@ -126,7 +126,9 @@ export async function generateAdCardImage(
 
   const promptParts = shouldUseDynamicPlanner
     ? await buildMultimodalPromptPartsAsync(input, {
-        client: options?.plannerClient,
+        client:
+          options?.plannerClient ??
+          (geminiClient as unknown as PromptPlannerClient),
         timeoutMs: options?.timeoutMs,
         enableDynamicPlanner: true,
       })

@@ -122,22 +122,22 @@ function parseOrExtractBrief(
           subjectAnatomy:
             typeof parsed.subjectAnatomy === "string" &&
             parsed.subjectAnatomy.trim()
-              ? parsed.subjectAnatomy.trim().slice(0, 300)
+              ? parsed.subjectAnatomy.trim().slice(0, 500)
               : fallback.subjectAnatomy,
           safeTypographyZone:
             typeof parsed.safeTypographyZone === "string" &&
             parsed.safeTypographyZone.trim()
-              ? parsed.safeTypographyZone.trim().slice(0, 300)
+              ? parsed.safeTypographyZone.trim().slice(0, 500)
               : fallback.safeTypographyZone,
           antiOcclusionStrategy:
             typeof parsed.antiOcclusionStrategy === "string" &&
             parsed.antiOcclusionStrategy.trim()
-              ? parsed.antiOcclusionStrategy.trim().slice(0, 300)
+              ? parsed.antiOcclusionStrategy.trim().slice(0, 500)
               : fallback.antiOcclusionStrategy,
           layoutAdaptation:
             typeof parsed.layoutAdaptation === "string" &&
             parsed.layoutAdaptation.trim()
-              ? parsed.layoutAdaptation.trim().slice(0, 300)
+              ? parsed.layoutAdaptation.trim().slice(0, 500)
               : fallback.layoutAdaptation,
           source: "ai-dynamic",
         };
@@ -263,8 +263,11 @@ export async function planDynamicCompositionBrief(
         contents,
         config: {
           responseModalities: ["text"],
-          maxOutputTokens: 400,
+          maxOutputTokens: 600,
           temperature: 0.2,
+          thinkingConfig: {
+            thinkingLevel: "low",
+          },
         },
       }),
       timeoutMs,
@@ -278,7 +281,16 @@ export async function planDynamicCompositionBrief(
       return buildDeterministicCompositionBrief(input);
     }
 
-    return parseOrExtractBrief(rawText, input);
+    const brief = parseOrExtractBrief(rawText, input);
+    log.info(
+      "Planejamento criativo retornado pelo Gemini 3.8 Flash (Etapa 1):",
+      {
+        model,
+        rawText,
+        brief,
+      },
+    );
+    return brief;
   } catch (error) {
     log.warn(
       "Falha ou timeout no planejador dinâmico; aplicando fallback gracioso.",

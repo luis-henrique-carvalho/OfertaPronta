@@ -45,7 +45,7 @@ describe("PromptEngine Deep Module", () => {
   describe("Superfície Pública e Constantes", () => {
     it("deve exportar as constantes canônicas de modelo e timeout", () => {
       expect(DEFAULT_GEMINI_PROMPT_MODEL).toBe("gemini-3.8-flash");
-      expect(DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS).toBe(4500);
+      expect(DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS).toBe(8000);
       expect(ZERO_TEXT_OCCLUSION_DIRECTIVE).toContain(
         "ZERO OCLUSÃO TIPOGRÁFICA / 100% FOREGROUND TEXT PRIORITY",
       );
