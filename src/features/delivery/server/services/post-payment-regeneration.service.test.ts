@@ -10,6 +10,10 @@ import type {
   GenerateAdCardResult,
 } from "../../../promotions/server/services/ai-card-generator.service";
 import { requestRegenerationInputSchema } from "../../data/delivery.schemas";
+import {
+  setStorageServiceForTesting,
+  InMemoryStorageDriver,
+} from "../../../../server/storage";
 
 const FAKE_PNG_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
@@ -38,11 +42,15 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
         ]);
       });
 
+    const storageDriver = new InMemoryStorageDriver();
+    setStorageServiceForTesting(storageDriver);
+
     deliveryService = new DeliveryService({
       database: db,
       formatFeed: mockFormatFeed,
       formatStory: mockFormatStory,
       applySignature: mockApplySignature,
+      storageService: storageDriver,
     });
 
     mockGenerateAdCard = vi

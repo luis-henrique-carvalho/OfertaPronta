@@ -464,6 +464,7 @@ export interface ResolveArtDirectionOptions {
   hasCustomPalette?: boolean;
   cardIntent?: CardIntent | null;
   hasPromoPrice?: boolean;
+  overrideBlueprint?: LayoutVariantBlueprint;
 }
 
 /**
@@ -482,7 +483,9 @@ export function resolveArtDirectionDirective(
 
   if (!preset) return "";
 
-  const blueprint = LAYOUT_VARIANT_BLUEPRINTS[preset.mockup.layoutVariant];
+  const blueprint =
+    options?.overrideBlueprint ??
+    LAYOUT_VARIANT_BLUEPRINTS[preset.mockup.layoutVariant];
   const guide = getCommercialGuide(preset);
   const swatchesJoined = preset.paletteSwatches.join(", ");
 

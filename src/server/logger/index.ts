@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { getCurrentRequestStore } from "./async-context";
 import { formatLogEntry } from "./formatters";
 
@@ -34,6 +35,11 @@ const defaultWriter = (
     process.stderr.write(line + "\n");
   } else {
     process.stdout.write(line + "\n");
+  }
+  try {
+    fs.appendFileSync(".server.log", line + "\n");
+  } catch {
+    // ignore
   }
 };
 

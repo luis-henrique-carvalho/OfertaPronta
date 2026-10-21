@@ -240,23 +240,29 @@ export class DeliveryService {
       storyKey,
     });
 
-    await Promise.all([
+    const [feedUpload, storyUpload] = await Promise.all([
       this.storageService.uploadAsset({
         key: feedKey,
         buffer: feedBuffer,
         contentType: "image/png",
-        isPublic: false,
+        isPublic: true,
       }),
       this.storageService.uploadAsset({
         key: storyKey,
         buffer: storyBuffer,
         contentType: "image/png",
-        isPublic: false,
+        isPublic: true,
       }),
     ]);
 
-    const feedUrl = `${this.baseUrl}/api/delivery/download?orderId=${order.id}&format=feed&inline=true`;
-    const storyUrl = `${this.baseUrl}/api/delivery/download?orderId=${order.id}&format=story&inline=true`;
+    const cacheBuster = `?v=${Date.now()}`;
+    const isFakeStorage = feedUpload.url.includes("storage.local.fake");
+    const feedUrl = isFakeStorage
+      ? `${this.baseUrl}/api/delivery/download?orderId=${order.id}&format=feed&inline=true`
+      : `${feedUpload.url}${cacheBuster}`;
+    const storyUrl = isFakeStorage
+      ? `${this.baseUrl}/api/delivery/download?orderId=${order.id}&format=story&inline=true`
+      : `${storyUpload.url}${cacheBuster}`;
 
     const [persistedExport] = await this.database
       .insert(deliveryExports)
@@ -521,23 +527,29 @@ export class DeliveryService {
       storyKey,
     });
 
-    await Promise.all([
+    const [feedUpload, storyUpload] = await Promise.all([
       this.storageService.uploadAsset({
         key: feedKey,
         buffer: feedBuffer,
         contentType: "image/png",
-        isPublic: false,
+        isPublic: true,
       }),
       this.storageService.uploadAsset({
         key: storyKey,
         buffer: storyBuffer,
         contentType: "image/png",
-        isPublic: false,
+        isPublic: true,
       }),
     ]);
 
-    const feedUrl = `${this.baseUrl}/api/delivery/download?orderId=${orderId}&format=feed&inline=true`;
-    const storyUrl = `${this.baseUrl}/api/delivery/download?orderId=${orderId}&format=story&inline=true`;
+    const cacheBuster = `?v=${Date.now()}`;
+    const isFakeStorage = feedUpload.url.includes("storage.local.fake");
+    const feedUrl = isFakeStorage
+      ? `${this.baseUrl}/api/delivery/download?orderId=${orderId}&format=feed&inline=true`
+      : `${feedUpload.url}${cacheBuster}`;
+    const storyUrl = isFakeStorage
+      ? `${this.baseUrl}/api/delivery/download?orderId=${orderId}&format=story&inline=true`
+      : `${storyUpload.url}${cacheBuster}`;
 
     return this.upsertDeliveryExportRecord(
       orderId,
@@ -569,6 +581,36 @@ export class DeliveryService {
     const isWithinWindow = now <= windowEndsAtDate.getTime();
     const canRegenerate = isWithinWindow && remainingRegenerations > 0;
 
+    let feedCardUrl = exportRecord.feedUrl;
+    let storyCardUrl = exportRecord.storyUrl;
+    const cacheBuster = exportRecord.updatedAt
+      ? `?v=${new Date(exportRecord.updatedAt).getTime()}`
+      : "";
+
+    if (
+      exportRecord.feedAssetKey &&
+      !exportRecord.feedUrl?.startsWith("data:")
+    ) {
+      const publicUrl = this.storageService.getPublicUrl(
+        exportRecord.feedAssetKey,
+      );
+      if (!publicUrl.includes("storage.local.fake")) {
+        feedCardUrl = `${publicUrl}${cacheBuster}`;
+      }
+    }
+
+    if (
+      exportRecord.storyAssetKey &&
+      !exportRecord.storyUrl?.startsWith("data:")
+    ) {
+      const publicUrl = this.storageService.getPublicUrl(
+        exportRecord.storyAssetKey,
+      );
+      if (!publicUrl.includes("storage.local.fake")) {
+        storyCardUrl = `${publicUrl}${cacheBuster}`;
+      }
+    }
+
     return {
       orderId: order.id,
       status: "PAID",
@@ -581,8 +623,8 @@ export class DeliveryService {
       regenerationsUsed,
       maxRegenerations,
       remainingRegenerations,
-      feedCardUrl: exportRecord.feedUrl,
-      storyCardUrl: exportRecord.storyUrl,
+      feedCardUrl,
+      storyCardUrl,
       downloadCount: exportRecord.downloadCount ?? 0,
       customerWhatsapp:
         order.customerWhatsapp ||

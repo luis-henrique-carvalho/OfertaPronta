@@ -146,16 +146,25 @@ function buildRecomposePromptTemplate(
     }
   }
 
+  const isCenteringRequested =
+    /\b(centro|central|meio|centraliz\w*|não\s+ao\s+lado|nao\s+ao\s+lado|sair\s+do\s+lado)\b/i.test(
+      parts.requestedAdjustment,
+    );
+
+  const spatialRepositionDirective = isCenteringRequested
+    ? `\n--- DIRETIVA PRIORITÁRIA DE CENTRALIZAÇÃO DO PRODUTO (LAYOUT VERTICAL HERO) ---\n- POSICIONAMENTO HERO NO CENTRO: O produto anunciado DEVE ser posicionado no CENTRO geométrico do card (eixos horizontal e vertical equilibrados).\n- QUEBRA DE LAYOUT LATERAL ANTERIOR: É TERMINANTEMENTE PROIBIDO manter o produto empurrado na lateral direita ou esquerda, e é PROIBIDO manter faixas verticais dividindo o card ao meio.\n- REDISTRIBUIÇÃO VERTICAL LIMPA: Posicione o cabeçalho/título da promoção na parte superior (acima do produto) e eventuais preços/chamadas na parte inferior (abaixo do produto), com o produto ocupando o centro da composição.\n`
+    : "";
+
   return `
 Você é um diretor de arte e designer gráfico sênior executando uma RECOMPOSIÇÃO VISUAL E REESTRUTURAÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE).
 Uma IMAGEM BASE DO CARD PUBLICITÁRIO está anexa para fornecer o contexto de conteúdo comercial.
 
 --- DIRETRIZ FUNDAMENTAL: DESTRAVAMENTO ESPACIAL E REESTRUTURAÇÃO DE LAYOUT ---
-1. DESTRAVAMENTO ESPACIAL E DE ESTILO: Você está AUTORIZADO E OBRIGADO a alterar posições, reorganizar o grid/layout, afastar elementos, corrigir textos encobertos e aplicar o novo estilo visual solicitado pelo cliente.
+1. DESTRAVAMENTO ESPACIAL E DE ESTILO: Você está AUTORIZADO E OBRIGADO a alterar posições, reorganizar o grid/layout, afastar elementos, corrigir textos encobertos e aplicar o novo estilo visual solicitado pelo cliente. É TERMINANTEMENTE PROIBIDO replicar a divisão espacial em colunas ou enquadramento da imagem anterior.
 2. REPOSICIONAMENTO DE ELEMENTOS: Reposicione livremente o sujeito, o título, o preço e os selos para garantir harmonia visual e leitura perfeita sem qualquer elemento encoberto.
-3. AJUSTE DE RECOMPOSIÇÃO SOLICITADO: Reorganize a composição atendendo à seguinte demanda:
+3. AJUSTE DE RECOMPOSIÇÃO PRIORITÁRIO SOLICITADO PELO CLIENTE (MÁXIMA PRIORIDADE):
 "${parts.requestedAdjustment}"
-${artDirectiveSection}
+${spatialRepositionDirective}${artDirectiveSection}
 4. DADOS DA OFERTA COMERCIAL A MANTER E REORGANIZAR:
 - Estabelecimento: "${input.businessName}"
 - Título da Oferta: "${input.offerTitle}"

@@ -152,6 +152,95 @@ export function resolvePresetAndBlueprint(
   return { preset, blueprint };
 }
 
+function adaptEditorialOrMinimalBlueprint(
+  baseBlueprint: LayoutVariantBlueprint,
+  archetype: "minimal-negative-space" | "split-editorial",
+): LayoutVariantBlueprint {
+  if (archetype === "minimal-negative-space") {
+    return {
+      ...baseBlueprint,
+      layoutVariant: "clean-minimal",
+      spatialGrid:
+        "Composição minimalista com amplo espaço negativo (50%+ do quadro desobstruído no topo/centro); produto hero repousando com sutileza na base inferior sobre superfície limpa com sombra suave de contato; sem selos explosivos, sem balões e sem barras pesadas de rodapé.",
+      descriptiveTypography:
+        "Tipografia contemporânea sofisticada, pesos médios com kerning arejado e alto contraste elegante.",
+      cameraAndLightingSetup:
+        "Lente comercial 50mm f/2.8, iluminação difusa suave de estúdio sem reflexos duros, profundidade de campo sutil.",
+      priceBadgeStyle:
+        "Etiqueta geométrica minimalista discreta integrada com sutileza gráfica sem conotação de encarte popular.",
+    };
+  }
+  return {
+    ...baseBlueprint,
+    layoutVariant: "clean-minimal",
+    spatialGrid:
+      "Divisão assimétrica na regra dos terços (coluna tipográfica dedicada à esquerda 40-50% e fotografia hero do produto à direita); enquadramento refinado sem cruzamento de camadas.",
+    descriptiveTypography:
+      "Tipografia editorial contemporânea de revista/lookbook em coluna dedicada, kerning equilibrado e leitura cristalina.",
+    cameraAndLightingSetup:
+      "Lente editorial 50mm f/2.8, iluminação natural difusa de janela de estúdio, profundidade de campo nítida no produto.",
+    priceBadgeStyle:
+      "Tag geométrica retangular limpa ancorada na base da coluna de texto.",
+  };
+}
+
+function adaptDynamicOrFlatlayBlueprint(
+  baseBlueprint: LayoutVariantBlueprint,
+  archetype: "hero-bottom-staged" | "diagonal-dynamic" | "overhead-flatlay",
+): LayoutVariantBlueprint {
+  if (archetype === "hero-bottom-staged") {
+    return {
+      ...baseBlueprint,
+      spatialGrid:
+        "Produto hero imponente repousando na base inferior (45% do layout) com sombras de contato e foco nítido; terço superior limpo e seguro para títulos e dados comerciais.",
+      descriptiveTypography:
+        "Tipografia display publicitária moderna e imponente no terço superior com leitura cristalina.",
+      cameraAndLightingSetup:
+        "Lente comercial 50mm f/2.8, ângulo frontal ligeiramente elevado (15°), sombras de contato realistas.",
+      priceBadgeStyle: "Badge geométrico nítido no terço médio ou lateral.",
+    };
+  }
+  if (archetype === "diagonal-dynamic") {
+    return {
+      ...baseBlueprint,
+      layoutVariant: "fresh-organic",
+      spatialGrid:
+        "Linhas de perspectiva diagonais (30-45°) gerando velocidade e energia promocional; produto em primeiro plano dinâmico; respiro para título no topo.",
+      descriptiveTypography:
+        "Tipografia display energética e expressiva com contorno nítido e alto contraste.",
+      cameraAndLightingSetup:
+        "Lente comercial 50mm f/3.5, iluminação dinâmica vibrante com sombras nítidas.",
+      priceBadgeStyle:
+        "Selo dinâmico em formato orgânico ou geométrico de alto impacto visual.",
+    };
+  }
+  return {
+    ...baseBlueprint,
+    spatialGrid:
+      "Visão zenital aérea 90° (bird's eye) com produtos distribuídos harmonicamente sobre superfície texturizada; espaço para título em bloco limpo de alto contraste.",
+    descriptiveTypography:
+      "Tipografia publicitária moderna e nítida posicionada em bloco ou área de respiro de alto contraste.",
+    cameraAndLightingSetup:
+      "Lente 35mm-50mm em ângulo zenital 90° top-down, iluminação natural uniforme e sombras suaves.",
+    priceBadgeStyle:
+      "Container geométrico limpo posicionado estrategicamente no grid superior ou lateral.",
+  };
+}
+
+export function adaptBlueprintForArchetype(
+  baseBlueprint: LayoutVariantBlueprint,
+  archetype?: CompositionArchetype,
+): LayoutVariantBlueprint {
+  if (!archetype || archetype === "center-showcase") return baseBlueprint;
+  if (
+    archetype === "minimal-negative-space" ||
+    archetype === "split-editorial"
+  ) {
+    return adaptEditorialOrMinimalBlueprint(baseBlueprint, archetype);
+  }
+  return adaptDynamicOrFlatlayBlueprint(baseBlueprint, archetype);
+}
+
 export function buildProportionDirectives(isStory: boolean): {
   audienceText: string;
   proportionDirectives: string;
@@ -483,6 +572,16 @@ export function buildVisualHierarchy(
   promoPrice?: string | null,
   options?: VisualHierarchyOptions,
 ): string {
+  if (options?.compositionArchetype) {
+    return resolveArchetypeHierarchy(
+      options.compositionArchetype,
+      hasPrice,
+      offerTitle,
+      businessName,
+      promoPrice,
+    );
+  }
+
   const intent = options?.cardIntent;
   const layoutType = options?.layoutType;
   const layoutVariant = options?.layoutVariant;
@@ -497,16 +596,6 @@ export function buildVisualHierarchy(
   }
   if (intent === "announcement") {
     return resolveAnnouncementHierarchy(offerTitle, businessName);
-  }
-
-  if (options?.compositionArchetype) {
-    return resolveArchetypeHierarchy(
-      options.compositionArchetype,
-      hasPrice,
-      offerTitle,
-      businessName,
-      promoPrice,
-    );
   }
   if (layoutType === "clean-frame" || layoutVariant === "clean-minimal") {
     return resolveEditorialHierarchy(

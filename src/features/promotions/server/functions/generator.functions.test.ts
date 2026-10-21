@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import sharp from "sharp";
 import {
   generatePreviewFn,
@@ -11,8 +11,25 @@ import {
 } from "../index";
 import { saveOfferDraft, getOfferDraft } from "../services/drafts.service";
 import type { OfferDraft } from "../services/drafts.service";
+import {
+  setStorageServiceForTesting,
+  InMemoryStorageDriver,
+} from "@/server/storage";
 
 describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
+  let memoryStorage: InMemoryStorageDriver;
+
+  beforeEach(() => {
+    memoryStorage = new InMemoryStorageDriver({
+      publicUrlBase: "https://pub-test.r2.dev",
+    });
+    setStorageServiceForTesting(memoryStorage);
+  });
+
+  afterEach(() => {
+    setStorageServiceForTesting(null);
+  });
+
   describe("Input validation schema (generatePreviewInputSchema)", () => {
     it("accepts valid draftId", () => {
       const result = generatePreviewInputSchema.safeParse({

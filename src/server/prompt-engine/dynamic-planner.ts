@@ -38,25 +38,9 @@ async function callWithTimeout<T>(
 }
 
 function resolveDeterministicArchetype(
-  input: PromptEngineInput,
-): CompositionArchetype {
-  const isStory = input.targetAspectRatio === "story";
-  if (
-    input.businessSegment === "fashion" ||
-    input.businessSegment === "beauty-salon"
-  ) {
-    return "split-editorial";
-  }
-  if (input.businessSegment === "restaurant" && isStory) {
-    return "split-editorial";
-  }
-  if (input.businessSegment === "pizzeria") {
-    return "overhead-flatlay";
-  }
-  if (input.businessSegment === "supermarket") {
-    return isStory ? "hero-bottom-staged" : "diagonal-dynamic";
-  }
-  return isStory ? "hero-bottom-staged" : "center-showcase";
+  _input: PromptEngineInput,
+): CompositionArchetype | undefined {
+  return undefined;
 }
 
 export function buildDeterministicCompositionBrief(
@@ -134,8 +118,8 @@ const VALID_ARCHETYPES = new Set<CompositionArchetype>([
 
 function extractValidArchetype(
   rawArchetype: unknown,
-  fallback: CompositionArchetype,
-): CompositionArchetype {
+  fallback?: CompositionArchetype,
+): CompositionArchetype | undefined {
   if (
     typeof rawArchetype === "string" &&
     VALID_ARCHETYPES.has(rawArchetype as CompositionArchetype)
@@ -149,7 +133,7 @@ function buildBriefFromParsedJson(
   parsed: Record<string, unknown>,
   fallback: DynamicCompositionBrief,
 ): DynamicCompositionBrief {
-  const fallbackArchetype = fallback.compositionArchetype ?? "center-showcase";
+  const fallbackArchetype = fallback.compositionArchetype;
   const compositionArchetype = extractValidArchetype(
     parsed.compositionArchetype,
     fallbackArchetype,

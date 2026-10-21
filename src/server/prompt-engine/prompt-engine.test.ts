@@ -817,5 +817,46 @@ describe("PromptEngine Deep Module", () => {
       expect(prompt).toContain("Picanha Angus 1kg");
       expect(prompt).toContain("R$ 79,90");
     });
+
+    it("deve harmonizar o blueprint quando minimal-negative-space for selecionado para ótica/varejo, removendo selos explosivos", async () => {
+      const input = createSampleInput({
+        businessSegment: "local-retail",
+        stylePresetId: "retail-vibrant",
+        businessName: "Ótica Visão Perfeita",
+        offerTitle: "Armação de Grau Completa com Lentes Antirreflexo",
+        cardIntent: "schedule",
+        promoPrice: null,
+      });
+
+      const mockClient = {
+        models: {
+          generateContent: vi.fn().mockResolvedValue({
+            text: JSON.stringify({
+              compositionArchetype: "minimal-negative-space",
+              subjectAnatomy:
+                "Óculos de grau de design sofisticado repousando suavemente sobre superfície minimalista nos 40% inferiores.",
+              safeTypographyZone:
+                "Os 50% superiores do quadro com respiro generoso.",
+              antiOcclusionStrategy:
+                "Segregação vertical estrita sem sobreposição.",
+              layoutAdaptation:
+                "Aproveitamento de espaço negativo superior e foco no produto na base.",
+            }),
+          }),
+        },
+      };
+
+      const prompt = await compileDynamicCardPrompt(input, {
+        client: mockClient,
+      });
+
+      expect(prompt).toContain(
+        "Arquétipo de Composição Curado: minimal-negative-space",
+      );
+      expect(prompt).toContain("ESPAÇO NEGATIVO DOMINANTE (60%+ DE RESPIRO)");
+      expect(prompt).toContain("sem selos explosivos");
+      expect(prompt).not.toContain("selo explosivo no quadrante direito");
+      expect(prompt).not.toContain("- Clima e Atmosfera Geral:");
+    });
   });
 });

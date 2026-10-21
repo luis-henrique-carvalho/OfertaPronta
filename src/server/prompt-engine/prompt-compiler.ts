@@ -1,10 +1,12 @@
 import type {
+  CompositionArchetype,
   DynamicCompositionBrief,
   DynamicPromptCompileOptions,
   InlineDataPart,
   PromptEngineInput,
 } from "./types";
 import {
+  adaptBlueprintForArchetype,
   buildProportionDirectives,
   buildPromptOptionalNotes,
   buildReferenceDrivenArtDirective,
@@ -23,7 +25,10 @@ import {
   ZERO_TEXT_OCCLUSION_DIRECTIVE,
   type LayoutVariantBlueprint,
 } from "./art-direction-blueprints";
-import { buildAdaptiveEditPromptText } from "./edit-prompt-compiler";
+import {
+  buildAdaptiveEditPromptText,
+  detectEditIntentMode,
+} from "./edit-prompt-compiler";
 import {
   buildDeterministicCompositionBrief,
   planDynamicCompositionBrief,
@@ -48,6 +53,65 @@ function appendInlineInputPart(
   }
 }
 
+interface ResolvedPromptContext {
+  resolvedSegmentConfig: (typeof SEGMENT_ART_DIRECTIVES)[keyof typeof SEGMENT_ART_DIRECTIVES];
+  isReferenceDriven: boolean;
+  hasPrice: boolean;
+  hasReferenceImage: boolean;
+  hasCustomPalette: boolean;
+  isStory: boolean;
+  audienceText: string;
+  proportionDirectives: string;
+  priceInstructions: string;
+  notes: ReturnType<typeof buildPromptOptionalNotes>;
+}
+
+function resolvePromptContext(
+  input: PromptEngineInput,
+  segmentConfig?: (typeof SEGMENT_ART_DIRECTIVES)[keyof typeof SEGMENT_ART_DIRECTIVES],
+): ResolvedPromptContext {
+  const resolvedSegmentConfig =
+    segmentConfig ??
+    SEGMENT_ART_DIRECTIVES[input.businessSegment] ??
+    SEGMENT_ART_DIRECTIVES.supermarket;
+
+  const isReferenceDriven = isReferenceDrivenMode(input);
+  const hasPrice = Boolean(
+    input.promoPrice && input.promoPrice.trim().length > 0,
+  );
+  const hasReferenceImage = Boolean(
+    input.referenceImageDataUrl &&
+    input.referenceImageDataUrl.trim().length > 0,
+  );
+  const hasCustomPalette = Boolean(
+    input.customStyleInstructions &&
+    input.customStyleInstructions.trim().length > 0,
+  );
+  const isStory = input.targetAspectRatio === "story";
+
+  const { audienceText, proportionDirectives } =
+    buildProportionDirectives(isStory);
+  const priceInstructions = resolvePriceInstructions(
+    hasPrice,
+    input.promoPrice,
+    input.originalPrice,
+  );
+  const notes = buildPromptOptionalNotes(input);
+
+  return {
+    resolvedSegmentConfig,
+    isReferenceDriven,
+    hasPrice,
+    hasReferenceImage,
+    hasCustomPalette,
+    isStory,
+    audienceText,
+    proportionDirectives,
+    priceInstructions,
+    notes,
+  };
+}
+
 function resolveArtAndLayers(
   input: PromptEngineInput,
   resolvedSegmentConfig: (typeof SEGMENT_ART_DIRECTIVES)[keyof typeof SEGMENT_ART_DIRECTIVES],
@@ -57,6 +121,7 @@ function resolveArtAndLayers(
     hasReferenceImage: boolean;
     hasCustomPalette: boolean;
     isStory: boolean;
+    compositionArchetype?: CompositionArchetype;
   },
 ): {
   artDirectiveText: string;
@@ -75,9 +140,14 @@ function resolveArtAndLayers(
     };
   }
 
-  const { preset, blueprint } = resolvePresetAndBlueprint(
+  const { preset, blueprint: baseBlueprint } = resolvePresetAndBlueprint(
     input.businessSegment,
     input.stylePresetId,
+  );
+
+  const blueprint = adaptBlueprintForArchetype(
+    baseBlueprint,
+    options.compositionArchetype,
   );
 
   const artDirectiveText = resolveArtDirectionDirective(
@@ -88,6 +158,7 @@ function resolveArtAndLayers(
       hasCustomPalette: options.hasCustomPalette,
       cardIntent: input.cardIntent,
       hasPromoPrice: options.hasPrice,
+      overrideBlueprint: blueprint,
     },
   );
 
@@ -152,7 +223,6 @@ ${notes.whatsappInstruction}
 --- DIRETRIZES DE DIREÇÃO DE ARTE E DESIGN GRÁFICO ---
 ${proportionDirectives}
 - Estilo Visual do Segmento: ${segmentConfig.visualStyle}
-- Clima e Atmosfera Geral: ${segmentConfig.atmosphere}
 ${artDirectiveText ? `\n${artDirectiveText}\n` : ""}
 ${notes.logoNote ? `${notes.logoNote}\n` : ""}${notes.productNote ? `${notes.productNote}\n` : ""}${notes.referenceNote ? `${notes.referenceNote}\n` : ""}${notes.customInstructions ? `- ${notes.customInstructions}` : ""}
 ${dynamicBriefText ? `\n${dynamicBriefText}\n` : ""}
@@ -203,49 +273,24 @@ export function compileDeterministicCardPrompt(
     return buildAdaptiveEditPromptText(input);
   }
 
-  const resolvedSegmentConfig =
-    segmentConfig ??
-    SEGMENT_ART_DIRECTIVES[input.businessSegment] ??
-    SEGMENT_ART_DIRECTIVES.supermarket;
-
-  const isReferenceDriven = isReferenceDrivenMode(input);
-  const hasPrice = Boolean(
-    input.promoPrice && input.promoPrice.trim().length > 0,
-  );
-  const hasReferenceImage = Boolean(
-    input.referenceImageDataUrl &&
-    input.referenceImageDataUrl.trim().length > 0,
-  );
-  const hasCustomPalette = Boolean(
-    input.customStyleInstructions &&
-    input.customStyleInstructions.trim().length > 0,
-  );
-  const isStory = input.targetAspectRatio === "story";
-
-  const { audienceText, proportionDirectives } =
-    buildProportionDirectives(isStory);
-  const priceInstructions = resolvePriceInstructions(
-    hasPrice,
-    input.promoPrice,
-    input.originalPrice,
-  );
-  const notes = buildPromptOptionalNotes(input);
+  const ctx = resolvePromptContext(input, segmentConfig);
+  const brief = buildDeterministicCompositionBrief(input);
 
   const { artDirectiveText, layers, blueprint } = resolveArtAndLayers(
     input,
-    resolvedSegmentConfig,
+    ctx.resolvedSegmentConfig,
     {
-      isReferenceDriven,
-      hasPrice,
-      hasReferenceImage,
-      hasCustomPalette,
-      isStory,
+      isReferenceDriven: ctx.isReferenceDriven,
+      hasPrice: ctx.hasPrice,
+      hasReferenceImage: ctx.hasReferenceImage,
+      hasCustomPalette: ctx.hasCustomPalette,
+      isStory: ctx.isStory,
+      compositionArchetype: brief.compositionArchetype,
     },
   );
 
-  const brief = buildDeterministicCompositionBrief(input);
   const visualHierarchy = buildVisualHierarchy(
-    hasPrice,
+    ctx.hasPrice,
     input.offerTitle,
     input.businessName,
     input.promoPrice,
@@ -253,23 +298,23 @@ export function compileDeterministicCardPrompt(
       layoutType: blueprint.layoutType,
       layoutVariant: blueprint.layoutVariant,
       cardIntent: input.cardIntent,
-      isStory,
+      isStory: ctx.isStory,
       compositionArchetype: brief.compositionArchetype,
     },
   );
 
   return assemblePromptText({
-    audienceText,
-    segmentConfig: resolvedSegmentConfig,
+    audienceText: ctx.audienceText,
+    segmentConfig: ctx.resolvedSegmentConfig,
     businessName: input.businessName,
     offerTitle: input.offerTitle,
-    priceInstructions,
-    notes,
+    priceInstructions: ctx.priceInstructions,
+    notes: ctx.notes,
     intentText: resolveIntentDirective(
       input.cardIntent,
       input.customIntentText,
     ),
-    proportionDirectives,
+    proportionDirectives: ctx.proportionDirectives,
     artDirectiveText,
     layers,
     visualHierarchy,
@@ -293,51 +338,27 @@ export async function compileDynamicCardPrompt(
     return buildAdaptiveEditPromptText(input);
   }
 
-  const resolvedSegmentConfig =
-    SEGMENT_ART_DIRECTIVES[input.businessSegment] ??
-    SEGMENT_ART_DIRECTIVES.supermarket;
-
-  const isReferenceDriven = isReferenceDrivenMode(input);
-  const hasPrice = Boolean(
-    input.promoPrice && input.promoPrice.trim().length > 0,
-  );
-  const hasReferenceImage = Boolean(
-    input.referenceImageDataUrl &&
-    input.referenceImageDataUrl.trim().length > 0,
-  );
-  const hasCustomPalette = Boolean(
-    input.customStyleInstructions &&
-    input.customStyleInstructions.trim().length > 0,
-  );
-  const isStory = input.targetAspectRatio === "story";
-
-  const { audienceText, proportionDirectives } =
-    buildProportionDirectives(isStory);
-  const priceInstructions = resolvePriceInstructions(
-    hasPrice,
-    input.promoPrice,
-    input.originalPrice,
-  );
-  const notes = buildPromptOptionalNotes(input);
-
-  const { artDirectiveText, layers, blueprint } = resolveArtAndLayers(
-    input,
-    resolvedSegmentConfig,
-    {
-      isReferenceDriven,
-      hasPrice,
-      hasReferenceImage,
-      hasCustomPalette,
-      isStory,
-    },
-  );
+  const ctx = resolvePromptContext(input);
 
   // Executa o planejamento da Etapa 1
   const brief = await planDynamicCompositionBrief(input, options);
   const dynamicBriefText = formatDynamicCompositionBrief(brief);
 
+  const { artDirectiveText, layers, blueprint } = resolveArtAndLayers(
+    input,
+    ctx.resolvedSegmentConfig,
+    {
+      isReferenceDriven: ctx.isReferenceDriven,
+      hasPrice: ctx.hasPrice,
+      hasReferenceImage: ctx.hasReferenceImage,
+      hasCustomPalette: ctx.hasCustomPalette,
+      isStory: ctx.isStory,
+      compositionArchetype: brief.compositionArchetype,
+    },
+  );
+
   const visualHierarchy = buildVisualHierarchy(
-    hasPrice,
+    ctx.hasPrice,
     input.offerTitle,
     input.businessName,
     input.promoPrice,
@@ -345,28 +366,65 @@ export async function compileDynamicCardPrompt(
       layoutType: blueprint.layoutType,
       layoutVariant: blueprint.layoutVariant,
       cardIntent: input.cardIntent,
-      isStory,
+      isStory: ctx.isStory,
       compositionArchetype: brief.compositionArchetype,
     },
   );
 
   return assemblePromptText({
-    audienceText,
-    segmentConfig: resolvedSegmentConfig,
+    audienceText: ctx.audienceText,
+    segmentConfig: ctx.resolvedSegmentConfig,
     businessName: input.businessName,
     offerTitle: input.offerTitle,
-    priceInstructions,
-    notes,
+    priceInstructions: ctx.priceInstructions,
+    notes: ctx.notes,
     intentText: resolveIntentDirective(
       input.cardIntent,
       input.customIntentText,
     ),
-    proportionDirectives,
+    proportionDirectives: ctx.proportionDirectives,
     artDirectiveText,
     dynamicBriefText,
     layers,
     visualHierarchy,
   });
+}
+
+function buildBaseCardMultimodalParts(
+  input: PromptEngineInput,
+): Array<string | InlineDataPart> {
+  const parts: Array<string | InlineDataPart> = [];
+  const isRecompose = detectEditIntentMode(input) === "RECOMPOSE";
+  parts.push(buildAdaptiveEditPromptText(input));
+
+  if (input.baseCardImageDataUrl) {
+    const requestedAdjustment =
+      input.customStyleInstructions?.trim() ||
+      "Reorganizar o layout conforme solicitado";
+    const imagePartLabel = isRecompose
+      ? `REFERÊNCIA VISUAL DE PRODUTO E CORES (NÃO COPIE ESTE LAYOUT): Use esta imagem anterior exclusivamente como referência visual das características do produto e da paleta cromática. É TERMINANTEMENTE PROIBIDO reproduzir a divisão espacial em colunas ou o enquadramento lateral anterior. Você DEVE quebrar a estrutura anterior e reorganizar completamente a composição do card conforme a solicitação: "${requestedAdjustment}".`
+      : "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA): Use esta imagem como base gráfica principal. Mantenha rigorosamente todos os elementos visuais idênticos, aplicando EXCLUSIVAMENTE a alteração solicitada.";
+
+    appendInlineInputPart(parts, input.baseCardImageDataUrl, imagePartLabel);
+  }
+
+  if (input.logoImageDataUrl) {
+    appendInlineInputPart(
+      parts,
+      input.logoImageDataUrl,
+      "LOGOTIPO DA LOJA FORNECIDO: Mantenha a fidelidade absoluta ao logotipo oficial.",
+    );
+  }
+
+  if (input.productImageDataUrl) {
+    appendInlineInputPart(
+      parts,
+      input.productImageDataUrl,
+      "FOTO DO PRODUTO REAL ORIGINAL: Mantenha a fidelidade absoluta a este produto exatamente como renderizado na imagem base.",
+    );
+  }
+
+  return parts;
 }
 
 /**
@@ -375,34 +433,11 @@ export async function compileDynamicCardPrompt(
 export function buildMultimodalPromptParts(
   input: PromptEngineInput,
 ): Array<string | InlineDataPart> {
-  const parts: Array<string | InlineDataPart> = [];
-
   if (input.baseCardImageDataUrl) {
-    parts.push(buildAdaptiveEditPromptText(input));
-    appendInlineInputPart(
-      parts,
-      input.baseCardImageDataUrl,
-      "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA): Use esta imagem como base gráfica principal. Mantenha rigorosamente todos os elementos visuais idênticos, aplicando EXCLUSIVAMENTE a alteração solicitada.",
-    );
-
-    if (input.logoImageDataUrl) {
-      appendInlineInputPart(
-        parts,
-        input.logoImageDataUrl,
-        "LOGOTIPO DA LOJA FORNECIDO: Mantenha a fidelidade absoluta ao logotipo oficial.",
-      );
-    }
-
-    if (input.productImageDataUrl) {
-      appendInlineInputPart(
-        parts,
-        input.productImageDataUrl,
-        "FOTO DO PRODUTO REAL ORIGINAL: Mantenha a fidelidade absoluta a este produto exatamente como renderizado na imagem base.",
-      );
-    }
-
-    return parts;
+    return buildBaseCardMultimodalParts(input);
   }
+
+  const parts: Array<string | InlineDataPart> = [];
 
   parts.push(compileDeterministicCardPrompt(input));
 
@@ -443,30 +478,7 @@ export async function buildMultimodalPromptPartsAsync(
   const parts: Array<string | InlineDataPart> = [];
 
   if (input.baseCardImageDataUrl) {
-    parts.push(buildAdaptiveEditPromptText(input));
-    appendInlineInputPart(
-      parts,
-      input.baseCardImageDataUrl,
-      "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA): Use esta imagem como base gráfica principal.",
-    );
-
-    if (input.logoImageDataUrl) {
-      appendInlineInputPart(
-        parts,
-        input.logoImageDataUrl,
-        "LOGOTIPO DA LOJA FORNECIDO: Mantenha a fidelidade absoluta ao logotipo oficial.",
-      );
-    }
-
-    if (input.productImageDataUrl) {
-      appendInlineInputPart(
-        parts,
-        input.productImageDataUrl,
-        "FOTO DO PRODUTO REAL ORIGINAL: Mantenha a fidelidade absoluta a este produto.",
-      );
-    }
-
-    return parts;
+    return buildBaseCardMultimodalParts(input);
   }
 
   const promptText = await compileDynamicCardPrompt(input, options);
