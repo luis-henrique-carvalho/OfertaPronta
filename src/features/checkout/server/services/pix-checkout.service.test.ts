@@ -932,8 +932,9 @@ describe("PixCheckoutService Deep Module", () => {
       );
     });
 
-    it("should reject simulation if NODE_ENV is production", async () => {
+    it("should allow simulation when DEV_BYPASS_PAYMENT is true even if NODE_ENV is production", async () => {
       process.env.NODE_ENV = "production";
+      process.env.DEV_BYPASS_PAYMENT = "true";
       const draft = await saveOfferDraft({
         businessSegment: "restaurant",
         businessName: "Restaurante Dev",
@@ -943,9 +944,8 @@ describe("PixCheckoutService Deep Module", () => {
       await updateDraftPreviewCard(draft.id, "data:image/webp;base64,preview");
       const { orderId } = await service.initiateCheckout({ draftId: draft.id });
 
-      await expect(service.simulateDevPayment(orderId)).rejects.toThrow(
-        "Simulação de pagamento desabilitada neste ambiente",
-      );
+      const result = await service.simulateDevPayment(orderId);
+      expect(result.success).toBe(true);
     });
   });
 

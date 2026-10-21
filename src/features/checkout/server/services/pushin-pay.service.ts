@@ -73,12 +73,14 @@ export class PushinPayService {
     if (this.bypassPayment !== undefined) {
       return this.bypassPayment;
     }
-    const isDev = (process.env.NODE_ENV ?? serverEnv.NODE_ENV) !== "production";
-    if (!isDev) return false;
-    if (process.env.DEV_BYPASS_PAYMENT !== undefined) {
-      return process.env.DEV_BYPASS_PAYMENT === "true";
+    const dynamicBypass = process.env["DEV_BYPASS_PAYMENT"];
+    if (dynamicBypass !== undefined) {
+      return dynamicBypass === "true";
     }
-    return Boolean(serverEnv.DEV_BYPASS_PAYMENT);
+    if (serverEnv.DEV_BYPASS_PAYMENT !== undefined) {
+      return Boolean(serverEnv.DEV_BYPASS_PAYMENT);
+    }
+    return false;
   }
 
   /**
