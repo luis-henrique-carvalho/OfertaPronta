@@ -81,9 +81,10 @@ jobs:
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE || 'ofertapronta' }}
         run: |
           if [ -z "$RAILWAY_TOKEN" ]; then
             echo "::warning ::RAILWAY_TOKEN secret not configured in GitHub Secrets. Skipping automatic deployment."
             exit 0
           fi
-          railway up --ci -m "Deploy commit ${{ github.sha }} via GitHub Actions"
+          railway up --service "${RAILWAY_SERVICE:-ofertapronta}" --ci -m "Deploy commit ${{ github.sha }} via GitHub Actions"
