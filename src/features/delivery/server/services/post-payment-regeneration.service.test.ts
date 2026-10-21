@@ -519,4 +519,108 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
       expect(parsed.colorPalette).toBeNull();
     });
   });
+
+  describe("Ticket 02: Detecção de presetChanged e Recomposição de Layout", () => {
+    it("deve detectar presetChanged: true e injetar a instrução de recomposição quando o usuário altera o stylePresetId", async () => {
+      const order = await createTestOrder("PAID", {
+        frozenSnapshot: {
+          businessSegment: "burger-shop",
+          businessName: "Burger House",
+          offerTitle: "Combo X-Burguer Original",
+          promoPrice: "R$ 29,90",
+          stylePresetId: "rustic-wood",
+          customStyleInstructions: "Estilo rústico escuro",
+        },
+      });
+      await deliveryService.ensureDeliveryExports(order.id);
+
+      await service.regenerateOrderCard({
+        orderId: order.id,
+        stylePresetId: "burger-fire-cheddar",
+        customAdjustmentPrompt: "Nova campanha de sexta-feira",
+      });
+
+      expect(mockGenerateAdCard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stylePresetId: "burger-fire-cheddar",
+          customStyleInstructions: expect.stringContaining(
+            "Reestruturar layout e estilo visual aplicando integralmente o novo preset selecionado",
+          ),
+        }),
+      );
+
+      const lastCallArgs =
+        mockGenerateAdCard.mock.calls[
+          mockGenerateAdCard.mock.calls.length - 1
+        ][0];
+      expect(lastCallArgs.customStyleInstructions).toContain(
+        "Nova campanha de sexta-feira",
+      );
+      expect(lastCallArgs.customStyleInstructions).toContain(
+        "Estilo rústico escuro",
+      );
+
+      const [updatedOrder] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, order.id));
+
+      const snapshot = updatedOrder.frozenSnapshot as Record<string, unknown>;
+      expect(snapshot.stylePresetId).toBe("burger-fire-cheddar");
+      expect(snapshot.customStyleInstructions).toContain(
+        "Reestruturar layout e estilo visual aplicando integralmente o novo preset selecionado",
+      );
+    });
+
+    it("não deve injetar instrução de recomposição de preset quando o stylePresetId for idêntico ao do snapshot", async () => {
+      const order = await createTestOrder("PAID", {
+        frozenSnapshot: {
+          businessSegment: "burger-shop",
+          businessName: "Burger House",
+          offerTitle: "Combo X-Burguer Original",
+          promoPrice: "R$ 29,90",
+          stylePresetId: "rustic-wood",
+          customStyleInstructions: "Estilo rústico escuro",
+        },
+      });
+      await deliveryService.ensureDeliveryExports(order.id);
+
+      await service.regenerateOrderCard({
+        orderId: order.id,
+        stylePresetId: "rustic-wood",
+        customAdjustmentPrompt: "Mudar telefone de contato",
+      });
+
+      const lastCallArgs =
+        mockGenerateAdCard.mock.calls[
+          mockGenerateAdCard.mock.calls.length - 1
+        ][0];
+      expect(lastCallArgs.stylePresetId).toBe("rustic-wood");
+      expect(lastCallArgs.customStyleInstructions).not.toContain(
+        "Reestruturar layout e estilo visual aplicando integralmente o novo preset selecionado",
+      );
+      expect(lastCallArgs.customStyleInstructions).toContain(
+        "Mudar telefone de contato",
+      );
+    });
+
+    it("deve repassar termos espaciais e de anti-oclusão (ex: não botar o texto atrás do personagem) nas instruções para o gerador de imagem", async () => {
+      const order = await createTestOrder("PAID");
+      await deliveryService.ensureDeliveryExports(order.id);
+
+      await service.regenerateOrderCard({
+        orderId: order.id,
+        customAdjustmentPrompt:
+          "não botar o texto atrás do personagem e reposicionar o título no topo",
+      });
+
+      expect(mockGenerateAdCard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customStyleInstructions: expect.stringContaining(
+            "não botar o texto atrás do personagem e reposicionar o título no topo",
+          ),
+        }),
+      );
+    });
+  });
 });

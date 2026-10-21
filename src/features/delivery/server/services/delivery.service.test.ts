@@ -34,6 +34,7 @@ describe("DeliveryService Deep Module (TDD)", () => {
 
     service = new DeliveryService({
       database: db,
+      baseUrl: "",
       formatFeed: mockFormatFeed,
       formatStory: mockFormatStory,
       applySignature: mockApplySignature,

@@ -17,6 +17,7 @@ import type {
   CardAspectRatio,
 } from "../../../promotions/data/offer-brief.schema";
 import { createServerLogger } from "../../../../server/logger";
+import { resolveRegenerationStyleInstructions } from "@/server/prompt-engine";
 
 const log = createServerLogger("delivery.post-payment-regeneration");
 
@@ -153,50 +154,7 @@ export class PostPaymentRegenerationService {
     validated: RequestRegenerationInput,
   ): RegenerationContext {
     const snapshot = (order.frozenSnapshot || {}) as Record<string, unknown>;
-
-    const mergedOfferTitle = (
-      validated.offerTitle?.trim() ||
-      (snapshot.offerTitle as string) ||
-      "Oferta Especial"
-    ).trim();
-
-    const mergedPromoPrice = (
-      validated.promoPrice?.trim() ||
-      (snapshot.promoPrice as string) ||
-      ""
-    ).trim();
-
-    const mergedOriginalPrice =
-      validated.originalPrice !== undefined
-        ? validated.originalPrice
-        : (snapshot.originalPrice as string | null | undefined);
-
-    const mergedCallToAction =
-      validated.callToAction !== undefined
-        ? validated.callToAction
-        : (snapshot.callToAction as string | null | undefined);
-
-    const mergedStylePresetId =
-      validated.stylePresetId !== undefined
-        ? validated.stylePresetId?.trim() || null
-        : ((snapshot.stylePresetId as string | undefined) ?? null);
-
-    const mergedColorPalette =
-      validated.colorPalette !== undefined
-        ? validated.colorPalette?.trim() || null
-        : ((snapshot.colorPalette as string | undefined) ?? null);
-
-    const baseCardImageDataUrl =
-      (order.cleanMasterImageDataUrl as string | undefined) ||
-      (snapshot.cleanMasterImageDataUrl as string | undefined) ||
-      undefined;
-
-    const currentAdjustment = validated.customAdjustmentPrompt?.trim();
-    const combinedCustomInstructions = resolveRegenerationStyleInstructions(
-      snapshot.customStyleInstructions as string | undefined,
-      currentAdjustment,
-      validated.colorPalette,
-    );
+    const merged = mergeRegenerationSnapshot(order, snapshot, validated);
 
     const generateInput: GenerateAdCardInput = {
       businessSegment:
@@ -204,10 +162,10 @@ export class PostPaymentRegenerationService {
       targetAspectRatio:
         (snapshot.targetAspectRatio as CardAspectRatio) || "feed",
       businessName: String(snapshot.businessName || "Estabelecimento"),
-      offerTitle: mergedOfferTitle,
-      promoPrice: mergedPromoPrice,
-      originalPrice: mergedOriginalPrice,
-      callToAction: mergedCallToAction,
+      offerTitle: merged.mergedOfferTitle,
+      promoPrice: merged.mergedPromoPrice,
+      originalPrice: merged.mergedOriginalPrice,
+      callToAction: merged.mergedCallToAction,
       whatsapp:
         order.customerWhatsapp ||
         (snapshot.whatsapp as string | undefined) ||
@@ -216,20 +174,14 @@ export class PostPaymentRegenerationService {
         (snapshot.productImageDataUrl as string | undefined) || undefined,
       referenceImageDataUrl:
         (snapshot.referenceImageDataUrl as string | undefined) || undefined,
-      baseCardImageDataUrl,
-      stylePresetId: mergedStylePresetId || undefined,
-      customStyleInstructions: combinedCustomInstructions || undefined,
+      baseCardImageDataUrl: merged.baseCardImageDataUrl,
+      stylePresetId: merged.mergedStylePresetId || undefined,
+      customStyleInstructions: merged.combinedCustomInstructions || undefined,
     };
 
     return {
       generateInput,
-      mergedOfferTitle,
-      mergedPromoPrice,
-      mergedOriginalPrice,
-      mergedCallToAction,
-      mergedStylePresetId,
-      mergedColorPalette,
-      combinedCustomInstructions,
+      ...merged,
       snapshot,
     };
   }
@@ -292,38 +244,85 @@ export class PostPaymentRegenerationService {
   }
 }
 
-/**
- * Isola o ajuste atual do cliente sem acumular diretrizes conflitantes de rodadas anteriores,
- * combinando a nova paleta de cores (se fornecida) e preservando eventuais instruções originais de estilo definidas no briefing inicial.
- */
-function resolveRegenerationStyleInstructions(
-  originalStyleInstructions: string | undefined,
-  currentAdjustmentPrompt: string | undefined,
-  colorPalette?: string | null,
-): string | undefined {
-  const adjustmentParts: string[] = [];
+interface MergedRegenerationSnapshot {
+  mergedOfferTitle: string;
+  mergedPromoPrice: string;
+  mergedOriginalPrice?: string | null;
+  mergedCallToAction?: string | null;
+  mergedStylePresetId: string | null;
+  mergedColorPalette: string | null;
+  combinedCustomInstructions?: string;
+  baseCardImageDataUrl?: string;
+}
 
-  if (colorPalette?.trim()) {
-    adjustmentParts.push(`Paleta de cores: ${colorPalette.trim()}`);
-  }
+function mergeRegenerationSnapshot(
+  order: typeof orders.$inferSelect,
+  snapshot: Record<string, unknown>,
+  validated: RequestRegenerationInput,
+): MergedRegenerationSnapshot {
+  const mergedOfferTitle = (
+    validated.offerTitle?.trim() ||
+    (snapshot.offerTitle as string) ||
+    "Oferta Especial"
+  ).trim();
 
-  if (currentAdjustmentPrompt?.trim()) {
-    adjustmentParts.push(currentAdjustmentPrompt.trim());
-  }
+  const mergedPromoPrice = (
+    validated.promoPrice?.trim() ||
+    (snapshot.promoPrice as string) ||
+    ""
+  ).trim();
 
-  if (adjustmentParts.length === 0) {
-    return originalStyleInstructions;
-  }
+  const mergedOriginalPrice =
+    validated.originalPrice !== undefined
+      ? validated.originalPrice
+      : (snapshot.originalPrice as string | null | undefined);
 
-  const combinedAdjustment = adjustmentParts.join(". ");
+  const mergedCallToAction =
+    validated.callToAction !== undefined
+      ? validated.callToAction
+      : (snapshot.callToAction as string | null | undefined);
 
-  const cleanOriginal = originalStyleInstructions
-    ? originalStyleInstructions
-        .replace(/\.?\s*Ajuste solicitado pelo cliente:.*$/i, "")
-        .trim()
-    : "";
+  const mergedStylePresetId =
+    validated.stylePresetId !== undefined
+      ? validated.stylePresetId?.trim() || null
+      : ((snapshot.stylePresetId as string | undefined) ?? null);
 
-  return cleanOriginal
-    ? `${cleanOriginal}. Ajuste solicitado pelo cliente: ${combinedAdjustment}`
-    : `Ajuste solicitado pelo cliente: ${combinedAdjustment}`;
+  const mergedColorPalette =
+    validated.colorPalette !== undefined
+      ? validated.colorPalette?.trim() || null
+      : ((snapshot.colorPalette as string | undefined) ?? null);
+
+  const baseCardImageDataUrl =
+    (order.cleanMasterImageDataUrl as string | undefined) ||
+    (snapshot.cleanMasterImageDataUrl as string | undefined) ||
+    undefined;
+
+  const currentAdjustment = validated.customAdjustmentPrompt?.trim();
+  const presetChanged = Boolean(
+    validated.stylePresetId &&
+    validated.stylePresetId.trim().length > 0 &&
+    validated.stylePresetId.trim() !==
+      ((snapshot.stylePresetId as string | undefined) ?? "").trim(),
+  );
+
+  const combinedCustomInstructions = resolveRegenerationStyleInstructions(
+    snapshot.customStyleInstructions as string | undefined,
+    currentAdjustment,
+    {
+      presetChanged,
+      newStylePresetId: validated.stylePresetId,
+      colorPalette: validated.colorPalette,
+    },
+  );
+
+  return {
+    mergedOfferTitle,
+    mergedPromoPrice,
+    mergedOriginalPrice,
+    mergedCallToAction,
+    mergedStylePresetId,
+    mergedColorPalette,
+    combinedCustomInstructions,
+    baseCardImageDataUrl,
+  };
 }

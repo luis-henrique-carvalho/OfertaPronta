@@ -5,8 +5,10 @@ import {
   isReferenceDrivenMode,
   buildPromptText,
   REFERENCE_STYLE_PRESET_ID,
+  ZERO_TEXT_OCCLUSION_DIRECTIVE,
   type GenerateAdCardInput,
   type GoogleGenAIClient,
+  type PromptPlannerClient,
 } from "./ai-card-generator.service";
 import {
   BUSINESS_SEGMENTS,
@@ -1082,6 +1084,147 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
           "--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---",
         );
       });
+    });
+  });
+
+  describe("Ticket 02: Integração com PromptEngine, DynamicPlanner e Edição Adaptativa", () => {
+    it("deve executar o pipeline híbrido em 2 etapas com sucesso quando enableDynamicPlanner for true", async () => {
+      const fakeImageClient = createFakeGeminiClient();
+      const mockPlannerGenerateContent = vi.fn().mockResolvedValue({
+        text: JSON.stringify({
+          subjectAnatomy: "Pessoa e produto no centro",
+          safeTypographyZone: "Zona superior limpa",
+          antiOcclusionStrategy: "Texto em primeiro plano absoluto",
+          layoutAdaptation: "Composição balanceada 4:5",
+        }),
+      });
+      const mockPlannerClient: PromptPlannerClient = {
+        models: {
+          generateContent: mockPlannerGenerateContent,
+        },
+      };
+
+      const result = await generateAdCardImage(baseInput, fakeImageClient, {
+        enableDynamicPlanner: true,
+        plannerClient: mockPlannerClient,
+      });
+
+      expect(result.rawImageBuffer).toBeInstanceOf(Buffer);
+      expect(mockPlannerGenerateContent).toHaveBeenCalledTimes(1);
+      const plannerCallArgs = mockPlannerGenerateContent.mock.calls[0][0];
+      expect(plannerCallArgs.model).toBe("gemini-3.8-flash");
+
+      expect(fakeImageClient.generateContentSpy).toHaveBeenCalledTimes(1);
+      const imageCallArgs = fakeImageClient.generateContentSpy.mock.calls[0][0];
+      expect(imageCallArgs.model).toBe("gemini-nano-banana-2.1");
+
+      const promptText = imageCallArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain(
+        "PLANEJAMENTO DE COMPOSIÇÃO DINÂMICA (ETAPA 1 - AI-DYNAMIC)",
+      );
+      expect(promptText).toContain("Pessoa e produto no centro");
+      expect(promptText).toContain("Zona superior limpa");
+      expect(promptText).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
+    });
+
+    it("deve realizar fallback gracioso quando o planner falhar na Etapa 1 sem abortar a geração de imagem", async () => {
+      const fakeImageClient = createFakeGeminiClient();
+      const failingPlannerClient: PromptPlannerClient = {
+        models: {
+          generateContent: vi
+            .fn()
+            .mockRejectedValue(
+              new Error("Timeout de comunicação com gemini-3.8-flash"),
+            ),
+        },
+      };
+
+      const result = await generateAdCardImage(baseInput, fakeImageClient, {
+        enableDynamicPlanner: true,
+        plannerClient: failingPlannerClient,
+      });
+
+      expect(result.rawImageBuffer).toBeInstanceOf(Buffer);
+      expect(fakeImageClient.generateContentSpy).toHaveBeenCalledTimes(1);
+
+      const imageCallArgs = fakeImageClient.generateContentSpy.mock.calls[0][0];
+      const promptText = imageCallArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain("DETERMINISTIC-FALLBACK");
+      expect(promptText).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
+    });
+
+    it("deve sempre incluir ZERO_TEXT_OCCLUSION_DIRECTIVE nas diretrizes enviadas ao modelo de imagem", async () => {
+      const fakeImageClient = createFakeGeminiClient();
+      await generateAdCardImage(baseInput, fakeImageClient);
+
+      const callArgs = fakeImageClient.generateContentSpy.mock.calls[0][0];
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain(
+        "ZERO OCLUSÃO TIPOGRÁFICA / 100% FOREGROUND TEXT PRIORITY",
+      );
+      expect(promptText).toContain(
+        "PROIBIÇÃO DE TEXTO ATRÁS DO PERSONAGEM OU PRODUTO (NO TEXT BEHIND SUBJECT)",
+      );
+    });
+
+    it("deve ativar o modo RECOMPOSE na edição adaptativa quando customStyleInstructions contiver termos espaciais ou de personagem", async () => {
+      const fakeImageClient = createFakeGeminiClient();
+      const inputSpatialEdit: GenerateAdCardInput = {
+        ...baseInput,
+        baseCardImageDataUrl: `data:image/png;base64,${fakeBase64Png}`,
+        customStyleInstructions:
+          "não botar o texto atrás do personagem, mover o título para o topo",
+      };
+
+      await generateAdCardImage(inputSpatialEdit, fakeImageClient);
+
+      const callArgs = fakeImageClient.generateContentSpy.mock.calls[0][0];
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain(
+        "RECOMPOSIÇÃO VISUAL E REESTRUTURAÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE)",
+      );
+      expect(promptText).toContain("DESTRAVAMENTO ESPACIAL E DE ESTILO");
+      expect(promptText).toContain("não botar o texto atrás do personagem");
+      expect(promptText).not.toContain("PRESERVAÇÃO ESTRITA");
+      expect(promptText).not.toContain("PROIBIDO REINVENTAR");
+      expect(promptText).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
+    });
+
+    it("deve manter o modo SURGICAL na edição adaptativa para ajustes pontuais de texto ou preço sem termos espaciais", async () => {
+      const fakeImageClient = createFakeGeminiClient();
+      const inputSurgicalEdit: GenerateAdCardInput = {
+        ...baseInput,
+        baseCardImageDataUrl: `data:image/png;base64,${fakeBase64Png}`,
+        customStyleInstructions:
+          "Atualizar preço promocional para R$ 39,90 e WhatsApp para (11) 91234-5678",
+      };
+
+      await generateAdCardImage(inputSurgicalEdit, fakeImageClient);
+
+      const callArgs = fakeImageClient.generateContentSpy.mock.calls[0][0];
+      const promptText = callArgs.contents.find(
+        (c: unknown) => typeof c === "string",
+      ) as string;
+
+      expect(promptText).toContain("EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE");
+      expect(promptText).toContain("PRESERVAÇÃO ESTRITA");
+      expect(promptText).toContain("PROIBIDO REINVENTAR");
+      expect(promptText).toContain(
+        "Atualizar preço promocional para R$ 39,90 e WhatsApp para (11) 91234-5678",
+      );
+      expect(promptText).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
     });
   });
 });
