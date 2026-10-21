@@ -15,6 +15,10 @@ import {
 } from "../../data/delivery.schemas";
 import { createServerLogger } from "../../../../server/logger";
 import { serverEnv } from "../../../../config/server-env";
+import {
+  getStorageService,
+  type StorageService,
+} from "../../../../server/storage";
 
 const log = createServerLogger("delivery.service");
 
@@ -45,6 +49,7 @@ export interface DeliveryServiceDependencies {
     buffer: Buffer,
     options?: CobrandingOptions,
   ) => Promise<Buffer>;
+  storageService?: StorageService;
 }
 
 /**
@@ -61,6 +66,7 @@ export class DeliveryService {
     buffer: Buffer,
     options?: CobrandingOptions,
   ) => Promise<Buffer>;
+  private readonly storageService: StorageService;
 
   constructor(deps?: DeliveryServiceDependencies) {
     this.database = deps?.database ?? db;
@@ -74,6 +80,7 @@ export class DeliveryService {
     this.formatFeed = deps?.formatFeed ?? formatFeedCard;
     this.formatStory = deps?.formatStory ?? formatStoryCard;
     this.applySignature = deps?.applySignature ?? applyCobrandingSignature;
+    this.storageService = deps?.storageService ?? getStorageService();
   }
 
   /**
@@ -127,17 +134,46 @@ export class DeliveryService {
       return this.buildDeliveryDetailsResult(order, existingExport);
     }
 
-    const masterDataUrl = this.resolveCleanMasterDataUrl(order);
+    const masterBuffer = await this.resolveCleanMasterBuffer(order);
     const persistedExport = await this.deriveAndPersistFormats(
       order,
-      masterDataUrl,
+      masterBuffer,
     );
 
     return this.buildDeliveryDetailsResult(order, persistedExport);
   }
 
-  private resolveCleanMasterDataUrl(order: typeof orders.$inferSelect): string {
+  private async resolveCleanMasterBuffer(
+    order: typeof orders.$inferSelect,
+  ): Promise<Buffer> {
     const snapshot = (order.frozenSnapshot || {}) as Record<string, unknown>;
+
+    // 1. Tenta recuperar via cleanMasterAssetKey no StorageService
+    const assetKey =
+      order.cleanMasterAssetKey ||
+      (typeof snapshot.cleanMasterAssetKey === "string"
+        ? snapshot.cleanMasterAssetKey
+        : null);
+
+    if (assetKey) {
+      log.info("Recuperando arte mestre do StorageService...", {
+        orderId: order.id,
+        assetKey,
+      });
+      const asset = await this.storageService.getAsset(assetKey);
+      if (asset) {
+        return asset.buffer;
+      }
+      log.warn(
+        "Chave de asset mestre não encontrada no StorageService, tentando fallback Base64",
+        {
+          orderId: order.id,
+          assetKey,
+        },
+      );
+    }
+
+    // 2. Fallback para Base64 legado (order.cleanMasterImageDataUrl ou snapshot)
     const masterDataUrl =
       order.cleanMasterImageDataUrl ||
       (typeof snapshot.cleanMasterImageDataUrl === "string"
@@ -147,26 +183,24 @@ export class DeliveryService {
         ? snapshot.previewCardImageUrl
         : null);
 
-    if (!masterDataUrl) {
-      log.error("Arte mestre limpa não encontrada no pedido pago", undefined, {
-        orderId: order.id,
-      });
-      throw new DeliveryError(
-        `Arte mestre não encontrada para o pedido ${order.id}`,
-        "MASTER_ART_NOT_FOUND",
-        404,
-      );
+    if (masterDataUrl) {
+      return this.parseDataUrlBuffer(masterDataUrl);
     }
 
-    return masterDataUrl;
+    log.error("Arte mestre limpa não encontrada no pedido pago", undefined, {
+      orderId: order.id,
+    });
+    throw new DeliveryError(
+      `Arte mestre não encontrada para o pedido ${order.id}`,
+      "MASTER_ART_NOT_FOUND",
+      404,
+    );
   }
 
   private async deriveAndPersistFormats(
     order: typeof orders.$inferSelect,
-    masterDataUrl: string,
+    masterBuffer: Buffer,
   ): Promise<typeof deliveryExports.$inferSelect> {
-    const masterBuffer = this.parseDataUrlBuffer(masterDataUrl);
-
     log.info(
       "Derivando formatos Feed (1080x1350) e Story (1080x1920) via ExportEngine...",
       {
@@ -197,8 +231,32 @@ export class DeliveryService {
       ]);
     }
 
-    const feedUrl = `data:image/png;base64,${feedBuffer.toString("base64")}`;
-    const storyUrl = `data:image/png;base64,${storyBuffer.toString("base64")}`;
+    const feedKey = `deliveries/${order.id}/feed.png`;
+    const storyKey = `deliveries/${order.id}/story.png`;
+
+    log.info("Persistindo exports Feed e Story no StorageService...", {
+      orderId: order.id,
+      feedKey,
+      storyKey,
+    });
+
+    await Promise.all([
+      this.storageService.uploadAsset({
+        key: feedKey,
+        buffer: feedBuffer,
+        contentType: "image/png",
+        isPublic: false,
+      }),
+      this.storageService.uploadAsset({
+        key: storyKey,
+        buffer: storyBuffer,
+        contentType: "image/png",
+        isPublic: false,
+      }),
+    ]);
+
+    const feedUrl = `${this.baseUrl}/api/delivery/download?orderId=${order.id}&format=feed&inline=true`;
+    const storyUrl = `${this.baseUrl}/api/delivery/download?orderId=${order.id}&format=story&inline=true`;
 
     const [persistedExport] = await this.database
       .insert(deliveryExports)
@@ -206,6 +264,8 @@ export class DeliveryService {
         orderId: order.id,
         feedUrl,
         storyUrl,
+        feedAssetKey: feedKey,
+        storyAssetKey: storyKey,
         downloadCount: 0,
         expiresAt: null,
       })
@@ -285,10 +345,12 @@ export class DeliveryService {
 
   /**
    * Recupera os bytes do PNG HD para download via endpoint HTTP com cabeçalhos de attachment.
+   * Suporta arquivos armazenados no StorageService (R2 / Memória) e registros legados Base64.
    */
   async getExportBinary(
     orderId: string,
     format: DownloadFormat,
+    options: { recordDownload?: boolean } = { recordDownload: true },
   ): Promise<DeliveryBinaryResult> {
     const validatedFormat = downloadFormatEnum.parse(format);
 
@@ -309,34 +371,57 @@ export class DeliveryService {
       );
     }
 
-    const rawDataUrl =
-      validatedFormat === "feed" ? exportRecord.feedUrl : exportRecord.storyUrl;
+    const assetKey =
+      validatedFormat === "feed"
+        ? exportRecord.feedAssetKey
+        : exportRecord.storyAssetKey;
 
-    const buffer = this.parseDataUrlBuffer(rawDataUrl);
+    let buffer: Buffer | null = null;
+    let contentType = "image/png";
 
-    // Registra métrica de download atomicamente
-    await this.recordDownload(orderId, validatedFormat);
+    if (assetKey) {
+      const stored = await this.storageService.getAsset(assetKey);
+      if (stored) {
+        buffer = stored.buffer;
+        contentType = stored.contentType || "image/png";
+      }
+    }
+
+    if (!buffer) {
+      const rawUrl =
+        validatedFormat === "feed"
+          ? exportRecord.feedUrl
+          : exportRecord.storyUrl;
+      if (rawUrl && rawUrl.startsWith("data:")) {
+        buffer = this.parseDataUrlBuffer(rawUrl);
+      }
+    }
+
+    if (!buffer) {
+      throw new DeliveryError(
+        `Não foi possível carregar o arquivo binário do formato ${validatedFormat} para o pedido ${orderId}`,
+        "ASSET_NOT_FOUND",
+        404,
+      );
+    }
+
+    // Registra métrica de download atomicamente apenas se não for inline
+    if (options.recordDownload !== false) {
+      await this.recordDownload(orderId, validatedFormat);
+    }
 
     return {
       buffer,
-      contentType: "image/png",
+      contentType,
       filename: `ofertapronta-${validatedFormat}-${orderId}.png`,
     };
   }
 
-  /**
-   * Atualiza os exports Feed (1080x1350) e Story (1080x1920) a partir de uma nova arte mestre gerada por regeneração.
-   */
-  async updateExports(
-    orderId: string,
+  private async prepareDeliveryBuffers(
+    order: typeof orders.$inferSelect | undefined,
     masterBuffer: Buffer,
-  ): Promise<typeof deliveryExports.$inferSelect> {
-    const [order] = await this.database
-      .select()
-      .from(orders)
-      .where(eq(orders.id, orderId))
-      .limit(1);
-
+    orderId: string,
+  ): Promise<{ feedBuffer: Buffer; storyBuffer: Buffer }> {
     let [feedBuffer, storyBuffer] = await Promise.all([
       this.formatFeed(masterBuffer),
       this.formatStory(masterBuffer),
@@ -359,10 +444,17 @@ export class DeliveryService {
       ]);
     }
 
-    const feedUrl = `data:image/png;base64,${feedBuffer.toString("base64")}`;
-    const storyUrl = `data:image/png;base64,${storyBuffer.toString("base64")}`;
-    const now = new Date();
+    return { feedBuffer, storyBuffer };
+  }
 
+  private async upsertDeliveryExportRecord(
+    orderId: string,
+    feedKey: string,
+    storyKey: string,
+    feedUrl: string,
+    storyUrl: string,
+  ): Promise<typeof deliveryExports.$inferSelect> {
+    const now = new Date();
     const [existing] = await this.database
       .select()
       .from(deliveryExports)
@@ -375,6 +467,8 @@ export class DeliveryService {
         .set({
           feedUrl,
           storyUrl,
+          feedAssetKey: feedKey,
+          storyAssetKey: storyKey,
           updatedAt: now,
         })
         .where(eq(deliveryExports.orderId, orderId))
@@ -388,6 +482,8 @@ export class DeliveryService {
         orderId,
         feedUrl,
         storyUrl,
+        feedAssetKey: feedKey,
+        storyAssetKey: storyKey,
         downloadCount: 0,
         expiresAt: null,
         createdAt: now,
@@ -395,6 +491,61 @@ export class DeliveryService {
       })
       .returning();
     return inserted;
+  }
+
+  /**
+   * Atualiza os exports Feed (1080x1350) e Story (1080x1920) a partir de uma nova arte mestre gerada por regeneração.
+   */
+  async updateExports(
+    orderId: string,
+    masterBuffer: Buffer,
+  ): Promise<typeof deliveryExports.$inferSelect> {
+    const [order] = await this.database
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    const { feedBuffer, storyBuffer } = await this.prepareDeliveryBuffers(
+      order,
+      masterBuffer,
+      orderId,
+    );
+
+    const feedKey = `deliveries/${orderId}/feed.png`;
+    const storyKey = `deliveries/${orderId}/story.png`;
+
+    log.info("Persistindo exports regenerados no StorageService...", {
+      orderId,
+      feedKey,
+      storyKey,
+    });
+
+    await Promise.all([
+      this.storageService.uploadAsset({
+        key: feedKey,
+        buffer: feedBuffer,
+        contentType: "image/png",
+        isPublic: false,
+      }),
+      this.storageService.uploadAsset({
+        key: storyKey,
+        buffer: storyBuffer,
+        contentType: "image/png",
+        isPublic: false,
+      }),
+    ]);
+
+    const feedUrl = `${this.baseUrl}/api/delivery/download?orderId=${orderId}&format=feed&inline=true`;
+    const storyUrl = `${this.baseUrl}/api/delivery/download?orderId=${orderId}&format=story&inline=true`;
+
+    return this.upsertDeliveryExportRecord(
+      orderId,
+      feedKey,
+      storyKey,
+      feedUrl,
+      storyUrl,
+    );
   }
 
   private buildDeliveryDetailsResult(

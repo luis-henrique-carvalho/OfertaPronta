@@ -426,11 +426,14 @@ export const saveOfferDraftSchema = z.object({
   customStyleInstructions: z.string().optional().nullable(),
   cleanMasterImageDataUrl: z.string().optional().nullable(),
   previewCardImageUrl: z.string().optional().nullable(),
-
   // Novos campos do Épico 6
   cardIntent: z.enum(CARD_INTENTS).default("promo"),
   customIntentText: z.string().optional().nullable(),
   logoImageDataUrl: imageDataUrlSchema.optional().nullable(),
+
+  // Storage R2 Keys
+  previewAssetKey: z.string().optional().nullable(),
+  cleanMasterAssetKey: z.string().optional().nullable(),
 });
 
 export type SaveOfferDraftInput = z.input<typeof saveOfferDraftSchema>;

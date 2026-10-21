@@ -5,13 +5,15 @@ describe("Promotions Server Isolation (Zero Server Code Leaks)", () => {
   it("exporta exclusivamente Server Functions e schemas DTO de entrada", () => {
     const exportedKeys = Object.keys(serverModule);
 
-    // As únicas funções de runtime exportadas pelo barrel devem ser Server Functions e schemas Zod
     const allowedExports = [
       "saveDraftFn",
       "getDraftFn",
       "getDraftInputSchema",
       "generatePreviewFn",
       "generatePreviewInputSchema",
+      "getShowcaseCardsFn",
+      "getShowcaseCardsInputSchema",
+      "showcaseCardsResponseSchema",
     ];
 
     expect(exportedKeys.sort()).toEqual(allowedExports.sort());

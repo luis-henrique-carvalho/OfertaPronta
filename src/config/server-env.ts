@@ -27,6 +27,12 @@ export const serverEnvSchema = z.object({
     .min(1)
     .max(90)
     .default(30),
+  STORAGE_DRIVER: z.enum(["memory", "r2"]).default("memory"),
+  R2_ACCOUNT_ID: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_BUCKET_NAME: z.string().optional(),
+  R2_PUBLIC_URL: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

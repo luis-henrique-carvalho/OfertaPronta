@@ -61,6 +61,35 @@ describe("Delivery Download HTTP Route Handler (api.delivery.download)", () => {
     expect(mockService.getExportBinary).toHaveBeenCalledWith(
       validOrderId,
       "feed",
+      { recordDownload: true },
+    );
+  });
+
+  it("should return HTTP 200 with inline Content-Disposition when inline=true is passed", async () => {
+    const fakeBuffer = Buffer.from("fake-png-binary-content");
+    const mockService = {
+      getExportBinary: vi.fn().mockResolvedValue({
+        buffer: fakeBuffer,
+        contentType: "image/png",
+        filename: `ofertapronta-feed-${validOrderId}.png`,
+      }),
+    } as unknown as DeliveryService;
+
+    const request = new Request(
+      `http://localhost/api/delivery/download?orderId=${validOrderId}&format=feed&inline=true`,
+      { method: "GET" },
+    );
+
+    const response = await handleDeliveryDownloadRequest(request, mockService);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("image/png");
+    expect(response.headers.get("Content-Disposition")).toBe("inline");
+    expect(response.headers.get("Cache-Control")).toBe("public, max-age=86400");
+    expect(mockService.getExportBinary).toHaveBeenCalledWith(
+      validOrderId,
+      "feed",
+      { recordDownload: false },
     );
   });
 

@@ -558,6 +558,8 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
         customStyleInstructions: null,
         cleanMasterImageDataUrl: null,
         previewCardImageUrl: null,
+        previewAssetKey: null,
+        cleanMasterAssetKey: null,
         cardIntent: "new-arrival",
         customIntentText: "Coleção exclusiva",
         logoImageDataUrl: "data:image/png;base64,mockLogoBase64",

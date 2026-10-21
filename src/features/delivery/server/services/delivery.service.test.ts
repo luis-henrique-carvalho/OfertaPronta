@@ -5,6 +5,10 @@ import { deliveryExports } from "../../../../server/db/schema/delivery";
 import { eq } from "drizzle-orm";
 import { DeliveryService } from "./delivery.service";
 import { deliveryDetailsResultSchema } from "../../data/delivery.schemas";
+import {
+  setStorageServiceForTesting,
+  InMemoryStorageDriver,
+} from "../../../../server/storage";
 
 // 1x1 transparent PNG data URL for test fake master image
 const FAKE_PNG_DATA_URL =
@@ -12,11 +16,15 @@ const FAKE_PNG_DATA_URL =
 
 describe("DeliveryService Deep Module (TDD)", () => {
   let service: DeliveryService;
+  let storageDriver: InMemoryStorageDriver;
   let mockFormatFeed: ReturnType<typeof vi.fn>;
   let mockFormatStory: ReturnType<typeof vi.fn>;
   let mockApplySignature: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    storageDriver = new InMemoryStorageDriver();
+    setStorageServiceForTesting(storageDriver);
+
     mockFormatFeed = vi.fn().mockImplementation(async (_buffer: Buffer) => {
       return Buffer.from("fake-feed-hd-png");
     });
@@ -38,6 +46,7 @@ describe("DeliveryService Deep Module (TDD)", () => {
       formatFeed: mockFormatFeed,
       formatStory: mockFormatStory,
       applySignature: mockApplySignature,
+      storageService: storageDriver,
     });
   });
 
@@ -131,8 +140,14 @@ describe("DeliveryService Deep Module (TDD)", () => {
       expect(validated.canRegenerate).toBe(true);
       expect(validated.regenerationsUsed).toBe(0);
       expect(validated.remainingRegenerations).toBe(3);
-      expect(validated.feedCardUrl).toContain("data:image/png;base64,");
-      expect(validated.storyCardUrl).toContain("data:image/png;base64,");
+      expect(validated.feedCardUrl).toContain(
+        "/api/delivery/download?orderId=",
+      );
+      expect(validated.feedCardUrl).toContain("format=feed&inline=true");
+      expect(validated.storyCardUrl).toContain(
+        "/api/delivery/download?orderId=",
+      );
+      expect(validated.storyCardUrl).toContain("format=story&inline=true");
       expect(validated.permanentOrderUrl).toBe(`/pedido/${order.id}`);
 
       // Verify Sharp formatting was called with the decoded clean master buffer
@@ -148,6 +163,20 @@ describe("DeliveryService Deep Module (TDD)", () => {
       expect(savedExport).toBeDefined();
       expect(savedExport.downloadCount).toBe(0);
       expect(savedExport.expiresAt).toBeNull();
+      expect(savedExport.feedAssetKey).toBe(`deliveries/${order.id}/feed.png`);
+      expect(savedExport.storyAssetKey).toBe(
+        `deliveries/${order.id}/story.png`,
+      );
+
+      // Verify assets were uploaded to storage
+      const storedFeed = await storageDriver.getAsset(
+        savedExport.feedAssetKey!,
+      );
+      const storedStory = await storageDriver.getAsset(
+        savedExport.storyAssetKey!,
+      );
+      expect(storedFeed).not.toBeNull();
+      expect(storedStory).not.toBeNull();
     });
 
     it("should be strictly idempotent: secondary calls return existing exports without re-formatting", async () => {
@@ -288,7 +317,7 @@ describe("DeliveryService Deep Module (TDD)", () => {
   });
 
   describe("updateExports", () => {
-    it("should update existing exports with new feed and story buffers", async () => {
+    it("should update existing exports with new feed and story buffers in storage", async () => {
       const order = await createTestOrder("PAID");
       await service.ensureDeliveryExports(order.id);
 
@@ -299,13 +328,14 @@ describe("DeliveryService Deep Module (TDD)", () => {
       const updated = await service.updateExports(order.id, newMasterBuffer);
 
       expect(updated.orderId).toBe(order.id);
-      expect(updated.feedUrl).toContain(
-        Buffer.from("updated-feed-hd").toString("base64"),
-      );
-      expect(updated.storyUrl).toContain(
-        Buffer.from("updated-story-hd").toString("base64"),
-      );
+      expect(updated.feedUrl).toContain("/api/delivery/download?orderId=");
+      expect(updated.storyUrl).toContain("/api/delivery/download?orderId=");
+      expect(updated.feedAssetKey).toBe(`deliveries/${order.id}/feed.png`);
+      expect(updated.storyAssetKey).toBe(`deliveries/${order.id}/story.png`);
       expect(updated.updatedAt).toBeInstanceOf(Date);
+
+      const storedFeed = await storageDriver.getAsset(updated.feedAssetKey!);
+      expect(storedFeed?.buffer.toString()).toBe("updated-feed-hd");
     });
 
     it("should apply cobranding signature in updateExports when order has cobrandingAccepted: true", async () => {
@@ -332,15 +362,12 @@ describe("DeliveryService Deep Module (TDD)", () => {
         { creditText: "Design por @ofertapronta", aspectRatio: "story" },
       );
 
-      expect(updated.feedUrl).toContain(
-        Buffer.from("regen-feed-raw-with-cobranding-signature").toString(
-          "base64",
-        ),
-      );
-      expect(updated.storyUrl).toContain(
-        Buffer.from("regen-story-raw-with-cobranding-signature").toString(
-          "base64",
-        ),
+      expect(updated.feedUrl).toContain("/api/delivery/download?orderId=");
+      expect(updated.feedAssetKey).toBe(`deliveries/${order.id}/feed.png`);
+
+      const storedFeed = await storageDriver.getAsset(updated.feedAssetKey!);
+      expect(storedFeed?.buffer.toString()).toBe(
+        "regen-feed-raw-with-cobranding-signature",
       );
     });
   });
@@ -364,15 +391,18 @@ describe("DeliveryService Deep Module (TDD)", () => {
         { creditText: "Design por @ofertapronta", aspectRatio: "story" },
       );
 
-      expect(result.feedCardUrl).toContain(
-        Buffer.from("fake-feed-hd-png-with-cobranding-signature").toString(
-          "base64",
-        ),
-      );
-      expect(result.storyCardUrl).toContain(
-        Buffer.from("fake-story-hd-png-with-cobranding-signature").toString(
-          "base64",
-        ),
+      expect(result.feedCardUrl).toContain("/api/delivery/download?orderId=");
+      expect(result.feedCardUrl).toContain("format=feed&inline=true");
+      expect(result.storyCardUrl).toContain("/api/delivery/download?orderId=");
+      expect(result.storyCardUrl).toContain("format=story&inline=true");
+
+      const [stored] = await db
+        .select()
+        .from(deliveryExports)
+        .where(eq(deliveryExports.orderId, order.id));
+      const storedFeed = await storageDriver.getAsset(stored.feedAssetKey!);
+      expect(storedFeed?.buffer.toString()).toBe(
+        "fake-feed-hd-png-with-cobranding-signature",
       );
     });
 
@@ -385,12 +415,84 @@ describe("DeliveryService Deep Module (TDD)", () => {
       const result = await service.ensureDeliveryExports(order.id);
 
       expect(mockApplySignature).not.toHaveBeenCalled();
-      expect(result.feedCardUrl).toContain(
-        Buffer.from("fake-feed-hd-png").toString("base64"),
-      );
-      expect(result.storyCardUrl).toContain(
-        Buffer.from("fake-story-hd-png").toString("base64"),
-      );
+      expect(result.feedCardUrl).toContain("/api/delivery/download?orderId=");
+      expect(result.feedCardUrl).toContain("format=feed&inline=true");
+      expect(result.storyCardUrl).toContain("/api/delivery/download?orderId=");
+      expect(result.storyCardUrl).toContain("format=story&inline=true");
+
+      const [stored] = await db
+        .select()
+        .from(deliveryExports)
+        .where(eq(deliveryExports.orderId, order.id));
+      const storedFeed = await storageDriver.getAsset(stored.feedAssetKey!);
+      expect(storedFeed?.buffer.toString()).toBe("fake-feed-hd-png");
+    });
+  });
+
+  describe("StorageService & Backward Compatibility Fallback Seams", () => {
+    it("should retrieve clean master from StorageService via cleanMasterAssetKey when present", async () => {
+      const masterBuffer = Buffer.from("clean-master-stored-in-r2");
+      await storageDriver.uploadAsset({
+        key: "masters/my-draft/master.png",
+        buffer: masterBuffer,
+        contentType: "image/png",
+        isPublic: false,
+      });
+
+      const order = await createTestOrder("PAID", {
+        cleanMasterImageDataUrl: null,
+        cleanMasterAssetKey: "masters/my-draft/master.png",
+      });
+
+      const result = await service.ensureDeliveryExports(order.id);
+      expect(result).toBeDefined();
+      expect(mockFormatFeed).toHaveBeenCalledWith(masterBuffer);
+      expect(mockFormatStory).toHaveBeenCalledWith(masterBuffer);
+    });
+
+    it("should fallback to legacy Base64 cleanMasterImageDataUrl when cleanMasterAssetKey is absent", async () => {
+      const order = await createTestOrder("PAID", {
+        cleanMasterAssetKey: null,
+        cleanMasterImageDataUrl: FAKE_PNG_DATA_URL,
+      });
+
+      const result = await service.ensureDeliveryExports(order.id);
+      expect(result).toBeDefined();
+      expect(mockFormatFeed).toHaveBeenCalledTimes(1);
+    });
+
+    it("should fallback to Base64 in deliveryExports when assetKey is not present (legacy export)", async () => {
+      const order = await createTestOrder("PAID");
+      await db.insert(deliveryExports).values({
+        orderId: order.id,
+        feedUrl: FAKE_PNG_DATA_URL,
+        storyUrl: FAKE_PNG_DATA_URL,
+        feedAssetKey: null,
+        storyAssetKey: null,
+        downloadCount: 0,
+      });
+
+      const binary = await service.getExportBinary(order.id, "feed");
+      expect(binary.buffer).toBeInstanceOf(Buffer);
+      expect(binary.contentType).toBe("image/png");
+      expect(binary.buffer.length).toBeGreaterThan(0);
+    });
+
+    it("should not increment downloadCount when recordDownload: false is passed (inline mode)", async () => {
+      const order = await createTestOrder("PAID");
+      await service.ensureDeliveryExports(order.id);
+
+      const binary = await service.getExportBinary(order.id, "feed", {
+        recordDownload: false,
+      });
+      expect(binary.buffer).toBeInstanceOf(Buffer);
+
+      const [stored] = await db
+        .select()
+        .from(deliveryExports)
+        .where(eq(deliveryExports.orderId, order.id));
+
+      expect(stored.downloadCount).toBe(0);
     });
   });
 });

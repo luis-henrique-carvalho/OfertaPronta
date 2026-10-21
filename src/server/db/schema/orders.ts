@@ -19,6 +19,7 @@ export const orders = pgTable("orders", {
   cobrandingAccepted: boolean("cobranding_accepted").notNull().default(false),
   cobrandingCreditText: text("cobranding_credit_text"),
   cleanMasterImageDataUrl: text("clean_master_image_data_url"),
+  cleanMasterAssetKey: text("clean_master_asset_key"),
   frozenSnapshot: jsonb("frozen_snapshot").notNull(),
   customerEmail: text("customer_email"),
   customerWhatsapp: text("customer_whatsapp"),
@@ -49,6 +50,8 @@ export interface OrderFrozenSnapshot {
   referenceImageDataUrl?: string | null;
   previewCardImageUrl?: string | null;
   cleanMasterImageDataUrl?: string | null;
+  cleanMasterAssetKey?: string | null;
+  previewAssetKey?: string | null;
 
   // Metadados comerciais e co-branding
   planId: string;

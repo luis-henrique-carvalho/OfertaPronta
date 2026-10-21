@@ -24,3 +24,15 @@ export type {
   GeneratePreviewResponse,
   GeneratePreviewDependencies,
 } from "./functions/generator.functions";
+
+export {
+  getShowcaseCardsFn,
+  getShowcaseCardsInputSchema,
+  showcaseCardsResponseSchema,
+} from "./functions/showcase.functions";
+
+export type {
+  GetShowcaseCardsInput,
+  ShowcaseCardsResponse,
+  ShowcaseCardItem,
+} from "./functions/showcase.functions";

@@ -68,6 +68,8 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       customStyleInstructions: null,
       cleanMasterImageDataUrl: null,
       previewCardImageUrl: null,
+      previewAssetKey: null,
+      cleanMasterAssetKey: null,
       cardIntent: "promo",
       customIntentText: null,
       logoImageDataUrl: null,
@@ -189,7 +191,9 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
 
       expect(response).toEqual({
         success: true,
-        previewUrl: watermarkedDataUrl,
+        previewUrl: expect.stringMatching(
+          /^https?:\/\/.+\/previews\/draft-123\/\d+\.png$/,
+        ),
         aiGenerationCount: 1,
       });
 
@@ -214,8 +218,10 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       expect(watermark).toHaveBeenCalledWith(syntheticBuffer);
       expect(updateDraftPreview).toHaveBeenCalledWith(
         "draft-123",
-        watermarkedDataUrl,
+        expect.stringMatching(/^https?:\/\/.+\/previews\/draft-123\/\d+\.png$/),
         `data:image/png;base64,${syntheticBuffer.toString("base64")}`,
+        expect.stringMatching(/^previews\/draft-123\/\d+\.png$/),
+        expect.stringMatching(/^masters\/draft-123\/\d+\.png$/),
       );
     });
 
@@ -326,7 +332,9 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       expect(firstResponse.success).toBe(true);
       if (firstResponse.success) {
         expect(firstResponse.aiGenerationCount).toBe(1);
-        expect(firstResponse.previewUrl).toMatch(/^data:image\/webp;base64,/);
+        expect(firstResponse.previewUrl).toMatch(
+          /^https?:\/\/.+\/previews\/.+\.png$/,
+        );
       }
 
       // 4. Verify draft in DB has been updated atomically
@@ -336,6 +344,8 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       expect(fetchedAfter?.previewCardImageUrl).toBe(
         firstResponse.success ? firstResponse.previewUrl : null,
       );
+      expect(fetchedAfter?.previewAssetKey).toMatch(/^previews\/.+\.png$/);
+      expect(fetchedAfter?.cleanMasterAssetKey).toMatch(/^masters\/.+\.png$/);
 
       // 5. Attempt 2nd generation on same draft -> must be blocked
       const secondMockGenerator = vi.fn();

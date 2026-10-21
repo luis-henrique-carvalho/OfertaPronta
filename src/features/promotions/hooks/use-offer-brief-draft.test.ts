@@ -33,6 +33,8 @@ function createMockDraft(overrides: Partial<OfferDraft> = {}): OfferDraft {
     customStyleInstructions: null,
     cleanMasterImageDataUrl: null,
     previewCardImageUrl: null,
+    previewAssetKey: null,
+    cleanMasterAssetKey: null,
     aiGenerationCount: 0,
     createdAt: new Date(),
     updatedAt: new Date(),

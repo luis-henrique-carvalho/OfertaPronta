@@ -57,6 +57,13 @@
       "when": 1792526174845,
       "tag": "0007_yielding_riptide",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792591465339,
+      "tag": "0008_steep_millenium_guard",
+      "breakpoints": true
     }
   ]
 }

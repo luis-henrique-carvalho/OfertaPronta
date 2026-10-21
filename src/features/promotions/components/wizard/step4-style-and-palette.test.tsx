@@ -164,4 +164,58 @@ describe("Step4StyleAndPalette", () => {
     expect(textarea.value).toBe("");
     expect(redYellowChip.getAttribute("aria-pressed")).toBe("false");
   });
+
+  it("renderiza o botão gatilho da vitrine com badge e texto destacado", () => {
+    render(
+      <Step4StyleAndPalette
+        segmentData={mockSegmentData}
+        businessName="Boutique Flor"
+        offerTitle="Vestido Elegance"
+        onSelectStyle={vi.fn()}
+        onCustomStyleNoteChange={vi.fn()}
+      />,
+    );
+
+    const showcaseBtn = screen.getByTestId("btn-open-showcase-gallery");
+    expect(showcaseBtn).toBeDefined();
+    expect(showcaseBtn.textContent).toContain(
+      "Ver Exemplos Reais Criados por IA",
+    );
+    expect(screen.getByText("Inspiração")).toBeDefined();
+  });
+
+  it("abre a vitrine ShowcaseGalleryDialog e permite selecionar um estilo em 1 toque", () => {
+    const handleSelectStyle = vi.fn();
+    render(
+      <Step4StyleAndPalette
+        segmentData={mockSegmentData}
+        businessName="Boutique Flor"
+        offerTitle="Vestido Elegance"
+        onSelectStyle={handleSelectStyle}
+        onCustomStyleNoteChange={vi.fn()}
+      />,
+    );
+
+    // 1. Clica no botão para abrir a vitrine
+    const showcaseBtn = screen.getByTestId("btn-open-showcase-gallery");
+    fireEvent.click(showcaseBtn);
+
+    // 2. O modal abre e exibe o grid de cards da vitrine
+    expect(screen.getByTestId("showcase-cards-grid")).toBeDefined();
+    expect(
+      screen.getByText("Vitrine de Artes Prontas para Inspirar"),
+    ).toBeDefined();
+
+    // 3. Clica em "Usar este Estilo" no primeiro card de exemplo da vitrine
+    const useStyleButtons = screen.getAllByRole("button", {
+      name: /Usar este Estilo|Estilo Selecionado/i,
+    });
+    expect(useStyleButtons.length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.click(useStyleButtons[0]);
+
+    // 4. Verifica que onSelectStyle foi acionado com o preset ID do card
+    expect(handleSelectStyle).toHaveBeenCalledTimes(1);
+    expect(handleSelectStyle).toHaveBeenCalledWith(expect.any(String));
+  });
 });

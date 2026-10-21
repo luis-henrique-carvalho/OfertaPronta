@@ -43,6 +43,8 @@ export async function saveOfferDraft(
       cardIntent: validated.cardIntent ?? "promo",
       customIntentText: validated.customIntentText ?? null,
       logoImageDataUrl: validated.logoImageDataUrl ?? null,
+      previewAssetKey: validated.previewAssetKey ?? null,
+      cleanMasterAssetKey: validated.cleanMasterAssetKey ?? null,
       aiGenerationCount: 0,
       createdAt: now,
       updatedAt: now,
@@ -67,6 +69,8 @@ export async function saveOfferDraft(
         cardIntent: validated.cardIntent ?? "promo",
         customIntentText: validated.customIntentText ?? null,
         logoImageDataUrl: validated.logoImageDataUrl ?? null,
+        previewAssetKey: validated.previewAssetKey ?? null,
+        cleanMasterAssetKey: validated.cleanMasterAssetKey ?? null,
         updatedAt: now,
       },
     })
@@ -104,6 +108,8 @@ export async function updateDraftPreviewCard(
   previewCardImageUrl: string,
   database: AppDatabase = db,
   cleanMasterImageDataUrl?: string | null,
+  previewAssetKey?: string | null,
+  cleanMasterAssetKey?: string | null,
 ): Promise<OfferDraft | null> {
   if (!id || id.trim().length === 0) {
     return null;
@@ -118,6 +124,12 @@ export async function updateDraftPreviewCard(
 
   if (cleanMasterImageDataUrl !== undefined) {
     updatePayload.cleanMasterImageDataUrl = cleanMasterImageDataUrl;
+  }
+  if (previewAssetKey !== undefined) {
+    updatePayload.previewAssetKey = previewAssetKey;
+  }
+  if (cleanMasterAssetKey !== undefined) {
+    updatePayload.cleanMasterAssetKey = cleanMasterAssetKey;
   }
 
   const [updated] = await database

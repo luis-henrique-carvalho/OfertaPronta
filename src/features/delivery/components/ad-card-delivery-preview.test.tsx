@@ -41,4 +41,34 @@ describe("AdCardDeliveryPreview Component", () => {
       expect(storyImg).toBeDefined();
     }
   });
+
+  it("renderiza perfeitamente tanto URLs HTTPS de CDN quanto Data URLs Base64 legados", () => {
+    const { rerender } = render(
+      <AdCardDeliveryPreview
+        feedCardUrl="https://r2.cdn.ofertapronta.com.br/deliveries/order-1/feed.png"
+        storyCardUrl="https://r2.cdn.ofertapronta.com.br/deliveries/order-1/story.png"
+        offerTitle="CDN Promo"
+      />,
+    );
+
+    const cdnImg = screen.getByAltText(
+      "Arte de Feed da promoção: CDN Promo",
+    ) as HTMLImageElement;
+    expect(cdnImg.src).toBe(
+      "https://r2.cdn.ofertapronta.com.br/deliveries/order-1/feed.png",
+    );
+
+    rerender(
+      <AdCardDeliveryPreview
+        feedCardUrl="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+        storyCardUrl="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+        offerTitle="Base64 Promo"
+      />,
+    );
+
+    const base64Img = screen.getByAltText(
+      "Arte de Feed da promoção: Base64 Promo",
+    ) as HTMLImageElement;
+    expect(base64Img.src).toContain("data:image/png;base64,");
+  });
 });

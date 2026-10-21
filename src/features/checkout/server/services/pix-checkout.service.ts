@@ -68,6 +68,8 @@ export class PixCheckoutService {
       customStyleInstructions: draft.customStyleInstructions,
       previewCardImageUrl: draft.previewCardImageUrl,
       cleanMasterImageDataUrl: draft.cleanMasterImageDataUrl,
+      cleanMasterAssetKey: draft.cleanMasterAssetKey,
+      previewAssetKey: draft.previewAssetKey,
 
       // Metadados do Épico 6 congelados para regenerações idênticas
       cardIntent: draft.cardIntent || "promo",
@@ -210,6 +212,7 @@ export class PixCheckoutService {
       validated.customerWhatsapp || draft.whatsapp || null,
       validated.customerEmail || null,
       draft.cleanMasterImageDataUrl,
+      draft.cleanMasterAssetKey,
     );
 
     log.info("Pedido e cobrança persistidos com sucesso no PostgreSQL", {
@@ -656,6 +659,7 @@ export class PixCheckoutService {
     customerWhatsapp: string | null,
     customerEmail: string | null,
     cleanMasterImageDataUrl?: string | null,
+    cleanMasterAssetKey?: string | null,
   ): Promise<string> {
     return this.database.transaction(async (tx) => {
       const [newOrder] = await tx
@@ -668,6 +672,7 @@ export class PixCheckoutService {
           cobrandingAccepted: false,
           cobrandingCreditText: null,
           cleanMasterImageDataUrl: cleanMasterImageDataUrl ?? null,
+          cleanMasterAssetKey: cleanMasterAssetKey ?? null,
           frozenSnapshot,
           customerWhatsapp,
           customerEmail,

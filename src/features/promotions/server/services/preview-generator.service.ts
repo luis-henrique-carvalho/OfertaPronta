@@ -19,8 +19,9 @@ import {
   type GenerateAdCardResult,
   type GoogleGenAIClient,
 } from "./ai-card-generator.service";
-import { applyWatermark } from "@/server/export-engine";
+import { applyWatermark, type WatermarkResult } from "@/server/export-engine";
 import type { AppDatabase } from "@/server/db";
+import { getStorageService, type StorageService } from "@/server/storage";
 
 const log = createServerLogger("promotions.generator");
 
@@ -57,12 +58,19 @@ export interface GeneratePreviewDependencies {
   generateAdCard?: (
     input: GenerateAdCardInput,
   ) => Promise<GenerateAdCardResult>;
-  watermark?: (buffer: Buffer) => Promise<{ dataUrl: string }>;
+  watermark?: (
+    buffer: Buffer,
+  ) => Promise<
+    { dataUrl: string; watermarkedBuffer?: Buffer } | WatermarkResult
+  >;
   updateDraftPreview?: (
     draftId: string,
     previewUrl: string,
     cleanMasterDataUrl?: string | null,
+    previewAssetKey?: string | null,
+    cleanMasterAssetKey?: string | null,
   ) => Promise<OfferDraft | null>;
+  storageService?: StorageService;
   database?: AppDatabase;
   geminiClient?: GoogleGenAIClient;
 }
@@ -79,17 +87,27 @@ function resolveDependencies(deps: GeneratePreviewDependencies) {
   const watermark =
     deps.watermark ?? ((buffer: Buffer) => applyWatermark(buffer));
 
+  const storageService = deps.storageService ?? getStorageService();
+
   const updateDraft =
     deps.updateDraftPreview ??
-    ((id: string, previewUrl: string, cleanMasterDataUrl?: string | null) =>
+    ((
+      id: string,
+      previewUrl: string,
+      cleanMasterDataUrl?: string | null,
+      previewAssetKey?: string | null,
+      cleanMasterAssetKey?: string | null,
+    ) =>
       updateDraftPreviewCard(
         id,
         previewUrl,
         deps.database,
         cleanMasterDataUrl,
+        previewAssetKey,
+        cleanMasterAssetKey,
       ));
 
-  return { getDraft, generateAdCard, watermark, updateDraft };
+  return { getDraft, generateAdCard, watermark, updateDraft, storageService };
 }
 
 export function buildAdCardInput(draft: OfferDraft): GenerateAdCardInput {
@@ -129,12 +147,88 @@ export function buildAdCardInput(draft: OfferDraft): GenerateAdCardInput {
  * Executa a orquestração de geração de prévia protegida por marca d'água
  * com controle rígido de cota gratuita (exatamente 1 por rascunho).
  */
+function resolveWatermarkedBuffer(
+  watermarkResult:
+    { dataUrl: string; watermarkedBuffer?: Buffer } | WatermarkResult,
+): Buffer {
+  if (
+    "watermarkedBuffer" in watermarkResult &&
+    watermarkResult.watermarkedBuffer &&
+    Buffer.isBuffer(watermarkResult.watermarkedBuffer)
+  ) {
+    return watermarkResult.watermarkedBuffer;
+  }
+  const match = watermarkResult.dataUrl.match(/^data:[^;]+;base64,(.+)$/);
+  return match && match[1]
+    ? Buffer.from(match[1], "base64")
+    : Buffer.from(watermarkResult.dataUrl, "base64");
+}
+
+async function uploadPreviewAndMaster(
+  storageService: StorageService,
+  draftId: string,
+  watermarkedBuffer: Buffer,
+  rawImageBuffer: Buffer,
+  mimeType: string,
+): Promise<{
+  previewUrl: string;
+  previewAssetKey: string;
+  cleanMasterAssetKey: string;
+}> {
+  const timestamp = Date.now();
+  const previewKey = `previews/${draftId}/${timestamp}.png`;
+  const masterKey = `masters/${draftId}/${timestamp}.png`;
+
+  log.info("Persistindo prévia e master no StorageService...", {
+    draftId,
+    previewKey,
+    masterKey,
+  });
+
+  const [previewUpload, masterUpload] = await Promise.all([
+    storageService.uploadAsset({
+      key: previewKey,
+      buffer: watermarkedBuffer,
+      contentType: "image/png",
+      isPublic: true,
+    }),
+    storageService.uploadAsset({
+      key: masterKey,
+      buffer: rawImageBuffer,
+      contentType: mimeType,
+      isPublic: false,
+    }),
+  ]);
+
+  return {
+    previewUrl: previewUpload.url,
+    previewAssetKey: previewUpload.key,
+    cleanMasterAssetKey: masterUpload.key,
+  };
+}
+
+/**
+ * Executa a orquestração de geração de prévia protegida por marca d'água
+ * com controle rígido de cota gratuita (exatamente 1 por rascunho).
+ */
 async function generateAndWatermarkAdCard(
   draft: OfferDraft,
   generateAdCard: (input: GenerateAdCardInput) => Promise<GenerateAdCardResult>,
-  watermark: (buffer: Buffer) => Promise<{ dataUrl: string }>,
+  watermark: (
+    buffer: Buffer,
+  ) => Promise<
+    { dataUrl: string; watermarkedBuffer?: Buffer } | WatermarkResult
+  >,
+  storageService: StorageService,
 ): Promise<
-  | { success: true; dataUrl: string; cleanMasterDataUrl: string }
+  | {
+      success: true;
+      previewUrl: string;
+      dataUrl: string;
+      cleanMasterDataUrl: string;
+      previewAssetKey: string;
+      cleanMasterAssetKey: string;
+    }
   | { success: false; response: GeneratePreviewResponse }
 > {
   try {
@@ -156,10 +250,23 @@ async function generateAndWatermarkAdCard(
     });
     const watermarkResult = await watermark(aiResult.rawImageBuffer);
     log.info("Marca d'água aplicada com sucesso", { draftId: draft.id });
+
+    const watermarkedBuffer = resolveWatermarkedBuffer(watermarkResult);
+    const uploaded = await uploadPreviewAndMaster(
+      storageService,
+      draft.id,
+      watermarkedBuffer,
+      aiResult.rawImageBuffer,
+      mimeType,
+    );
+
     return {
       success: true,
+      previewUrl: uploaded.previewUrl,
       dataUrl: watermarkResult.dataUrl,
       cleanMasterDataUrl,
+      previewAssetKey: uploaded.previewAssetKey,
+      cleanMasterAssetKey: uploaded.cleanMasterAssetKey,
     };
   } catch (err: unknown) {
     log.error("FALHA na síntese ou aplicação de marca d'água", err, {
@@ -178,6 +285,24 @@ async function generateAndWatermarkAdCard(
   }
 }
 
+function validateDraftQuota(draft: OfferDraft): GeneratePreviewResponse | null {
+  if (draft.aiGenerationCount >= 1) {
+    log.warn("Cota de prévia gratuita excedida para draftId", {
+      draftId: draft.id,
+      aiGenerationCount: draft.aiGenerationCount,
+    });
+    return {
+      success: false,
+      code: "AI_QUOTA_EXCEEDED",
+      message:
+        "Limite de 1 prévia gratuita por rascunho atingido. Conclua o pagamento Pix para liberar os arquivos e ter direito a até 3 regenerações.",
+      previewUrl: draft.previewCardImageUrl,
+      aiGenerationCount: draft.aiGenerationCount,
+    };
+  }
+  return null;
+}
+
 /**
  * Executa a orquestração de geração de prévia protegida por marca d'água
  * com controle rígido de cota gratuita (exatamente 1 por rascunho).
@@ -191,7 +316,7 @@ export async function executeGeneratePreview(
     draftId: validated.draftId,
   });
 
-  const { getDraft, generateAdCard, watermark, updateDraft } =
+  const { getDraft, generateAdCard, watermark, updateDraft, storageService } =
     resolveDependencies(deps);
 
   const draft = await getDraft(validated.draftId);
@@ -214,25 +339,16 @@ export async function executeGeneratePreview(
     aiGenerationCount: draft.aiGenerationCount,
   });
 
-  if (draft.aiGenerationCount >= 1) {
-    log.warn("Cota de prévia gratuita excedida para draftId", {
-      draftId: draft.id,
-      aiGenerationCount: draft.aiGenerationCount,
-    });
-    return {
-      success: false,
-      code: "AI_QUOTA_EXCEEDED",
-      message:
-        "Limite de 1 prévia gratuita por rascunho atingido. Conclua o pagamento Pix para liberar os arquivos e ter direito a até 3 regenerações.",
-      previewUrl: draft.previewCardImageUrl,
-      aiGenerationCount: draft.aiGenerationCount,
-    };
+  const quotaError = validateDraftQuota(draft);
+  if (quotaError) {
+    return quotaError;
   }
 
   const generated = await generateAndWatermarkAdCard(
     draft,
     generateAdCard,
     watermark,
+    storageService,
   );
   if (!generated.success) {
     return generated.response;
@@ -240,11 +356,15 @@ export async function executeGeneratePreview(
 
   log.info("Persistindo prévia e atualizando cota no PostgreSQL...", {
     draftId: draft.id,
+    previewAssetKey: generated.previewAssetKey,
+    cleanMasterAssetKey: generated.cleanMasterAssetKey,
   });
   const updatedDraft = await updateDraft(
     draft.id,
-    generated.dataUrl,
+    generated.previewUrl,
     generated.cleanMasterDataUrl,
+    generated.previewAssetKey,
+    generated.cleanMasterAssetKey,
   );
   if (!updatedDraft) {
     log.warn("Falha na atualização atômica de cota", {
@@ -265,7 +385,7 @@ export async function executeGeneratePreview(
   });
   return {
     success: true,
-    previewUrl: generated.dataUrl,
+    previewUrl: generated.previewUrl,
     aiGenerationCount: 1,
   };
 }

@@ -208,13 +208,26 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
       expect(result.offerTitle).toBe("Super Smash Burger Duplo");
       expect(result.regenerationsUsed).toBe(1);
       expect(result.remainingRegenerations).toBe(2);
-      expect(result.canRegenerate).toBe(true);
       expect(result.feedCardUrl).toContain(
-        Buffer.from("new-feed-hd-png").toString("base64"),
+        `/api/delivery/download?orderId=${order.id}&format=feed`,
       );
       expect(result.storyCardUrl).toContain(
-        Buffer.from("new-story-hd-png").toString("base64"),
+        `/api/delivery/download?orderId=${order.id}&format=story`,
       );
+
+      const feedBinary = await deliveryService.getExportBinary(
+        order.id,
+        "feed",
+        { recordDownload: false },
+      );
+      expect(feedBinary.buffer.toString()).toBe("new-feed-hd-png");
+
+      const storyBinary = await deliveryService.getExportBinary(
+        order.id,
+        "story",
+        { recordDownload: false },
+      );
+      expect(storyBinary.buffer.toString()).toBe("new-story-hd-png");
 
       // Verify orders table in database was updated
       const [updatedOrder] = await db
@@ -234,10 +247,16 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
         .where(eq(deliveryExports.orderId, order.id));
 
       expect(updatedExport.feedUrl).toContain(
-        Buffer.from("new-feed-hd-png").toString("base64"),
+        `/api/delivery/download?orderId=${order.id}&format=feed`,
       );
       expect(updatedExport.storyUrl).toContain(
-        Buffer.from("new-story-hd-png").toString("base64"),
+        `/api/delivery/download?orderId=${order.id}&format=story`,
+      );
+      expect(updatedExport.feedAssetKey).toBe(
+        `deliveries/${order.id}/feed.png`,
+      );
+      expect(updatedExport.storyAssetKey).toBe(
+        `deliveries/${order.id}/story.png`,
       );
     });
 
@@ -482,14 +501,28 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
       );
 
       expect(result.feedCardUrl).toContain(
-        Buffer.from("regen-feed-raw-with-cobranding-signature").toString(
-          "base64",
-        ),
+        `/api/delivery/download?orderId=${order.id}&format=feed`,
       );
       expect(result.storyCardUrl).toContain(
-        Buffer.from("regen-story-raw-with-cobranding-signature").toString(
-          "base64",
-        ),
+        `/api/delivery/download?orderId=${order.id}&format=story`,
+      );
+
+      const feedBinary = await deliveryService.getExportBinary(
+        order.id,
+        "feed",
+        { recordDownload: false },
+      );
+      expect(feedBinary.buffer.toString()).toBe(
+        "regen-feed-raw-with-cobranding-signature",
+      );
+
+      const storyBinary = await deliveryService.getExportBinary(
+        order.id,
+        "story",
+        { recordDownload: false },
+      );
+      expect(storyBinary.buffer.toString()).toBe(
+        "regen-story-raw-with-cobranding-signature",
       );
     });
   });

@@ -23,6 +23,10 @@ export const drafts = pgTable("drafts", {
   customIntentText: text("custom_intent_text"),
   logoImageDataUrl: text("logo_image_data_url"),
 
+  // === COLUNAS DE ARMAZENAMENTO R2 ===
+  previewAssetKey: text("preview_asset_key"),
+  cleanMasterAssetKey: text("clean_master_asset_key"),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

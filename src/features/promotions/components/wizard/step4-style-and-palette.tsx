@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Typography } from "@/components/ui/typography";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -12,6 +14,7 @@ import {
 import { REFERENCE_STYLE_PRESET_ID } from "../../data/offer-brief.schema";
 import { StyleMiniPostCard } from "./style-mini-post-card";
 import { ReferenceStyleCard } from "./reference-style-card";
+import { ShowcaseGalleryDialog } from "./showcase-gallery-dialog";
 
 export interface Step4StyleAndPaletteProps {
   segmentData: CreationCatalogItem;
@@ -40,6 +43,7 @@ export function Step4StyleAndPalette({
   onCustomStyleNoteChange,
   className,
 }: Step4StyleAndPaletteProps) {
+  const [isShowcaseOpen, setIsShowcaseOpen] = useState(false);
   const styles = segmentData.styles;
   const hasReference = Boolean(
     referenceImageDataUrl && referenceImageDataUrl.trim().length > 0,
@@ -81,6 +85,45 @@ export function Step4StyleAndPalette({
           Toque na opção que mais combina com a sua loja:
         </Typography>
       </div>
+
+      {/* Botão de Destaque: Ver Exemplos Reais Criados por IA */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-2xl border border-primary/25 bg-primary/5 shadow-2xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Badge
+            variant="secondary"
+            className="gap-1 px-2 py-0.5 text-[11px] font-semibold shrink-0"
+          >
+            <Sparkles className="size-3 text-primary shrink-0" />
+            <span>Inspiração</span>
+          </Badge>
+          <Typography
+            variant="muted"
+            className="text-xs text-foreground/85 font-medium truncate"
+          >
+            Quer ver cards prontos da IA para {segmentData.label}?
+          </Typography>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          data-testid="btn-open-showcase-gallery"
+          onClick={() => setIsShowcaseOpen(true)}
+          className="min-h-[44px] h-10 px-3.5 text-xs font-bold gap-1.5 shrink-0 border-primary/40 bg-background text-primary hover:bg-primary hover:text-primary-foreground shadow-2xs transition-colors select-none"
+        >
+          <Sparkles className="size-3.5 shrink-0" />
+          <span>Ver Exemplos Reais Criados por IA</span>
+        </Button>
+      </div>
+
+      <ShowcaseGalleryDialog
+        open={isShowcaseOpen}
+        onOpenChange={setIsShowcaseOpen}
+        segment={segmentData.id}
+        segmentLabel={segmentData.label}
+        activeStyleId={activeCatalogStyleId}
+        onSelectStyle={handleSelectStyle}
+      />
 
       {/* Card Especial de Referência quando o usuário enviou um Print no passo anterior */}
       {hasReference && (
