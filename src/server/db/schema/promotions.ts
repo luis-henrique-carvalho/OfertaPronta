@@ -23,6 +23,11 @@ export const drafts = pgTable("drafts", {
   customIntentText: text("custom_intent_text"),
   logoImageDataUrl: text("logo_image_data_url"),
 
+  // === COLUNAS DE ASSETS DE INSUMOS (DRAFTS INTAKE) ===
+  productAssetKey: text("product_asset_key"),
+  referenceAssetKey: text("reference_asset_key"),
+  logoAssetKey: text("logo_asset_key"),
+
   // === COLUNAS DE ARMAZENAMENTO R2 ===
   previewAssetKey: text("preview_asset_key"),
   cleanMasterAssetKey: text("clean_master_asset_key"),

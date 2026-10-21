@@ -27,13 +27,17 @@ export interface CloudflareR2Options {
 export class CloudflareR2StorageDriver implements StorageService {
   private readonly client: S3Client;
   private readonly bucketName: string;
-  private readonly publicUrl?: string;
-  private readonly accountId: string;
+  private readonly publicUrl: string;
 
   constructor(options: CloudflareR2Options) {
-    this.accountId = options.accountId;
+    if (!options.publicUrl || options.publicUrl.trim().length === 0) {
+      throw new Error(
+        "CloudflareR2StorageDriver requer publicUrl (R2_PUBLIC_URL) obrigatória para distribuição pública via CDN.",
+      );
+    }
+
     this.bucketName = options.bucketName;
-    this.publicUrl = options.publicUrl?.replace(/\/$/, "");
+    this.publicUrl = options.publicUrl.trim().replace(/\/+$/, "");
 
     this.client = new S3Client({
       region: "auto",
@@ -46,9 +50,10 @@ export class CloudflareR2StorageDriver implements StorageService {
   }
 
   async uploadAsset(options: AssetUploadOptions): Promise<AssetUploadResult> {
+    const cleanKey = options.key.replace(/^\/+/, "");
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
-      Key: options.key,
+      Key: cleanKey,
       Body: options.buffer,
       ContentType: options.contentType,
       Metadata: options.metadata,
@@ -57,16 +62,17 @@ export class CloudflareR2StorageDriver implements StorageService {
     await this.client.send(command);
 
     return {
-      key: options.key,
-      url: this.getPublicUrl(options.key),
+      key: cleanKey,
+      url: this.getPublicUrl(cleanKey),
     };
   }
 
   async getAsset(key: string): Promise<StorageAsset | null> {
+    const cleanKey = key.replace(/^\/+/, "");
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
-        Key: key,
+        Key: cleanKey,
       });
 
       const response = await this.client.send(command);
@@ -98,19 +104,17 @@ export class CloudflareR2StorageDriver implements StorageService {
   }
 
   async deleteAsset(key: string): Promise<void> {
+    const cleanKey = key.replace(/^\/+/, "");
     const command = new DeleteObjectCommand({
       Bucket: this.bucketName,
-      Key: key,
+      Key: cleanKey,
     });
     await this.client.send(command);
   }
 
   getPublicUrl(key: string): string {
-    const cleanKey = key.replace(/^\//, "");
-    if (this.publicUrl) {
-      return `${this.publicUrl}/${cleanKey}`;
-    }
-    return `https://${this.accountId}.r2.cloudflarestorage.com/${this.bucketName}/${cleanKey}`;
+    const cleanKey = key.replace(/^\/+/, "");
+    return `${this.publicUrl}/${cleanKey}`;
   }
 
   private async bodyToBuffer(body: unknown): Promise<Buffer> {

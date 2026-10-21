@@ -85,39 +85,74 @@ describe("StorageService Deep Module (TDD)", () => {
       expect(await driver.getAsset("file2.png")).toBeNull();
     });
 
-    it("should default to https://storage.local.fake if publicUrlBase is not provided", () => {
+    it("should return valid Data URL immediately renderable in <img /> when publicUrlBase is omitted", async () => {
       const defaultDriver = new InMemoryStorageDriver();
-      expect(defaultDriver.getPublicUrl("test/image.png")).toBe(
-        "https://storage.local.fake/test/image.png",
+      const buffer = Buffer.from("test-png-pixels");
+
+      const uploadResult = await defaultDriver.uploadAsset({
+        key: "test/card.png",
+        buffer,
+        contentType: "image/png",
+      });
+
+      expect(uploadResult.url).toMatch(/^data:image\/png;base64,/);
+      expect(uploadResult.url).toBe(
+        defaultDriver.getPublicUrl("test/card.png"),
+      );
+      expect(uploadResult.url).not.toContain("storage.local.fake");
+    });
+
+    it("should return neutral Data URL when key does not exist and publicUrlBase is omitted", () => {
+      const defaultDriver = new InMemoryStorageDriver();
+      const url = defaultDriver.getPublicUrl("unknown/asset.png");
+
+      expect(url).toMatch(/^data:application\/octet-stream;base64,/);
+      expect(url).not.toContain("storage.local.fake");
+    });
+
+    it("should format public URL with custom publicUrlBase without double slashes", () => {
+      const cdnDriver = new InMemoryStorageDriver({
+        publicUrlBase: "https://cdn.teste.local/",
+      });
+      expect(cdnDriver.getPublicUrl("/inputs/draft-123/product.png")).toBe(
+        "https://cdn.teste.local/inputs/draft-123/product.png",
       );
     });
   });
 
-  describe("CloudflareR2StorageDriver URL Resolution", () => {
-    it("should format public URL with custom publicUrl when configured", () => {
-      const r2Driver = new CloudflareR2StorageDriver({
-        accountId: "acc-123",
-        accessKeyId: "key-123",
-        secretAccessKey: "secret-123",
-        bucketName: "my-bucket",
-        publicUrl: "https://cdn.ofertapronta.com.br",
-      });
+  describe("CloudflareR2StorageDriver Fail-Fast and URL Resolution", () => {
+    it("should throw descriptive error when publicUrl is omitted or empty", () => {
+      expect(() => {
+        new CloudflareR2StorageDriver({
+          accountId: "acc-123",
+          accessKeyId: "key-123",
+          secretAccessKey: "secret-123",
+          bucketName: "my-bucket",
+        });
+      }).toThrow(/requer publicUrl \(R2_PUBLIC_URL\)/);
 
-      expect(r2Driver.getPublicUrl("previews/d1/card.png")).toBe(
-        "https://cdn.ofertapronta.com.br/previews/d1/card.png",
-      );
+      expect(() => {
+        new CloudflareR2StorageDriver({
+          accountId: "acc-123",
+          accessKeyId: "key-123",
+          secretAccessKey: "secret-123",
+          bucketName: "my-bucket",
+          publicUrl: "   ",
+        });
+      }).toThrow(/requer publicUrl \(R2_PUBLIC_URL\)/);
     });
 
-    it("should fallback to Cloudflare R2 endpoint URL when publicUrl is not provided", () => {
+    it("should format public CDN URL without double slashes", () => {
       const r2Driver = new CloudflareR2StorageDriver({
         accountId: "acc-123",
         accessKeyId: "key-123",
         secretAccessKey: "secret-123",
         bucketName: "my-bucket",
+        publicUrl: "https://assets.ofertapronta.com.br/",
       });
 
-      expect(r2Driver.getPublicUrl("deliveries/o1/feed.png")).toBe(
-        "https://acc-123.r2.cloudflarestorage.com/my-bucket/deliveries/o1/feed.png",
+      expect(r2Driver.getPublicUrl("/deliveries/order-1/feed.png")).toBe(
+        "https://assets.ofertapronta.com.br/deliveries/order-1/feed.png",
       );
     });
   });

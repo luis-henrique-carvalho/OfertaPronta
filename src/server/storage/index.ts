@@ -45,6 +45,11 @@ export interface StorageService {
    * Resolve a URL pública de um asset a partir de sua chave.
    */
   getPublicUrl(key: string): string;
+
+  /**
+   * Método opcional para limpeza e isolamento em testes unitários.
+   */
+  clear?(): void;
 }
 
 let activeStorageService: StorageService | null = null;
@@ -64,7 +69,8 @@ export function getStorageService(): StorageService {
     serverEnv.R2_ACCOUNT_ID &&
     serverEnv.R2_ACCESS_KEY_ID &&
     serverEnv.R2_SECRET_ACCESS_KEY &&
-    serverEnv.R2_BUCKET_NAME
+    serverEnv.R2_BUCKET_NAME &&
+    serverEnv.R2_PUBLIC_URL
   ) {
     log.info("Inicializando CloudflareR2StorageDriver", {
       bucket: serverEnv.R2_BUCKET_NAME,

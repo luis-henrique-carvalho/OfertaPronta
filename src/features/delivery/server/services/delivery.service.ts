@@ -3,6 +3,8 @@ import { db, type AppDatabase } from "../../../../server/db";
 import { orders } from "../../../../server/db/schema/orders";
 import { deliveryExports } from "../../../../server/db/schema/delivery";
 import {
+  getExportEngine,
+  type ExportEngine,
   formatFeedCard,
   formatStoryCard,
   applyCobrandingSignature,
@@ -43,29 +45,100 @@ export interface DeliveryBinaryResult {
 export interface DeliveryServiceDependencies {
   database?: AppDatabase;
   baseUrl?: string;
+  exportEngine?: ExportEngine;
+  storageService?: StorageService;
+  // Compatibilidade com testes unitários legados que injetam formatadores
   formatFeed?: (buffer: Buffer) => Promise<Buffer>;
   formatStory?: (buffer: Buffer) => Promise<Buffer>;
   applySignature?: (
     buffer: Buffer,
     options?: CobrandingOptions,
   ) => Promise<Buffer>;
-  storageService?: StorageService;
 }
 
 /**
  * Módulo profundo DeliveryService.
  * Orquestra a entrega permanente em alta resolução (Feed 1080x1350 e Story 1080x1920)
- * para pedidos com pagamento confirmado (PAID), garantindo idempotência e métricas de download.
+ * para pedidos com pagamento confirmado (PAID), delegando a formatação e uploads ao ExportEngine,
+ * garantindo idempotência e métricas de download sem dependência de storage sintético.
  */
+function createCustomExportEngine(
+  deps: DeliveryServiceDependencies,
+  storage: StorageService,
+): ExportEngine {
+  const formatFeed = deps.formatFeed ?? formatFeedCard;
+  const formatStory = deps.formatStory ?? formatStoryCard;
+  const applySignature = deps.applySignature ?? applyCobrandingSignature;
+
+  return {
+    exportFinalCampaign: async (input) => {
+      let [feedBuffer, storyBuffer] = await Promise.all([
+        formatFeed(input.masterBuffer),
+        formatStory(input.masterBuffer),
+      ]);
+      if (input.cobranding?.accepted) {
+        feedBuffer = await applySignature(feedBuffer, {
+          creditText: input.cobranding.creditText,
+          aspectRatio: "feed",
+        });
+        storyBuffer = await applySignature(storyBuffer, {
+          creditText: input.cobranding.creditText,
+          aspectRatio: "story",
+        });
+      }
+      const feedAssetKey = `deliveries/${input.orderId}/feed.png`;
+      const storyAssetKey = `deliveries/${input.orderId}/story.png`;
+      const [feedUpload, storyUpload] = await Promise.all([
+        storage.uploadAsset({
+          key: feedAssetKey,
+          buffer: feedBuffer,
+          contentType: "image/png",
+          isPublic: true,
+        }),
+        storage.uploadAsset({
+          key: storyAssetKey,
+          buffer: storyBuffer,
+          contentType: "image/png",
+          isPublic: true,
+        }),
+      ]);
+      const timestamp = Date.now();
+      const appendCacheBusting = (url: string) => {
+        if (url.startsWith("data:")) return url;
+        const separator = url.includes("?") ? "&" : "?";
+        return `${url}${separator}v=${timestamp}`;
+      };
+      return {
+        feedUrl: appendCacheBusting(feedUpload.url),
+        feedAssetKey,
+        storyUrl: appendCacheBusting(storyUpload.url),
+        storyAssetKey,
+        feedBuffer,
+        storyBuffer,
+      };
+    },
+    exportPreviewCard: async () => {
+      throw new Error("Não implementado no mock de delivery");
+    },
+    saveCleanMaster: async (input) => {
+      const timestamp = Date.now();
+      const prefix = input.prefix ?? "orders";
+      const key = `masters/${prefix}/${input.ownerId}/${timestamp}.png`;
+      const upload = await storage.uploadAsset({
+        key,
+        buffer: input.buffer,
+        contentType: input.contentType || "image/png",
+        isPublic: false,
+      });
+      return { key, url: upload.url };
+    },
+  };
+}
+
 export class DeliveryService {
   private readonly database: AppDatabase;
   private readonly baseUrl: string;
-  private readonly formatFeed: (buffer: Buffer) => Promise<Buffer>;
-  private readonly formatStory: (buffer: Buffer) => Promise<Buffer>;
-  private readonly applySignature: (
-    buffer: Buffer,
-    options?: CobrandingOptions,
-  ) => Promise<Buffer>;
+  private readonly exportEngine: ExportEngine;
   private readonly storageService: StorageService;
 
   constructor(deps?: DeliveryServiceDependencies) {
@@ -77,10 +150,17 @@ export class DeliveryService {
       process.env.VITE_PUBLIC_APP_URL ??
       "";
     this.baseUrl = rawBaseUrl.replace(/\/$/, "");
-    this.formatFeed = deps?.formatFeed ?? formatFeedCard;
-    this.formatStory = deps?.formatStory ?? formatStoryCard;
-    this.applySignature = deps?.applySignature ?? applyCobrandingSignature;
     this.storageService = deps?.storageService ?? getStorageService();
+
+    if (deps?.exportEngine) {
+      this.exportEngine = deps.exportEngine;
+    } else if (deps?.formatFeed || deps?.formatStory || deps?.applySignature) {
+      this.exportEngine = createCustomExportEngine(deps, this.storageService);
+    } else {
+      this.exportEngine = getExportEngine({
+        storageService: this.storageService,
+      });
+    }
   }
 
   /**
@@ -202,76 +282,30 @@ export class DeliveryService {
     masterBuffer: Buffer,
   ): Promise<typeof deliveryExports.$inferSelect> {
     log.info(
-      "Derivando formatos Feed (1080x1350) e Story (1080x1920) via ExportEngine...",
+      "Delegando derivação de formatos Feed (1080x1350) e Story (1080x1920) ao ExportEngine...",
       {
         orderId: order.id,
         masterBufferBytes: masterBuffer.length,
       },
     );
 
-    let [feedBuffer, storyBuffer] = await Promise.all([
-      this.formatFeed(masterBuffer),
-      this.formatStory(masterBuffer),
-    ]);
-
-    if (order.cobrandingAccepted && order.cobrandingCreditText) {
-      log.info("Aplicando assinatura de co-branding nos arquivos finais", {
-        orderId: order.id,
-        creditText: order.cobrandingCreditText,
-      });
-      [feedBuffer, storyBuffer] = await Promise.all([
-        this.applySignature(feedBuffer, {
-          creditText: order.cobrandingCreditText,
-          aspectRatio: "feed",
-        }),
-        this.applySignature(storyBuffer, {
-          creditText: order.cobrandingCreditText,
-          aspectRatio: "story",
-        }),
-      ]);
-    }
-
-    const feedKey = `deliveries/${order.id}/feed.png`;
-    const storyKey = `deliveries/${order.id}/story.png`;
-
-    log.info("Persistindo exports Feed e Story no StorageService...", {
+    const exportResult = await this.exportEngine.exportFinalCampaign({
       orderId: order.id,
-      feedKey,
-      storyKey,
+      masterBuffer,
+      cobranding: {
+        accepted: Boolean(order.cobrandingAccepted),
+        creditText: order.cobrandingCreditText ?? undefined,
+      },
     });
-
-    const [feedUpload, storyUpload] = await Promise.all([
-      this.storageService.uploadAsset({
-        key: feedKey,
-        buffer: feedBuffer,
-        contentType: "image/png",
-        isPublic: true,
-      }),
-      this.storageService.uploadAsset({
-        key: storyKey,
-        buffer: storyBuffer,
-        contentType: "image/png",
-        isPublic: true,
-      }),
-    ]);
-
-    const cacheBuster = `?v=${Date.now()}`;
-    const isFakeStorage = feedUpload.url.includes("storage.local.fake");
-    const feedUrl = isFakeStorage
-      ? `${this.baseUrl}/api/delivery/download?orderId=${order.id}&format=feed&inline=true`
-      : `${feedUpload.url}${cacheBuster}`;
-    const storyUrl = isFakeStorage
-      ? `${this.baseUrl}/api/delivery/download?orderId=${order.id}&format=story&inline=true`
-      : `${storyUpload.url}${cacheBuster}`;
 
     const [persistedExport] = await this.database
       .insert(deliveryExports)
       .values({
         orderId: order.id,
-        feedUrl,
-        storyUrl,
-        feedAssetKey: feedKey,
-        storyAssetKey: storyKey,
+        feedUrl: exportResult.feedUrl,
+        storyUrl: exportResult.storyUrl,
+        feedAssetKey: exportResult.feedAssetKey,
+        storyAssetKey: exportResult.storyAssetKey,
         downloadCount: 0,
         expiresAt: null,
       })
@@ -280,6 +314,8 @@ export class DeliveryService {
     log.info("deliveryExports persistidos com sucesso no PostgreSQL", {
       orderId: order.id,
       exportId: persistedExport.id,
+      feedAssetKey: exportResult.feedAssetKey,
+      storyAssetKey: exportResult.storyAssetKey,
     });
 
     return persistedExport;
@@ -423,82 +459,6 @@ export class DeliveryService {
     };
   }
 
-  private async prepareDeliveryBuffers(
-    order: typeof orders.$inferSelect | undefined,
-    masterBuffer: Buffer,
-    orderId: string,
-  ): Promise<{ feedBuffer: Buffer; storyBuffer: Buffer }> {
-    let [feedBuffer, storyBuffer] = await Promise.all([
-      this.formatFeed(masterBuffer),
-      this.formatStory(masterBuffer),
-    ]);
-
-    if (order?.cobrandingAccepted && order?.cobrandingCreditText) {
-      log.info("Preservando assinatura de co-branding na regeneração", {
-        orderId,
-        creditText: order.cobrandingCreditText,
-      });
-      [feedBuffer, storyBuffer] = await Promise.all([
-        this.applySignature(feedBuffer, {
-          creditText: order.cobrandingCreditText,
-          aspectRatio: "feed",
-        }),
-        this.applySignature(storyBuffer, {
-          creditText: order.cobrandingCreditText,
-          aspectRatio: "story",
-        }),
-      ]);
-    }
-
-    return { feedBuffer, storyBuffer };
-  }
-
-  private async upsertDeliveryExportRecord(
-    orderId: string,
-    feedKey: string,
-    storyKey: string,
-    feedUrl: string,
-    storyUrl: string,
-  ): Promise<typeof deliveryExports.$inferSelect> {
-    const now = new Date();
-    const [existing] = await this.database
-      .select()
-      .from(deliveryExports)
-      .where(eq(deliveryExports.orderId, orderId))
-      .limit(1);
-
-    if (existing) {
-      const [updated] = await this.database
-        .update(deliveryExports)
-        .set({
-          feedUrl,
-          storyUrl,
-          feedAssetKey: feedKey,
-          storyAssetKey: storyKey,
-          updatedAt: now,
-        })
-        .where(eq(deliveryExports.orderId, orderId))
-        .returning();
-      return updated;
-    }
-
-    const [inserted] = await this.database
-      .insert(deliveryExports)
-      .values({
-        orderId,
-        feedUrl,
-        storyUrl,
-        feedAssetKey: feedKey,
-        storyAssetKey: storyKey,
-        downloadCount: 0,
-        expiresAt: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-    return inserted;
-  }
-
   /**
    * Atualiza os exports Feed (1080x1350) e Story (1080x1920) a partir de uma nova arte mestre gerada por regeneração.
    */
@@ -512,52 +472,56 @@ export class DeliveryService {
       .where(eq(orders.id, orderId))
       .limit(1);
 
-    const { feedBuffer, storyBuffer } = await this.prepareDeliveryBuffers(
-      order,
-      masterBuffer,
+    log.info("Atualizando exports via ExportEngine...", {
       orderId,
-    );
-
-    const feedKey = `deliveries/${orderId}/feed.png`;
-    const storyKey = `deliveries/${orderId}/story.png`;
-
-    log.info("Persistindo exports regenerados no StorageService...", {
-      orderId,
-      feedKey,
-      storyKey,
     });
 
-    const [feedUpload, storyUpload] = await Promise.all([
-      this.storageService.uploadAsset({
-        key: feedKey,
-        buffer: feedBuffer,
-        contentType: "image/png",
-        isPublic: true,
-      }),
-      this.storageService.uploadAsset({
-        key: storyKey,
-        buffer: storyBuffer,
-        contentType: "image/png",
-        isPublic: true,
-      }),
-    ]);
-
-    const cacheBuster = `?v=${Date.now()}`;
-    const isFakeStorage = feedUpload.url.includes("storage.local.fake");
-    const feedUrl = isFakeStorage
-      ? `${this.baseUrl}/api/delivery/download?orderId=${orderId}&format=feed&inline=true`
-      : `${feedUpload.url}${cacheBuster}`;
-    const storyUrl = isFakeStorage
-      ? `${this.baseUrl}/api/delivery/download?orderId=${orderId}&format=story&inline=true`
-      : `${storyUpload.url}${cacheBuster}`;
-
-    return this.upsertDeliveryExportRecord(
+    const exportResult = await this.exportEngine.exportFinalCampaign({
       orderId,
-      feedKey,
-      storyKey,
-      feedUrl,
-      storyUrl,
-    );
+      masterBuffer,
+      cobranding: {
+        accepted: Boolean(order?.cobrandingAccepted),
+        creditText: order?.cobrandingCreditText ?? undefined,
+      },
+    });
+
+    const now = new Date();
+    const [existing] = await this.database
+      .select()
+      .from(deliveryExports)
+      .where(eq(deliveryExports.orderId, orderId))
+      .limit(1);
+
+    if (existing) {
+      const [updated] = await this.database
+        .update(deliveryExports)
+        .set({
+          feedUrl: exportResult.feedUrl,
+          storyUrl: exportResult.storyUrl,
+          feedAssetKey: exportResult.feedAssetKey,
+          storyAssetKey: exportResult.storyAssetKey,
+          updatedAt: now,
+        })
+        .where(eq(deliveryExports.orderId, orderId))
+        .returning();
+      return updated;
+    }
+
+    const [inserted] = await this.database
+      .insert(deliveryExports)
+      .values({
+        orderId,
+        feedUrl: exportResult.feedUrl,
+        storyUrl: exportResult.storyUrl,
+        feedAssetKey: exportResult.feedAssetKey,
+        storyAssetKey: exportResult.storyAssetKey,
+        downloadCount: 0,
+        expiresAt: null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    return inserted;
   }
 
   private buildDeliveryDetailsResult(
@@ -594,8 +558,13 @@ export class DeliveryService {
       const publicUrl = this.storageService.getPublicUrl(
         exportRecord.feedAssetKey,
       );
-      if (!publicUrl.includes("storage.local.fake")) {
-        feedCardUrl = `${publicUrl}${cacheBuster}`;
+      if (publicUrl.startsWith("data:")) {
+        feedCardUrl = publicUrl;
+      } else {
+        const separator = publicUrl.includes("?") ? "&" : "?";
+        feedCardUrl = cacheBuster
+          ? `${publicUrl}${separator}${cacheBuster.replace(/^\?/, "")}`
+          : publicUrl;
       }
     }
 
@@ -606,8 +575,13 @@ export class DeliveryService {
       const publicUrl = this.storageService.getPublicUrl(
         exportRecord.storyAssetKey,
       );
-      if (!publicUrl.includes("storage.local.fake")) {
-        storyCardUrl = `${publicUrl}${cacheBuster}`;
+      if (publicUrl.startsWith("data:")) {
+        storyCardUrl = publicUrl;
+      } else {
+        const separator = publicUrl.includes("?") ? "&" : "?";
+        storyCardUrl = cacheBuster
+          ? `${publicUrl}${separator}${cacheBuster.replace(/^\?/, "")}`
+          : publicUrl;
       }
     }
 

@@ -1,10 +1,17 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   saveOfferDraft,
   getOfferDraft,
   updateDraftPreviewCard,
 } from "./drafts.service";
 import { saveOfferDraftSchema } from "../../data/offer-brief.schema";
+import { db } from "../../../../server/db";
+import { drafts } from "../../../../server/db/schema/promotions";
+import { eq } from "drizzle-orm";
+import {
+  InMemoryStorageDriver,
+  setStorageServiceForTesting,
+} from "../../../../server/storage";
 
 describe("Drafts Service (Deep Domain Module)", () => {
   describe("Input validation schemas", () => {
@@ -304,6 +311,127 @@ describe("Drafts Service (Deep Domain Module)", () => {
 
       const fetched = await getOfferDraft(created.id);
       expect(fetched?.cleanMasterImageDataUrl).toBe(cleanUrl);
+    });
+  });
+
+  describe("Drafts Intake & StorageService Decoupling (TOAST Bloat Elimination)", () => {
+    let storageDriver: InMemoryStorageDriver;
+
+    beforeEach(() => {
+      storageDriver = new InMemoryStorageDriver({
+        publicUrlBase: "https://pub-test.r2.dev",
+      });
+      setStorageServiceForTesting(storageDriver);
+    });
+
+    it("uploads Base64 images to StorageService, saves asset keys in PostgreSQL, and sets base64 columns to null", async () => {
+      const pngData =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      const saved = await saveOfferDraft({
+        businessSegment: "fashion",
+        businessName: "Loja Teste",
+        offerTitle: "Vestido Elegante",
+        promoPrice: "R$ 99,90",
+        productImageDataUrl: pngData,
+        referenceImageDataUrl: pngData,
+        logoImageDataUrl: pngData,
+      });
+
+      // 1. Asset keys gravados no PostgreSQL
+      expect(saved.productAssetKey).toBe(`inputs/${saved.id}/product.png`);
+      expect(saved.referenceAssetKey).toBe(`inputs/${saved.id}/reference.png`);
+      expect(saved.logoAssetKey).toBe(`inputs/${saved.id}/logo.png`);
+
+      // 2. Coluna no banco PostgreSQL mantida como NULL para eliminar TOAST bloat
+      const [dbRow] = await db
+        .select()
+        .from(drafts)
+        .where(eq(drafts.id, saved.id));
+
+      expect(dbRow.productImageDataUrl).toBeNull();
+      expect(dbRow.referenceImageDataUrl).toBeNull();
+      expect(dbRow.logoImageDataUrl).toBeNull();
+      expect(dbRow.productAssetKey).toBe(`inputs/${saved.id}/product.png`);
+
+      // 3. Binários gravados no storage sob inputs/{draftId}/...
+      const storedProduct = await storageDriver.getAsset(
+        dbRow.productAssetKey!,
+      );
+      expect(storedProduct).not.toBeNull();
+      expect(storedProduct?.contentType).toBe("image/png");
+
+      // 4. getOfferDraft resolve a URL pública para transparência completa do frontend
+      const fetched = await getOfferDraft(saved.id);
+      expect(fetched?.productImageDataUrl).toBe(
+        `https://pub-test.r2.dev/inputs/${saved.id}/product.png`,
+      );
+      expect(fetched?.referenceImageDataUrl).toBe(
+        `https://pub-test.r2.dev/inputs/${saved.id}/reference.png`,
+      );
+      expect(fetched?.logoImageDataUrl).toBe(
+        `https://pub-test.r2.dev/inputs/${saved.id}/logo.png`,
+      );
+    });
+
+    it("deletes asset from storage and sets asset key to null when user passes null (image removal)", async () => {
+      const pngData =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      const initial = await saveOfferDraft({
+        businessSegment: "fashion",
+        businessName: "Loja Teste",
+        offerTitle: "Vestido",
+        promoPrice: "R$ 99,90",
+        productImageDataUrl: pngData,
+      });
+
+      const initialAssetKey = initial.productAssetKey!;
+      expect(await storageDriver.getAsset(initialAssetKey)).not.toBeNull();
+
+      // Usuário remove a foto passando null
+      const updated = await saveOfferDraft({
+        id: initial.id,
+        businessSegment: "fashion",
+        businessName: "Loja Teste",
+        offerTitle: "Vestido",
+        promoPrice: "R$ 99,90",
+        productImageDataUrl: null,
+      });
+
+      expect(updated.productAssetKey).toBeNull();
+      expect(updated.productImageDataUrl).toBeNull();
+
+      // Asset deve ter sido removido do storage
+      expect(await storageDriver.getAsset(initialAssetKey)).toBeNull();
+
+      const [dbRow] = await db
+        .select()
+        .from(drafts)
+        .where(eq(drafts.id, initial.id));
+      expect(dbRow.productAssetKey).toBeNull();
+      expect(dbRow.productImageDataUrl).toBeNull();
+    });
+
+    it("preserves legacy drafts containing Base64 without re-upload", async () => {
+      const legacyId = crypto.randomUUID();
+      const legacyData =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      // Inserção direta simulando registro legado pré-migração
+      await db.insert(drafts).values({
+        id: legacyId,
+        businessSegment: "fashion",
+        businessName: "Legado",
+        offerTitle: "Item Legado",
+        promoPrice: "R$ 10,00",
+        productImageDataUrl: legacyData,
+        productAssetKey: null,
+      });
+
+      const fetched = await getOfferDraft(legacyId);
+      expect(fetched?.productImageDataUrl).toBe(legacyData);
+      expect(fetched?.productAssetKey).toBeNull();
     });
   });
 });

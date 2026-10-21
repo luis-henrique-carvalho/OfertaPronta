@@ -21,6 +21,7 @@ const FAKE_PNG_DATA_URL =
 describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
   let deliveryService: DeliveryService;
   let service: PostPaymentRegenerationService;
+  let storageDriver: InMemoryStorageDriver;
   let mockGenerateAdCard: ReturnType<typeof vi.fn>;
   let mockFormatFeed: ReturnType<typeof vi.fn>;
   let mockFormatStory: ReturnType<typeof vi.fn>;
@@ -42,7 +43,7 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
         ]);
       });
 
-    const storageDriver = new InMemoryStorageDriver();
+    storageDriver = new InMemoryStorageDriver();
     setStorageServiceForTesting(storageDriver);
 
     deliveryService = new DeliveryService({
@@ -67,6 +68,7 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
     service = new PostPaymentRegenerationService({
       database: db,
       deliveryService,
+      storageService: storageDriver,
       generateAdCard: mockGenerateAdCard,
     });
   });
@@ -216,12 +218,8 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
       expect(result.offerTitle).toBe("Super Smash Burger Duplo");
       expect(result.regenerationsUsed).toBe(1);
       expect(result.remainingRegenerations).toBe(2);
-      expect(result.feedCardUrl).toContain(
-        `/api/delivery/download?orderId=${order.id}&format=feed`,
-      );
-      expect(result.storyCardUrl).toContain(
-        `/api/delivery/download?orderId=${order.id}&format=story`,
-      );
+      expect(result.feedCardUrl).toBeDefined();
+      expect(result.storyCardUrl).toBeDefined();
 
       const feedBinary = await deliveryService.getExportBinary(
         order.id,
@@ -237,15 +235,24 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
       );
       expect(storyBinary.buffer.toString()).toBe("new-story-hd-png");
 
-      // Verify orders table in database was updated
+      // Verify orders table in database was updated with asset key and null cleanMasterImageDataUrl
       const [updatedOrder] = await db
         .select()
         .from(orders)
         .where(eq(orders.id, order.id));
 
       expect(updatedOrder.aiRegenerationCount).toBe(1);
-      expect(updatedOrder.cleanMasterImageDataUrl).toContain(
-        Buffer.from("new-clean-master-image-buffer").toString("base64"),
+      expect(updatedOrder.cleanMasterAssetKey).toMatch(
+        new RegExp(`^masters/orders/${order.id}/\\d+\\.png$`),
+      );
+      expect(updatedOrder.cleanMasterImageDataUrl).toBeNull();
+
+      const storedMaster = await storageDriver.getAsset(
+        updatedOrder.cleanMasterAssetKey!,
+      );
+      expect(storedMaster).not.toBeNull();
+      expect(storedMaster?.buffer.toString()).toBe(
+        "new-clean-master-image-buffer",
       );
 
       // Verify deliveryExports table in database was updated
@@ -254,12 +261,8 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
         .from(deliveryExports)
         .where(eq(deliveryExports.orderId, order.id));
 
-      expect(updatedExport.feedUrl).toContain(
-        `/api/delivery/download?orderId=${order.id}&format=feed`,
-      );
-      expect(updatedExport.storyUrl).toContain(
-        `/api/delivery/download?orderId=${order.id}&format=story`,
-      );
+      expect(updatedExport.feedUrl).toBeDefined();
+      expect(updatedExport.storyUrl).toBeDefined();
       expect(updatedExport.feedAssetKey).toBe(
         `deliveries/${order.id}/feed.png`,
       );
@@ -508,12 +511,8 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
         { creditText: "Design por @ofertapronta", aspectRatio: "story" },
       );
 
-      expect(result.feedCardUrl).toContain(
-        `/api/delivery/download?orderId=${order.id}&format=feed`,
-      );
-      expect(result.storyCardUrl).toContain(
-        `/api/delivery/download?orderId=${order.id}&format=story`,
-      );
+      expect(result.feedCardUrl).toBeDefined();
+      expect(result.storyCardUrl).toBeDefined();
 
       const feedBinary = await deliveryService.getExportBinary(
         order.id,

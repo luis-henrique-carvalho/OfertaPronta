@@ -373,9 +373,15 @@ export const offerBriefSchema = z
     originalPrice: z.string().trim().optional(),
     callToAction: z.string().trim().optional(),
     whatsapp: z.string().trim().optional(),
-    productImageDataUrl: imageDataUrlSchema.optional(),
-    referenceImageDataUrl: imageDataUrlSchema.optional(),
-    logoImageDataUrl: imageDataUrlSchema.optional(),
+    productImageDataUrl: z
+      .union([imageDataUrlSchema, z.string().url()])
+      .optional(),
+    referenceImageDataUrl: z
+      .union([imageDataUrlSchema, z.string().url()])
+      .optional(),
+    logoImageDataUrl: z
+      .union([imageDataUrlSchema, z.string().url()])
+      .optional(),
     stylePresetId: z.string().trim().optional(),
     customStyleInstructions: z.string().trim().optional(),
   })
@@ -420,8 +426,14 @@ export const saveOfferDraftSchema = z.object({
   originalPrice: z.string().optional().nullable(),
   callToAction: z.string().optional().nullable(),
   whatsapp: z.string().optional().nullable(),
-  productImageDataUrl: imageDataUrlSchema.optional().nullable(),
-  referenceImageDataUrl: imageDataUrlSchema.optional().nullable(),
+  productImageDataUrl: z
+    .union([imageDataUrlSchema, z.string().url()])
+    .optional()
+    .nullable(),
+  referenceImageDataUrl: z
+    .union([imageDataUrlSchema, z.string().url()])
+    .optional()
+    .nullable(),
   stylePresetId: z.string().optional().nullable(),
   customStyleInstructions: z.string().optional().nullable(),
   cleanMasterImageDataUrl: z.string().optional().nullable(),
@@ -429,7 +441,15 @@ export const saveOfferDraftSchema = z.object({
   // Novos campos do Épico 6
   cardIntent: z.enum(CARD_INTENTS).default("promo"),
   customIntentText: z.string().optional().nullable(),
-  logoImageDataUrl: imageDataUrlSchema.optional().nullable(),
+  logoImageDataUrl: z
+    .union([imageDataUrlSchema, z.string().url()])
+    .optional()
+    .nullable(),
+
+  // Storage R2 Asset Keys (Drafts Intake)
+  productAssetKey: z.string().optional().nullable(),
+  referenceAssetKey: z.string().optional().nullable(),
+  logoAssetKey: z.string().optional().nullable(),
 
   // Storage R2 Keys
   previewAssetKey: z.string().optional().nullable(),

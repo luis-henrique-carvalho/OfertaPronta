@@ -19,7 +19,12 @@ import {
   type GenerateAdCardResult,
   type GoogleGenAIClient,
 } from "./ai-card-generator.service";
-import { applyWatermark, type WatermarkResult } from "@/server/export-engine";
+import {
+  getExportEngine,
+  type ExportEngine,
+  type ExportPreviewCardInput,
+  type WatermarkResult,
+} from "@/server/export-engine";
 import type { AppDatabase } from "@/server/db";
 import { getStorageService, type StorageService } from "@/server/storage";
 
@@ -58,11 +63,7 @@ export interface GeneratePreviewDependencies {
   generateAdCard?: (
     input: GenerateAdCardInput,
   ) => Promise<GenerateAdCardResult>;
-  watermark?: (
-    buffer: Buffer,
-  ) => Promise<
-    { dataUrl: string; watermarkedBuffer?: Buffer } | WatermarkResult
-  >;
+  exportEngine?: ExportEngine;
   updateDraftPreview?: (
     draftId: string,
     previewUrl: string,
@@ -73,6 +74,29 @@ export interface GeneratePreviewDependencies {
   storageService?: StorageService;
   database?: AppDatabase;
   geminiClient?: GoogleGenAIClient;
+  // Suporte de compatibilidade para testes legados com mock de watermark
+  watermark?: (
+    buffer: Buffer,
+  ) => Promise<
+    { dataUrl: string; watermarkedBuffer?: Buffer } | WatermarkResult
+  >;
+}
+
+function resolveWatermarkedBuffer(
+  watermarkResult:
+    { dataUrl: string; watermarkedBuffer?: Buffer } | WatermarkResult,
+): Buffer {
+  if (
+    "watermarkedBuffer" in watermarkResult &&
+    watermarkResult.watermarkedBuffer &&
+    Buffer.isBuffer(watermarkResult.watermarkedBuffer)
+  ) {
+    return watermarkResult.watermarkedBuffer;
+  }
+  const match = watermarkResult.dataUrl.match(/^data:[^;]+;base64,(.+)$/);
+  return match && match[1]
+    ? Buffer.from(match[1], "base64")
+    : Buffer.from(watermarkResult.dataUrl, "base64");
 }
 
 function resolveDependencies(deps: GeneratePreviewDependencies) {
@@ -84,10 +108,47 @@ function resolveDependencies(deps: GeneratePreviewDependencies) {
     ((cardInput: GenerateAdCardInput) =>
       generateAdCardImage(cardInput, deps.geminiClient));
 
-  const watermark =
-    deps.watermark ?? ((buffer: Buffer) => applyWatermark(buffer));
-
   const storageService = deps.storageService ?? getStorageService();
+
+  const exportEngine: ExportEngine =
+    deps.exportEngine ??
+    (deps.watermark
+      ? {
+          exportPreviewCard: async (input: ExportPreviewCardInput) => {
+            const wmResult = await deps.watermark!(input.rawImageBuffer);
+            const watermarkedBuffer = resolveWatermarkedBuffer(wmResult);
+            const timestamp = Date.now();
+            const previewAssetKey = `previews/${input.draftId}/${timestamp}.webp`;
+            const cleanMasterAssetKey = `masters/drafts/${input.draftId}/${timestamp}.png`;
+            const [pUpload] = await Promise.all([
+              storageService.uploadAsset({
+                key: previewAssetKey,
+                buffer: watermarkedBuffer,
+                contentType: "image/webp",
+                isPublic: true,
+              }),
+              storageService.uploadAsset({
+                key: cleanMasterAssetKey,
+                buffer: input.rawImageBuffer,
+                contentType: input.mimeType || "image/png",
+                isPublic: false,
+              }),
+            ]);
+            return {
+              previewUrl: pUpload.url,
+              previewAssetKey,
+              cleanMasterAssetKey,
+              watermarkedBuffer,
+            };
+          },
+          exportFinalCampaign: async () => {
+            throw new Error("Not implemented in test adapter");
+          },
+          saveCleanMaster: async () => {
+            throw new Error("Not implemented in test adapter");
+          },
+        }
+      : getExportEngine({ storageService }));
 
   const updateDraft =
     deps.updateDraftPreview ??
@@ -105,12 +166,71 @@ function resolveDependencies(deps: GeneratePreviewDependencies) {
         cleanMasterDataUrl,
         previewAssetKey,
         cleanMasterAssetKey,
+        storageService,
       ));
 
-  return { getDraft, generateAdCard, watermark, updateDraft, storageService };
+  return {
+    getDraft,
+    generateAdCard,
+    exportEngine,
+    updateDraft,
+    storageService,
+  };
 }
 
-export function buildAdCardInput(draft: OfferDraft): GenerateAdCardInput {
+/**
+ * Carrega buffers de insumos visuais persistidos no StorageService
+ * e os formata como Data URLs transparentes para o compilador multimodal Gemini.
+ * Suporta retrocompatibilidade transparente com registros legados em Base64.
+ */
+export async function resolveDraftVisualInputs(
+  draft: OfferDraft,
+  storageService: StorageService,
+): Promise<{
+  productImageDataUrl?: string;
+  referenceImageDataUrl?: string;
+  logoImageDataUrl?: string;
+}> {
+  let productImageDataUrl = draft.productImageDataUrl || undefined;
+  let referenceImageDataUrl = draft.referenceImageDataUrl || undefined;
+  let logoImageDataUrl = draft.logoImageDataUrl || undefined;
+
+  if (draft.productAssetKey) {
+    const asset = await storageService.getAsset(draft.productAssetKey);
+    if (asset) {
+      productImageDataUrl = `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`;
+    }
+  }
+
+  if (draft.referenceAssetKey) {
+    const asset = await storageService.getAsset(draft.referenceAssetKey);
+    if (asset) {
+      referenceImageDataUrl = `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`;
+    }
+  }
+
+  if (draft.logoAssetKey) {
+    const asset = await storageService.getAsset(draft.logoAssetKey);
+    if (asset) {
+      logoImageDataUrl = `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`;
+    }
+  }
+
+  return {
+    productImageDataUrl,
+    referenceImageDataUrl,
+    logoImageDataUrl,
+  };
+}
+
+export function buildAdCardInput(
+  draft: OfferDraft,
+  visualInputs?: {
+    productImageDataUrl?: string;
+    referenceImageDataUrl?: string;
+    logoImageDataUrl?: string;
+  },
+): GenerateAdCardInput {
   const validSegments: readonly string[] = BUSINESS_SEGMENTS;
   const businessSegment: BusinessSegment = validSegments.includes(
     draft.businessSegment,
@@ -133,92 +253,26 @@ export function buildAdCardInput(draft: OfferDraft): GenerateAdCardInput {
     originalPrice: draft.originalPrice,
     callToAction: draft.callToAction,
     whatsapp: draft.whatsapp,
-    productImageDataUrl: draft.productImageDataUrl,
-    referenceImageDataUrl: draft.referenceImageDataUrl,
+    productImageDataUrl:
+      visualInputs?.productImageDataUrl ?? draft.productImageDataUrl,
+    referenceImageDataUrl:
+      visualInputs?.referenceImageDataUrl ?? draft.referenceImageDataUrl,
     stylePresetId: draft.stylePresetId,
     customStyleInstructions: draft.customStyleInstructions,
-    logoImageDataUrl: draft.logoImageDataUrl,
+    logoImageDataUrl: visualInputs?.logoImageDataUrl ?? draft.logoImageDataUrl,
     cardIntent,
     customIntentText: draft.customIntentText,
   };
 }
 
 /**
- * Executa a orquestração de geração de prévia protegida por marca d'água
- * com controle rígido de cota gratuita (exatamente 1 por rascunho).
- */
-function resolveWatermarkedBuffer(
-  watermarkResult:
-    { dataUrl: string; watermarkedBuffer?: Buffer } | WatermarkResult,
-): Buffer {
-  if (
-    "watermarkedBuffer" in watermarkResult &&
-    watermarkResult.watermarkedBuffer &&
-    Buffer.isBuffer(watermarkResult.watermarkedBuffer)
-  ) {
-    return watermarkResult.watermarkedBuffer;
-  }
-  const match = watermarkResult.dataUrl.match(/^data:[^;]+;base64,(.+)$/);
-  return match && match[1]
-    ? Buffer.from(match[1], "base64")
-    : Buffer.from(watermarkResult.dataUrl, "base64");
-}
-
-async function uploadPreviewAndMaster(
-  storageService: StorageService,
-  draftId: string,
-  watermarkedBuffer: Buffer,
-  rawImageBuffer: Buffer,
-  mimeType: string,
-): Promise<{
-  previewUrl: string;
-  previewAssetKey: string;
-  cleanMasterAssetKey: string;
-}> {
-  const timestamp = Date.now();
-  const previewKey = `previews/${draftId}/${timestamp}.png`;
-  const masterKey = `masters/${draftId}/${timestamp}.png`;
-
-  log.info("Persistindo prévia e master no StorageService...", {
-    draftId,
-    previewKey,
-    masterKey,
-  });
-
-  const [previewUpload, masterUpload] = await Promise.all([
-    storageService.uploadAsset({
-      key: previewKey,
-      buffer: watermarkedBuffer,
-      contentType: "image/png",
-      isPublic: true,
-    }),
-    storageService.uploadAsset({
-      key: masterKey,
-      buffer: rawImageBuffer,
-      contentType: mimeType,
-      isPublic: false,
-    }),
-  ]);
-
-  return {
-    previewUrl: previewUpload.url,
-    previewAssetKey: previewUpload.key,
-    cleanMasterAssetKey: masterUpload.key,
-  };
-}
-
-/**
- * Executa a orquestração de geração de prévia protegida por marca d'água
- * com controle rígido de cota gratuita (exatamente 1 por rascunho).
+ * Executa a síntese de imagem pelo Gemini e delega a proteção de marca d'água
+ * e persistência ao ExportEngine profundo.
  */
 async function generateAndWatermarkAdCard(
   draft: OfferDraft,
   generateAdCard: (input: GenerateAdCardInput) => Promise<GenerateAdCardResult>,
-  watermark: (
-    buffer: Buffer,
-  ) => Promise<
-    { dataUrl: string; watermarkedBuffer?: Buffer } | WatermarkResult
-  >,
+  exportEngine: ExportEngine,
   storageService: StorageService,
 ): Promise<
   | {
@@ -236,7 +290,10 @@ async function generateAndWatermarkAdCard(
       draftId: draft.id,
       segment: draft.businessSegment,
     });
-    const aiResult = await generateAdCard(buildAdCardInput(draft));
+    const visualInputs = await resolveDraftVisualInputs(draft, storageService);
+    const aiResult = await generateAdCard(
+      buildAdCardInput(draft, visualInputs),
+    );
     log.info("Síntese de imagem concluída com sucesso", {
       draftId: draft.id,
       imageSizeBytes: aiResult.rawImageBuffer.length,
@@ -245,28 +302,27 @@ async function generateAndWatermarkAdCard(
     const mimeType = aiResult.mimeType || "image/png";
     const cleanMasterDataUrl = `data:${mimeType};base64,${aiResult.rawImageBuffer.toString("base64")}`;
 
-    log.info("Aplicando marca d'água no ExportEngine (Sharp)...", {
+    log.info("Delegando geração de prévia protegida ao ExportEngine...", {
       draftId: draft.id,
     });
-    const watermarkResult = await watermark(aiResult.rawImageBuffer);
-    log.info("Marca d'água aplicada com sucesso", { draftId: draft.id });
-
-    const watermarkedBuffer = resolveWatermarkedBuffer(watermarkResult);
-    const uploaded = await uploadPreviewAndMaster(
-      storageService,
-      draft.id,
-      watermarkedBuffer,
-      aiResult.rawImageBuffer,
+    const exportResult = await exportEngine.exportPreviewCard({
+      draftId: draft.id,
+      rawImageBuffer: aiResult.rawImageBuffer,
       mimeType,
-    );
+    });
+    log.info("Prévia protegida exportada com sucesso via ExportEngine", {
+      draftId: draft.id,
+      previewAssetKey: exportResult.previewAssetKey,
+      cleanMasterAssetKey: exportResult.cleanMasterAssetKey,
+    });
 
     return {
       success: true,
-      previewUrl: uploaded.previewUrl,
-      dataUrl: watermarkResult.dataUrl,
+      previewUrl: exportResult.previewUrl,
+      dataUrl: `data:image/webp;base64,${exportResult.watermarkedBuffer.toString("base64")}`,
       cleanMasterDataUrl,
-      previewAssetKey: uploaded.previewAssetKey,
-      cleanMasterAssetKey: uploaded.cleanMasterAssetKey,
+      previewAssetKey: exportResult.previewAssetKey,
+      cleanMasterAssetKey: exportResult.cleanMasterAssetKey,
     };
   } catch (err: unknown) {
     log.error("FALHA na síntese ou aplicação de marca d'água", err, {
@@ -316,8 +372,13 @@ export async function executeGeneratePreview(
     draftId: validated.draftId,
   });
 
-  const { getDraft, generateAdCard, watermark, updateDraft, storageService } =
-    resolveDependencies(deps);
+  const {
+    getDraft,
+    generateAdCard,
+    exportEngine,
+    updateDraft,
+    storageService,
+  } = resolveDependencies(deps);
 
   const draft = await getDraft(validated.draftId);
   if (!draft) {
@@ -347,7 +408,7 @@ export async function executeGeneratePreview(
   const generated = await generateAndWatermarkAdCard(
     draft,
     generateAdCard,
-    watermark,
+    exportEngine,
     storageService,
   );
   if (!generated.success) {

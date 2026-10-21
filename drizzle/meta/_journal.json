@@ -64,6 +64,13 @@
       "when": 1792591465339,
       "tag": "0008_steep_millenium_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792612127514,
+      "tag": "0009_handy_maelstrom",
+      "breakpoints": true
     }
   ]
 }

@@ -18,16 +18,17 @@ export interface StoredMemoryAsset {
  */
 export class InMemoryStorageDriver implements StorageService {
   private readonly assets = new Map<string, StoredMemoryAsset>();
-  private readonly publicUrlBase: string;
+  private readonly publicUrlBase?: string;
 
   constructor(options?: { publicUrlBase?: string }) {
-    this.publicUrlBase = options?.publicUrlBase
-      ? options.publicUrlBase.replace(/\/$/, "")
-      : "https://storage.local.fake";
+    this.publicUrlBase = options?.publicUrlBase?.trim()
+      ? options.publicUrlBase.trim().replace(/\/+$/, "")
+      : undefined;
   }
 
   async uploadAsset(options: AssetUploadOptions): Promise<AssetUploadResult> {
-    this.assets.set(options.key, {
+    const cleanKey = options.key.replace(/^\/+/, "");
+    this.assets.set(cleanKey, {
       buffer: Buffer.from(options.buffer),
       contentType: options.contentType,
       isPublic: Boolean(options.isPublic),
@@ -35,13 +36,14 @@ export class InMemoryStorageDriver implements StorageService {
     });
 
     return {
-      key: options.key,
-      url: this.getPublicUrl(options.key),
+      key: cleanKey,
+      url: this.getPublicUrl(cleanKey),
     };
   }
 
   async getAsset(key: string): Promise<StorageAsset | null> {
-    const asset = this.assets.get(key);
+    const cleanKey = key.replace(/^\/+/, "");
+    const asset = this.assets.get(cleanKey) ?? this.assets.get(key);
     if (!asset) {
       return null;
     }
@@ -52,12 +54,23 @@ export class InMemoryStorageDriver implements StorageService {
   }
 
   async deleteAsset(key: string): Promise<void> {
+    const cleanKey = key.replace(/^\/+/, "");
+    this.assets.delete(cleanKey);
     this.assets.delete(key);
   }
 
   getPublicUrl(key: string): string {
-    const cleanKey = key.replace(/^\//, "");
-    return `${this.publicUrlBase}/${cleanKey}`;
+    const cleanKey = key.replace(/^\/+/, "");
+    if (this.publicUrlBase) {
+      return `${this.publicUrlBase}/${cleanKey}`;
+    }
+
+    const asset = this.assets.get(cleanKey) ?? this.assets.get(key);
+    if (asset) {
+      return `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`;
+    }
+
+    return "data:application/octet-stream;base64,";
   }
 
   clear(): void {

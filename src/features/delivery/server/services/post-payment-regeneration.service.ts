@@ -18,12 +18,22 @@ import type {
 } from "../../../promotions/data/offer-brief.schema";
 import { createServerLogger } from "../../../../server/logger";
 import { resolveRegenerationStyleInstructions } from "@/server/prompt-engine";
+import {
+  getExportEngine,
+  type ExportEngine,
+} from "../../../../server/export-engine";
+import {
+  getStorageService,
+  type StorageService,
+} from "../../../../server/storage";
 
 const log = createServerLogger("delivery.post-payment-regeneration");
 
 export interface RegenerationDependencies {
   database?: AppDatabase;
   deliveryService?: DeliveryService;
+  exportEngine?: ExportEngine;
+  storageService?: StorageService;
   generateAdCard?: (
     input: GenerateAdCardInput,
   ) => Promise<GenerateAdCardResult>;
@@ -45,19 +55,31 @@ interface RegenerationContext {
  * Módulo Profundo PostPaymentRegenerationService.
  * Orquestra o ciclo de regeneração e ajuste por IA pós-pagamento.
  * Garante preservação dos insumos originais (foto e estilo), controle estrito de cota (máx 3),
+ * persistência da nova arte mestre no StorageService via ExportEngine (eliminando TOAST bloat),
  * janela temporal de 30 minutos pós-pagamento, e resiliência contra falhas na API de IA.
  */
 export class PostPaymentRegenerationService {
   private readonly database: AppDatabase;
   private readonly deliveryService: DeliveryService;
+  private readonly exportEngine: ExportEngine;
+  private readonly storageService: StorageService;
   private readonly generateAdCard: (
     input: GenerateAdCardInput,
   ) => Promise<GenerateAdCardResult>;
 
   constructor(deps?: RegenerationDependencies) {
     this.database = deps?.database ?? db;
+    this.storageService = deps?.storageService ?? getStorageService();
+    this.exportEngine =
+      deps?.exportEngine ??
+      getExportEngine({ storageService: this.storageService });
     this.deliveryService =
-      deps?.deliveryService ?? new DeliveryService({ database: this.database });
+      deps?.deliveryService ??
+      new DeliveryService({
+        database: this.database,
+        storageService: this.storageService,
+        exportEngine: this.exportEngine,
+      });
     this.generateAdCard = deps?.generateAdCard ?? generateAdCardImage;
   }
 
@@ -70,7 +92,7 @@ export class PostPaymentRegenerationService {
   ): Promise<DeliveryDetailsResult> {
     const validated = requestRegenerationInputSchema.parse(input);
     const order = await this.validateOrderEligibility(validated.orderId);
-    const context = this.prepareRegenerationContext(order, validated);
+    const context = await this.prepareRegenerationContext(order, validated);
 
     log.info("Disparando geração com IA para regeneração pós-compra", {
       orderId: order.id,
@@ -149,12 +171,73 @@ export class PostPaymentRegenerationService {
     return order;
   }
 
-  private prepareRegenerationContext(
+  private async resolveBaseCardImageDataUrl(
+    order: typeof orders.$inferSelect,
+    snapshot: Record<string, unknown>,
+  ): Promise<string | undefined> {
+    const assetKey =
+      order.cleanMasterAssetKey ||
+      (typeof snapshot.cleanMasterAssetKey === "string"
+        ? snapshot.cleanMasterAssetKey
+        : null);
+
+    if (assetKey) {
+      const asset = await this.storageService.getAsset(assetKey);
+      if (asset) {
+        return `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`;
+      }
+    }
+
+    return (
+      (order.cleanMasterImageDataUrl as string | undefined) ||
+      (snapshot.cleanMasterImageDataUrl as string | undefined) ||
+      undefined
+    );
+  }
+
+  private async prepareRegenerationContext(
     order: typeof orders.$inferSelect,
     validated: RequestRegenerationInput,
-  ): RegenerationContext {
+  ): Promise<RegenerationContext> {
     const snapshot = (order.frozenSnapshot || {}) as Record<string, unknown>;
-    const merged = mergeRegenerationSnapshot(order, snapshot, validated);
+    const baseCardImageDataUrl = await this.resolveBaseCardImageDataUrl(
+      order,
+      snapshot,
+    );
+    const merged = mergeRegenerationSnapshot(
+      order,
+      snapshot,
+      validated,
+      baseCardImageDataUrl,
+    );
+
+    let productImageDataUrl =
+      (snapshot.productImageDataUrl as string | undefined) || undefined;
+    if (
+      snapshot.productAssetKey &&
+      typeof snapshot.productAssetKey === "string"
+    ) {
+      const asset = await this.storageService.getAsset(
+        snapshot.productAssetKey,
+      );
+      if (asset) {
+        productImageDataUrl = `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`;
+      }
+    }
+
+    let referenceImageDataUrl =
+      (snapshot.referenceImageDataUrl as string | undefined) || undefined;
+    if (
+      snapshot.referenceAssetKey &&
+      typeof snapshot.referenceAssetKey === "string"
+    ) {
+      const asset = await this.storageService.getAsset(
+        snapshot.referenceAssetKey,
+      );
+      if (asset) {
+        referenceImageDataUrl = `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`;
+      }
+    }
 
     const generateInput: GenerateAdCardInput = {
       businessSegment:
@@ -170,10 +253,8 @@ export class PostPaymentRegenerationService {
         order.customerWhatsapp ||
         (snapshot.whatsapp as string | undefined) ||
         undefined,
-      productImageDataUrl:
-        (snapshot.productImageDataUrl as string | undefined) || undefined,
-      referenceImageDataUrl:
-        (snapshot.referenceImageDataUrl as string | undefined) || undefined,
+      productImageDataUrl,
+      referenceImageDataUrl,
       baseCardImageDataUrl: merged.baseCardImageDataUrl,
       stylePresetId: merged.mergedStylePresetId || undefined,
       customStyleInstructions: merged.combinedCustomInstructions || undefined,
@@ -193,7 +274,14 @@ export class PostPaymentRegenerationService {
     context: RegenerationContext,
   ): Promise<DeliveryDetailsResult> {
     const mimeType = generationResult.mimeType || "image/png";
-    const newMasterDataUrl = `data:${mimeType};base64,${generationResult.rawImageBuffer.toString("base64")}`;
+
+    // 1. Persiste a nova arte mestre limpa chamando exportEngine.saveCleanMaster
+    const masterResult = await this.exportEngine.saveCleanMaster({
+      ownerId: orderId,
+      buffer: generationResult.rawImageBuffer,
+      contentType: mimeType,
+      prefix: "orders",
+    });
 
     const updatedSnapshot: Record<string, unknown> = {
       ...context.snapshot,
@@ -214,17 +302,20 @@ export class PostPaymentRegenerationService {
       ...(context.combinedCustomInstructions
         ? { customStyleInstructions: context.combinedCustomInstructions }
         : {}),
-      cleanMasterImageDataUrl: newMasterDataUrl,
+      cleanMasterAssetKey: masterResult.key,
+      cleanMasterImageDataUrl: null, // Elimina bloat TOAST no PostgreSQL
       lastRegeneratedAt: new Date().toISOString(),
     };
 
     const now = new Date();
 
+    // 2. Atualiza a coluna cleanMasterAssetKey e define cleanMasterImageDataUrl: null no banco
     await this.database
       .update(orders)
       .set({
         aiRegenerationCount: sql`${orders.aiRegenerationCount} + 1`,
-        cleanMasterImageDataUrl: newMasterDataUrl,
+        cleanMasterAssetKey: masterResult.key,
+        cleanMasterImageDataUrl: null, // Elimina bloat TOAST no PostgreSQL
         frozenSnapshot: updatedSnapshot,
         updatedAt: now,
       })
@@ -233,8 +324,10 @@ export class PostPaymentRegenerationService {
     log.info("Cota incrementada e arte mestre atualizada no pedido", {
       orderId,
       newRegenerationCount: (currentCount ?? 0) + 1,
+      cleanMasterAssetKey: masterResult.key,
     });
 
+    // 3. Atualiza os exports finais chamando deliveryService.updateExports com cache-busting renovado
     await this.deliveryService.updateExports(
       orderId,
       generationResult.rawImageBuffer,
@@ -259,6 +352,7 @@ function mergeRegenerationSnapshot(
   order: typeof orders.$inferSelect,
   snapshot: Record<string, unknown>,
   validated: RequestRegenerationInput,
+  resolvedBaseCardDataUrl?: string,
 ): MergedRegenerationSnapshot {
   const mergedOfferTitle = (
     validated.offerTitle?.trim() ||
@@ -293,6 +387,7 @@ function mergeRegenerationSnapshot(
       : ((snapshot.colorPalette as string | undefined) ?? null);
 
   const baseCardImageDataUrl =
+    resolvedBaseCardDataUrl ||
     (order.cleanMasterImageDataUrl as string | undefined) ||
     (snapshot.cleanMasterImageDataUrl as string | undefined) ||
     undefined;

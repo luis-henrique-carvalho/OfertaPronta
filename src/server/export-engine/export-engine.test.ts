@@ -1,11 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import sharp from "sharp";
+import type { InMemoryStorageDriver } from "../storage/memory-driver";
 import {
   applyWatermark,
   applyCobrandingSignature,
   formatFeedCard,
   formatStoryCard,
   type WatermarkOptions,
+  type ExportEngine,
+  getExportEngine,
+  setExportEngineForTesting,
 } from "./index";
 
 describe("ExportEngine Deep Module", () => {
@@ -193,6 +197,143 @@ describe("ExportEngine Deep Module", () => {
       const metadata = await sharp(result).metadata();
       expect(metadata.width).toBe(1080);
       expect(metadata.height).toBe(1920);
+    });
+  });
+
+  describe("ExportEngine Deep Module High-Level Interface", () => {
+    let memoryStorage: InMemoryStorageDriver;
+    let exportEngine: ExportEngine;
+
+    beforeEach(async () => {
+      const { InMemoryStorageDriver } =
+        await import("../storage/memory-driver");
+      setExportEngineForTesting(null);
+      memoryStorage = new InMemoryStorageDriver({
+        publicUrlBase: "https://assets.ofertapronta.com.br",
+      });
+      exportEngine = getExportEngine({ storageService: memoryStorage });
+    });
+
+    afterEach(() => {
+      setExportEngineForTesting(null);
+    });
+
+    it("exportPreviewCard deve gerar e armazenar prévia com marca d'água e mestre limpa privada", async () => {
+      const rawImage = await createTestImage(1080, 1350);
+      const result = await exportEngine.exportPreviewCard({
+        draftId: "draft-abc",
+        rawImageBuffer: rawImage,
+      });
+
+      expect(result.previewAssetKey).toMatch(
+        /^previews\/draft-abc\/\d+\.webp$/,
+      );
+      expect(result.cleanMasterAssetKey).toMatch(
+        /^masters\/drafts\/draft-abc\/\d+\.png$/,
+      );
+      expect(result.previewUrl).toContain(
+        "https://assets.ofertapronta.com.br/previews/draft-abc/",
+      );
+      expect(result.watermarkedBuffer).toBeInstanceOf(Buffer);
+
+      const previewAsset = await memoryStorage.getAsset(result.previewAssetKey);
+      expect(previewAsset).not.toBeNull();
+      expect(previewAsset?.contentType).toBe("image/webp");
+
+      const masterAsset = await memoryStorage.getAsset(
+        result.cleanMasterAssetKey,
+      );
+      expect(masterAsset).not.toBeNull();
+      expect(masterAsset?.contentType).toBe("image/png");
+      expect(masterAsset?.buffer.equals(rawImage)).toBe(true);
+    });
+
+    it("exportFinalCampaign deve formatar Feed (1080x1350), Story (1080x1920), aplicar co-branding e anexar ?v={timestamp}", async () => {
+      const masterBuffer = await createTestImage(1080, 1350);
+      const result = await exportEngine.exportFinalCampaign({
+        orderId: "order-xyz",
+        masterBuffer,
+        cobranding: {
+          accepted: true,
+          creditText: "Design por @ofertapronta",
+        },
+      });
+
+      expect(result.feedAssetKey).toBe("deliveries/order-xyz/feed.png");
+      expect(result.storyAssetKey).toBe("deliveries/order-xyz/story.png");
+      expect(result.feedUrl).toMatch(
+        /^https:\/\/assets\.ofertapronta\.com\.br\/deliveries\/order-xyz\/feed\.png\?v=\d+$/,
+      );
+      expect(result.storyUrl).toMatch(
+        /^https:\/\/assets\.ofertapronta\.com\.br\/deliveries\/order-xyz\/story\.png\?v=\d+$/,
+      );
+
+      const feedMeta = await sharp(result.feedBuffer).metadata();
+      expect(feedMeta.width).toBe(1080);
+      expect(feedMeta.height).toBe(1350);
+
+      const storyMeta = await sharp(result.storyBuffer).metadata();
+      expect(storyMeta.width).toBe(1080);
+      expect(storyMeta.height).toBe(1920);
+
+      const storedFeed = await memoryStorage.getAsset(
+        "deliveries/order-xyz/feed.png",
+      );
+      const storedStory = await memoryStorage.getAsset(
+        "deliveries/order-xyz/story.png",
+      );
+      expect(storedFeed).not.toBeNull();
+      expect(storedStory).not.toBeNull();
+    });
+
+    it("saveCleanMaster deve salvar arte mestre sob chave canônica masters/{prefix}/{ownerId}/{timestamp}.png", async () => {
+      const masterBuffer = await createTestImage(1080, 1350);
+      const result = await exportEngine.saveCleanMaster({
+        ownerId: "order-xyz",
+        buffer: masterBuffer,
+        prefix: "orders",
+      });
+
+      expect(result.key).toMatch(/^masters\/orders\/order-xyz\/\d+\.png$/);
+      expect(result.url).toContain(
+        "https://assets.ofertapronta.com.br/masters/orders/order-xyz/",
+      );
+
+      const stored = await memoryStorage.getAsset(result.key);
+      expect(stored).not.toBeNull();
+      expect(stored?.contentType).toBe("image/png");
+    });
+
+    it("getExportEngine deve retornar singleton e permitir override para testes via setExportEngineForTesting", () => {
+      setExportEngineForTesting(null);
+
+      const engine1 = getExportEngine();
+      const engine2 = getExportEngine();
+      expect(engine1).toBe(engine2);
+
+      const mockEngine: ExportEngine = {
+        exportPreviewCard: async () => ({
+          previewUrl: "mock-url",
+          previewAssetKey: "mock-key",
+          cleanMasterAssetKey: "mock-master-key",
+          watermarkedBuffer: Buffer.from(""),
+        }),
+        exportFinalCampaign: async () => ({
+          feedUrl: "mock-feed",
+          feedAssetKey: "mock-feed-key",
+          storyUrl: "mock-story",
+          storyAssetKey: "mock-story-key",
+          feedBuffer: Buffer.from(""),
+          storyBuffer: Buffer.from(""),
+        }),
+        saveCleanMaster: async () => ({
+          key: "mock-key",
+          url: "mock-url",
+        }),
+      };
+
+      setExportEngineForTesting(mockEngine);
+      expect(getExportEngine()).toBe(mockEngine);
     });
   });
 });

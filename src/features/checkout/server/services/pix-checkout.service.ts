@@ -21,6 +21,10 @@ import {
 } from "../../data/campaign-catalog";
 import { PushinPayService, type PixChargeResult } from "./pushin-pay.service";
 import { createServerLogger } from "../../../../server/logger";
+import {
+  getStorageService,
+  type StorageService,
+} from "../../../../server/storage";
 
 const log = createServerLogger("checkout.pix-checkout");
 
@@ -45,6 +49,7 @@ export class PixCheckoutService {
     private readonly pushinPay: PushinPayService = new PushinPayService(),
     private readonly database: AppDatabase = db,
     private readonly catalogEnv?: CampaignCatalogEnv,
+    private readonly storageService: StorageService = getStorageService(),
   ) {}
 
   private buildFrozenSnapshot(
@@ -52,6 +57,16 @@ export class PixCheckoutService {
     plan: CampaignPlan,
     customerWhatsapp?: string,
   ): Record<string, unknown> {
+    const resolvedProduct = draft.productAssetKey
+      ? this.storageService.getPublicUrl(draft.productAssetKey)
+      : draft.productImageDataUrl;
+    const resolvedReference = draft.referenceAssetKey
+      ? this.storageService.getPublicUrl(draft.referenceAssetKey)
+      : draft.referenceImageDataUrl;
+    const resolvedLogo = draft.logoAssetKey
+      ? this.storageService.getPublicUrl(draft.logoAssetKey)
+      : draft.logoImageDataUrl;
+
     return {
       draftId: draft.id,
       businessSegment: draft.businessSegment,
@@ -62,8 +77,11 @@ export class PixCheckoutService {
       originalPrice: draft.originalPrice,
       callToAction: draft.callToAction,
       whatsapp: customerWhatsapp || draft.whatsapp,
-      productImageDataUrl: draft.productImageDataUrl,
-      referenceImageDataUrl: draft.referenceImageDataUrl,
+      productImageDataUrl: resolvedProduct,
+      referenceImageDataUrl: resolvedReference,
+      productAssetKey: draft.productAssetKey,
+      referenceAssetKey: draft.referenceAssetKey,
+      logoAssetKey: draft.logoAssetKey,
       stylePresetId: draft.stylePresetId,
       customStyleInstructions: draft.customStyleInstructions,
       previewCardImageUrl: draft.previewCardImageUrl,
@@ -74,7 +92,7 @@ export class PixCheckoutService {
       // Metadados do Épico 6 congelados para regenerações idênticas
       cardIntent: draft.cardIntent || "promo",
       customIntentText: draft.customIntentText || null,
-      logoImageDataUrl: draft.logoImageDataUrl || null,
+      logoImageDataUrl: resolvedLogo || null,
 
       planId: plan.id,
       planName: plan.name,
