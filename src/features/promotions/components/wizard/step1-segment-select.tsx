@@ -2,18 +2,26 @@ import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { BusinessSegment } from "../../data/offer-brief.schema";
+import type {
+  BusinessSegment,
+  CardAspectRatio,
+} from "../../data/offer-brief.schema";
 import { getAllCreationSegments } from "../../data/creation-catalog";
+import { CardAspectRatioSelector } from "../card-aspect-ratio-selector";
 
 export interface Step1SegmentSelectProps {
   segment: BusinessSegment;
+  targetAspectRatio?: CardAspectRatio;
   onSelectSegment: (segment: BusinessSegment) => void;
+  onTargetAspectRatioChange?: (val: CardAspectRatio) => void;
   className?: string;
 }
 
 export function Step1SegmentSelect({
   segment,
+  targetAspectRatio = "feed",
   onSelectSegment,
+  onTargetAspectRatioChange,
   className,
 }: Step1SegmentSelectProps) {
   const segments = getAllCreationSegments();
@@ -63,6 +71,13 @@ export function Step1SegmentSelect({
             </Button>
           );
         })}
+      </div>
+
+      <div className="pt-2">
+        <CardAspectRatioSelector
+          targetAspectRatio={targetAspectRatio}
+          onTargetAspectRatioChange={onTargetAspectRatioChange ?? (() => {})}
+        />
       </div>
     </div>
   );

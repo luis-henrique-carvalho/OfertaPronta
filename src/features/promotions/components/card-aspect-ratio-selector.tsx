@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Typography } from "@/components/ui/typography";
-import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
-import { Layers, Smartphone, CheckCircle2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Layers, Smartphone } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { CardAspectRatio } from "../data/offer-brief.schema";
 
 export interface CardAspectRatioSelectorProps {
@@ -13,110 +13,71 @@ export function CardAspectRatioSelector({
   targetAspectRatio,
   onTargetAspectRatioChange,
 }: CardAspectRatioSelectorProps) {
+  const isFeed = targetAspectRatio === "feed";
+  const isStory = targetAspectRatio === "story";
+
   return (
-    <Field>
-      <FieldLabel>Formato do Card Publicitário</FieldLabel>
-      <FieldDescription>
-        Escolha onde você vai postar para a IA compor o card no enquadramento
-        nativo.
-      </FieldDescription>
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 pt-1">
+    <div className="space-y-1.5">
+      <Label className="text-xs font-bold text-foreground">
+        Onde você vai postar?
+      </Label>
+      <div className="grid grid-cols-2 gap-2 pt-0.5">
         <Button
           type="button"
-          variant={targetAspectRatio === "feed" ? "default" : "outline"}
+          data-testid="aspect-ratio-feed"
+          variant={isFeed ? "default" : "outline"}
           onClick={() => onTargetAspectRatioChange("feed")}
-          className={`relative flex h-auto min-h-[72px] w-full flex-row items-center justify-start gap-3 rounded-xl p-3 text-left whitespace-normal break-words transition-all ${
-            targetAspectRatio === "feed"
-              ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background shadow-sm"
-              : "border-border bg-card hover:border-primary/50 hover:bg-muted/40"
-          }`}
-          aria-pressed={targetAspectRatio === "feed"}
-        >
-          <div
-            className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${
-              targetAspectRatio === "feed"
-                ? "bg-primary-foreground/20 text-primary-foreground"
-                : "bg-primary/10 text-primary"
-            }`}
-          >
-            <Layers className="size-5 shrink-0" />
-          </div>
-          <div className="flex flex-col min-w-0 flex-1">
-            <Typography
-              as="span"
-              className={`text-sm font-bold leading-tight ${
-                targetAspectRatio === "feed"
-                  ? "text-primary-foreground"
-                  : "text-foreground"
-              }`}
-            >
-              Feed Instagram (4:5)
-            </Typography>
-            <Typography
-              as="span"
-              variant="muted"
-              className={`text-xs mt-0.5 leading-snug ${
-                targetAspectRatio === "feed"
-                  ? "text-primary-foreground/80"
-                  : "text-muted-foreground"
-              }`}
-            >
-              1080×1350 • Ideal para post no feed
-            </Typography>
-          </div>
-          {targetAspectRatio === "feed" && (
-            <CheckCircle2 className="size-4 shrink-0 text-primary-foreground" />
+          className={cn(
+            "h-auto min-h-[50px] py-2 px-3 flex items-center justify-start gap-2.5 rounded-xl border text-left transition-all min-w-0 select-none",
+            isFeed
+              ? "border-primary bg-primary text-primary-foreground shadow-xs ring-1 ring-primary"
+              : "border-border bg-card text-foreground hover:bg-muted/50",
           )}
+          aria-pressed={isFeed}
+        >
+          <Layers className="size-4 shrink-0" />
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-bold leading-tight">Feed</span>
+            <span
+              className={cn(
+                "text-[10px] leading-tight",
+                isFeed ? "text-primary-foreground/80" : "text-muted-foreground",
+              )}
+            >
+              Post normal
+            </span>
+          </div>
         </Button>
 
         <Button
           type="button"
-          variant={targetAspectRatio === "story" ? "default" : "outline"}
+          data-testid="aspect-ratio-story"
+          variant={isStory ? "default" : "outline"}
           onClick={() => onTargetAspectRatioChange("story")}
-          className={`relative flex h-auto min-h-[72px] w-full flex-row items-center justify-start gap-3 rounded-xl p-3 text-left whitespace-normal break-words transition-all ${
-            targetAspectRatio === "story"
-              ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background shadow-sm"
-              : "border-border bg-card hover:border-primary/50 hover:bg-muted/40"
-          }`}
-          aria-pressed={targetAspectRatio === "story"}
-        >
-          <div
-            className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${
-              targetAspectRatio === "story"
-                ? "bg-primary-foreground/20 text-primary-foreground"
-                : "bg-primary/10 text-primary"
-            }`}
-          >
-            <Smartphone className="size-5 shrink-0" />
-          </div>
-          <div className="flex flex-col min-w-0 flex-1">
-            <Typography
-              as="span"
-              className={`text-sm font-bold leading-tight ${
-                targetAspectRatio === "story"
-                  ? "text-primary-foreground"
-                  : "text-foreground"
-              }`}
-            >
-              Story & WhatsApp (9:16)
-            </Typography>
-            <Typography
-              as="span"
-              variant="muted"
-              className={`text-xs mt-0.5 leading-snug ${
-                targetAspectRatio === "story"
-                  ? "text-primary-foreground/80"
-                  : "text-muted-foreground"
-              }`}
-            >
-              1080×1920 • Ideal para Stories e Status
-            </Typography>
-          </div>
-          {targetAspectRatio === "story" && (
-            <CheckCircle2 className="size-4 shrink-0 text-primary-foreground" />
+          className={cn(
+            "h-auto min-h-[50px] py-2 px-3 flex items-center justify-start gap-2.5 rounded-xl border text-left transition-all min-w-0 select-none",
+            isStory
+              ? "border-primary bg-primary text-primary-foreground shadow-xs ring-1 ring-primary"
+              : "border-border bg-card text-foreground hover:bg-muted/50",
           )}
+          aria-pressed={isStory}
+        >
+          <Smartphone className="size-4 shrink-0" />
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-bold leading-tight">Story</span>
+            <span
+              className={cn(
+                "text-[10px] leading-tight",
+                isStory
+                  ? "text-primary-foreground/80"
+                  : "text-muted-foreground",
+              )}
+            >
+              WhatsApp e Insta
+            </span>
+          </div>
         </Button>
       </div>
-    </Field>
+    </div>
   );
 }

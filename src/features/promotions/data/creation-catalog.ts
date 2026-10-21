@@ -125,7 +125,7 @@ export const QUICK_BRAND_PALETTES: QuickBrandPalette[] = [
     label: "Vermelho & Amarelo",
     primary: "#DC2626",
     secondary: "#FACC15",
-    value: "Paleta Vermelho e Amarelo",
+    value: "Paleta: Vermelho e Amarelo",
     swatches: ["#DC2626", "#FACC15"],
   },
   {
@@ -133,7 +133,7 @@ export const QUICK_BRAND_PALETTES: QuickBrandPalette[] = [
     label: "Azul & Branco",
     primary: "#1D4ED8",
     secondary: "#F8FAFC",
-    value: "Paleta Azul Marinho e Branco",
+    value: "Paleta: Azul Marinho e Branco",
     swatches: ["#1D4ED8", "#F8FAFC"],
   },
   {
@@ -141,7 +141,7 @@ export const QUICK_BRAND_PALETTES: QuickBrandPalette[] = [
     label: "Preto & Dourado",
     primary: "#09090B",
     secondary: "#F59E0B",
-    value: "Paleta Preto e Dourado",
+    value: "Paleta: Preto e Dourado",
     swatches: ["#09090B", "#F59E0B"],
   },
   {
@@ -149,7 +149,7 @@ export const QUICK_BRAND_PALETTES: QuickBrandPalette[] = [
     label: "Verde & Creme",
     primary: "#059669",
     secondary: "#FEF3C7",
-    value: "Paleta Verde e Creme",
+    value: "Paleta: Verde e Creme",
     swatches: ["#059669", "#FEF3C7"],
   },
   {
@@ -157,7 +157,7 @@ export const QUICK_BRAND_PALETTES: QuickBrandPalette[] = [
     label: "Rosa & Claro",
     primary: "#E11D48",
     secondary: "#FFF1F2",
-    value: "Paleta Rosa Suave e Fundo Claro",
+    value: "Paleta: Rosa Suave e Fundo Claro",
     swatches: ["#E11D48", "#FFF1F2"],
   },
   {
@@ -165,7 +165,7 @@ export const QUICK_BRAND_PALETTES: QuickBrandPalette[] = [
     label: "Laranja & Escuro",
     primary: "#EA580C",
     secondary: "#18181B",
-    value: "Paleta Laranja Vibrante e Escuro",
+    value: "Paleta: Laranja Vibrante e Escuro",
     swatches: ["#EA580C", "#18181B"],
   },
 ];

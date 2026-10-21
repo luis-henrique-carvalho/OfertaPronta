@@ -157,6 +157,7 @@ export function OfferCreationWizard({
         {step === 1 && (
           <Step1SegmentSelect
             segment={draft.businessSegment}
+            targetAspectRatio={draft.targetAspectRatio}
             onSelectSegment={(newSegment) => {
               draft.setBusinessSegment(newSegment);
               const firstStyle = getCreationSegment(newSegment).styles[0]?.id;
@@ -164,6 +165,7 @@ export function OfferCreationWizard({
                 draft.setStylePresetId(firstStyle);
               }
             }}
+            onTargetAspectRatioChange={draft.setTargetAspectRatio}
           />
         )}
 

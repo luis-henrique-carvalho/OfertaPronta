@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { Camera, Copy, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Camera, Copy, ShieldCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PhotoOptionCard } from "./photo-option-card";
 
@@ -39,7 +39,7 @@ export function Step3VisualAssets({
           Quer enviar alguma imagem?
         </Typography>
         <Typography variant="muted" className="text-xs sm:text-sm">
-          Tudo aqui é opcional. Envie apenas o que você tiver em mãos.
+          Tudo aqui é opcional. Se não tiver fotos, a IA cria tudo para você.
         </Typography>
       </div>
 
@@ -93,17 +93,20 @@ export function Step3VisualAssets({
         onRemoveClick={() => onLogoImageChange(undefined)}
       />
 
-      {/* Botão rápido para quem não quer enviar nenhuma imagem */}
+      {/* Botão simples para quem não quer enviar nenhuma imagem */}
       {!hasAnyImage && (
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           data-testid="btn-skip-all-images"
           onClick={onSkipAllImages}
-          className="mt-1 h-12 min-h-[44px] w-full rounded-xl border border-dashed border-border bg-muted/30 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60"
+          className="mt-1 h-12 w-full justify-between rounded-xl border-border bg-card px-4 text-xs sm:text-sm font-semibold text-foreground shadow-2xs hover:border-primary/50 hover:bg-muted/50"
         >
-          <Sparkles className="size-4 mr-1.5 text-amber-500 shrink-0" />
-          Não tenho imagens agora — Deixar a IA criar tudo
+          <span className="flex items-center gap-2 truncate">
+            <Sparkles className="size-4 text-primary shrink-0" />
+            <span>Não tenho imagens (a IA cria tudo)</span>
+          </span>
+          <ArrowRight className="size-4 text-muted-foreground shrink-0" />
         </Button>
       )}
     </div>

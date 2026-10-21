@@ -1,10 +1,10 @@
 import { Typography } from "@/components/ui/typography";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Palette, Sparkles } from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   QUICK_BRAND_PALETTES,
@@ -156,22 +156,31 @@ export function Step4StyleAndPalette({
         ))}
       </div>
 
-      {/* Seção opcional de Paleta Personalizada da Loja */}
+      {/* Seção opcional de Personalização de Estilo e Paleta */}
       <Card className="p-3.5 rounded-2xl border-border bg-card shadow-2xs mt-1 space-y-2.5">
-        <div className="flex items-center gap-2">
-          <Palette className="size-4 text-primary shrink-0" />
-          <Label
-            htmlFor="custom-palette-input"
-            className="text-xs font-bold text-foreground"
-          >
-            Quer forçar outra paleta de cores da sua loja? (Opcional)
-          </Label>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-4 text-primary shrink-0" />
+            <Label
+              htmlFor="custom-palette-input"
+              className="text-xs font-bold text-foreground"
+            >
+              Quer personalizar o estilo ou fazer algum ajuste? (Opcional)
+            </Label>
+          </div>
+          <Typography variant="muted" className="text-xs">
+            Escolha uma paleta rápida ou escreva suas preferências de estilo (fundo, clima, cores):
+          </Typography>
         </div>
 
         {/* Chips rápidos de combinação de cores */}
         <div className="flex flex-wrap gap-1.5">
           {QUICK_BRAND_PALETTES.map((palette) => {
-            const isSelectedPalette = customStyleNote === palette.value;
+            const isSelectedPalette =
+              customStyleNote.includes(palette.value) ||
+              customStyleNote.includes(`Paleta: ${palette.label}`) ||
+              customStyleNote === palette.label;
+
             return (
               <Button
                 key={palette.label}
@@ -180,11 +189,13 @@ export function Step4StyleAndPalette({
                 size="sm"
                 data-testid={`palette-chip-${palette.name}`}
                 aria-pressed={isSelectedPalette}
-                onClick={() =>
-                  onCustomStyleNoteChange(
-                    isSelectedPalette ? "" : palette.value,
-                  )
-                }
+                onClick={() => {
+                  const updated = applyPaletteToStyleNote(
+                    customStyleNote,
+                    palette.value,
+                  );
+                  onCustomStyleNoteChange(updated);
+                }}
                 className={cn(
                   "h-8 min-h-[36px] rounded-full px-2.5 text-[11px] font-semibold gap-1.5 select-none",
                   isSelectedPalette
@@ -211,15 +222,64 @@ export function Step4StyleAndPalette({
           })}
         </div>
 
-        <Input
+        <Textarea
           id="custom-palette-input"
           data-testid="input-custom-palette"
-          placeholder="Ou digite a cor da sua loja (ex: Azul royal e amarelo)..."
+          placeholder="Ex: Paleta: Preto e Dourado. Quero um estilo rústico com madeira, fundo escuro e letras douradas..."
           value={customStyleNote}
           onChange={(e) => onCustomStyleNoteChange(e.target.value)}
-          className="h-10 rounded-xl text-xs"
+          className="min-h-[72px] resize-none rounded-xl text-xs sm:text-sm"
+          rows={2}
         />
       </Card>
     </div>
   );
+}
+
+/**
+ * Insere, substitui ou desmarca a paleta dentro do texto de instruções customizadas,
+ * preservando as opiniões e ajustes adicionais que o usuário tiver digitado.
+ */
+function applyPaletteToStyleNote(
+  currentNote: string,
+  paletteValue: string,
+): string {
+  // Encontra se já existe alguma paleta conhecida no texto
+  const existingPalette = QUICK_BRAND_PALETTES.find(
+    (p) =>
+      currentNote.includes(p.value) ||
+      currentNote.includes(`Paleta: ${p.label}`) ||
+      currentNote.includes(p.label),
+  );
+
+  if (existingPalette) {
+    // Se o usuário clicou na mesma paleta que já estava ativa, remove-a (toggle off)
+    const isSamePalette =
+      currentNote.includes(paletteValue) ||
+      (currentNote.includes(existingPalette.value) &&
+        existingPalette.value === paletteValue);
+
+    if (isSamePalette) {
+      return currentNote
+        .replace(paletteValue, "")
+        .replace(existingPalette.value, "")
+        .replace(/^[.\s,;-]+/, "")
+        .trim();
+    }
+
+    // Se é uma paleta diferente, substitui no texto
+    const targetToRemove = currentNote.includes(existingPalette.value)
+      ? existingPalette.value
+      : currentNote.includes(`Paleta: ${existingPalette.label}`)
+        ? `Paleta: ${existingPalette.label}`
+        : existingPalette.label;
+
+    return currentNote.replace(targetToRemove, paletteValue).trim();
+  }
+
+  // Se não tinha paleta prévia, insere no início preservando o restante do texto
+  if (!currentNote.trim()) {
+    return paletteValue;
+  }
+  return `${paletteValue}. ${currentNote.trim()}`;
 }

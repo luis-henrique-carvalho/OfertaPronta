@@ -9,6 +9,7 @@ import {
   cleanup,
 } from "@testing-library/react";
 import { OfferCreationWizard } from "./offer-creation-wizard";
+import type { SaveOfferDraftInput } from "../data/offer-brief.schema";
 import type { SaveDraftResponse, GeneratePreviewResponse } from "../server";
 
 describe("OfferCreationWizard Integration Flow", () => {
@@ -525,7 +526,7 @@ describe("OfferCreationWizard Integration Flow", () => {
     const customPaletteInput = screen.getByTestId(
       "input-custom-palette",
     ) as HTMLInputElement;
-    expect(customPaletteInput.value).toBe("Paleta Preto e Dourado");
+    expect(customPaletteInput.value).toBe("Paleta: Preto e Dourado");
   });
 
   it("deve permitir voltar passos através do botão 'Voltar' do rodapé fixo", () => {
@@ -652,6 +653,85 @@ describe("OfferCreationWizard Integration Flow", () => {
         screen.getByText(/Instabilidade temporária na IA\. Tente novamente\./i),
       ).toBeDefined();
       expect(onNavigateToCheckout).not.toHaveBeenCalled();
+    });
+  });
+
+  it("permite selecionar formato Story no Passo 2 e envia targetAspectRatio: 'story' ao salvar rascunho", async () => {
+    let capturedSavePayload: SaveOfferDraftInput | null = null;
+    const trackingSaveDraft = vi
+      .fn()
+      .mockImplementation(
+        async (arg: {
+          data: SaveOfferDraftInput;
+        }): Promise<SaveDraftResponse> => {
+          capturedSavePayload = arg.data;
+          return {
+            success: true,
+            draftId: "draft-story-123",
+            draft: {
+              id: "draft-story-123",
+              businessSegment: "fashion",
+              targetAspectRatio: arg?.data?.targetAspectRatio || "story",
+              cardIntent: "promo",
+              customIntentText: null,
+              logoImageDataUrl: null,
+              businessName: "Boutique Flor",
+              offerTitle: "Vestido Floral",
+              promoPrice: "R$ 89,90",
+              originalPrice: null,
+              callToAction: null,
+              whatsapp: null,
+              productImageDataUrl: null,
+              referenceImageDataUrl: null,
+              stylePresetId: "fashion-boutique",
+              customStyleInstructions: null,
+              cleanMasterImageDataUrl: null,
+              previewCardImageUrl: null,
+              aiGenerationCount: 0,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          };
+        },
+      );
+
+    render(
+      <OfferCreationWizard
+        initialDraft={{
+          businessSegment: "fashion",
+          businessName: "Boutique Flor",
+          offerTitle: "Vestido Floral",
+          promoPrice: "R$ 89,90",
+        }}
+        saveDraftFn={trackingSaveDraft}
+        generatePreviewFn={mockGeneratePreview}
+        initiateCheckoutFn={mockInitiateCheckout}
+      />,
+    );
+
+    // No Passo 1, seleciona Story abaixo dos segmentos
+    const storyBtn = screen.getByTestId("aspect-ratio-story");
+    fireEvent.click(storyBtn);
+    expect(storyBtn.getAttribute("aria-pressed")).toBe("true");
+
+    // Passo 1 -> Avança para Passo 2
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+
+    // Avança Passo 2 -> Passo 3
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+
+    // Avança Passo 3 -> Passo 4
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+
+    // Passo 4: clica em Gerar Card com IA
+    const generateBtn = screen.getByTestId("btn-wizard-generate");
+    await act(async () => {
+      fireEvent.click(generateBtn);
+    });
+
+    await waitFor(() => {
+      expect(trackingSaveDraft).toHaveBeenCalled();
+      expect(capturedSavePayload?.targetAspectRatio).toBe("story");
     });
   });
 });

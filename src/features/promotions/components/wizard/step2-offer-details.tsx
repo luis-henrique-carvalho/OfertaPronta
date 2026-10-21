@@ -222,7 +222,7 @@ export function Step2OfferDetails({
           O que você quer postar?
         </Typography>
         <Typography variant="muted" className="text-xs sm:text-sm">
-          Escolha o objetivo e preencha os dados principais.
+          Preencha as informações do seu anúncio.
         </Typography>
       </div>
 
