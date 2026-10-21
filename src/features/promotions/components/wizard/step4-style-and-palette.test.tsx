@@ -119,4 +119,49 @@ describe("Step4StyleAndPalette", () => {
       "Paleta: Azul Marinho e Branco. Gostaria de iluminação suave de estúdio",
     );
   });
+
+  it("desmarca os cards predefinidos ao selecionar paleta ou digitar texto, e limpa texto ao clicar em um card", () => {
+    function TestWrapper() {
+      const [styleId, setStyleId] = useState<string | null>(
+        mockSegmentData.styles[0].id,
+      );
+      const [note, setNote] = useState("");
+      return (
+        <Step4StyleAndPalette
+          segmentData={mockSegmentData}
+          selectedStyleId={styleId}
+          businessName="Boutique Flor"
+          offerTitle="Vestido Elegance"
+          customStyleNote={note}
+          onSelectStyle={setStyleId}
+          onCustomStyleNoteChange={setNote}
+        />
+      );
+    }
+
+    render(<TestWrapper />);
+
+    // 1. Inicialmente sem nota customizada: um card de estilo deve estar selecionado
+    expect(screen.queryByTestId("selected-check-icon")).not.toBeNull();
+
+    // 2. Seleciona uma paleta rápida abaixo: os cards de estilo de cima devem perder a seleção
+    const redYellowChip = screen.getByTestId("palette-chip-red-yellow");
+    fireEvent.click(redYellowChip);
+
+    expect(screen.queryByTestId("selected-check-icon")).toBeNull();
+
+    // 3. Usuário clica em um card de estilo de cima: ele assume a seleção e limpa o campo personalizado
+    const styleCards = screen.getAllByTestId("style-mini-post-card");
+    fireEvent.click(styleCards[1]);
+
+    // O card clicado agora deve estar selecionado
+    expect(screen.queryByTestId("selected-check-icon")).not.toBeNull();
+
+    // O campo personalizado deve ter sido limpo
+    const textarea = screen.getByTestId(
+      "input-custom-palette",
+    ) as HTMLTextAreaElement;
+    expect(textarea.value).toBe("");
+    expect(redYellowChip.getAttribute("aria-pressed")).toBe("false");
+  });
 });

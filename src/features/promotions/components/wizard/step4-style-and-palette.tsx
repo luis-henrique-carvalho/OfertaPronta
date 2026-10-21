@@ -2,9 +2,8 @@ import { Typography } from "@/components/ui/typography";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   QUICK_BRAND_PALETTES,
@@ -12,6 +11,7 @@ import {
 } from "../../data/creation-catalog";
 import { REFERENCE_STYLE_PRESET_ID } from "../../data/offer-brief.schema";
 import { StyleMiniPostCard } from "./style-mini-post-card";
+import { ReferenceStyleCard } from "./reference-style-card";
 
 export interface Step4StyleAndPaletteProps {
   segmentData: CreationCatalogItem;
@@ -44,21 +44,27 @@ export function Step4StyleAndPalette({
   const hasReference = Boolean(
     referenceImageDataUrl && referenceImageDataUrl.trim().length > 0,
   );
+  const hasCustomNote = Boolean(
+    customStyleNote && customStyleNote.trim().length > 0,
+  );
 
+  // Se o usuário personalizou estilo ou paleta, remove a seleção dos cards predefinidos
   const isRefSelected =
+    !hasCustomNote &&
     hasReference &&
     (selectedStyleId === REFERENCE_STYLE_PRESET_ID || !selectedStyleId);
 
   const activeCatalogStyleId =
-    !hasReference &&
-    (!selectedStyleId || selectedStyleId === REFERENCE_STYLE_PRESET_ID)
+    !hasCustomNote && !hasReference && !selectedStyleId
       ? styles[0]?.id
-      : selectedStyleId;
+      : !hasCustomNote && selectedStyleId !== REFERENCE_STYLE_PRESET_ID
+        ? selectedStyleId
+        : null;
 
-  const handleRefKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onSelectStyle(REFERENCE_STYLE_PRESET_ID);
+  const handleSelectStyle = (styleId: string) => {
+    onSelectStyle(styleId);
+    if (customStyleNote && customStyleNote.trim().length > 0) {
+      onCustomStyleNoteChange("");
     }
   };
 
@@ -78,61 +84,11 @@ export function Step4StyleAndPalette({
 
       {/* Card Especial de Referência quando o usuário enviou um Print no passo anterior */}
       {hasReference && (
-        <Card
-          data-testid="reference-style-card"
-          role="button"
-          tabIndex={0}
-          aria-pressed={isRefSelected}
-          aria-label="Estilo do seu Print de Referência: A IA vai copiar a estética, paleta de cores e tipografia do print que você enviou"
-          onClick={() => onSelectStyle(REFERENCE_STYLE_PRESET_ID)}
-          onKeyDown={handleRefKeyDown}
-          className={cn(
-            "group cursor-pointer overflow-hidden rounded-2xl border-2 transition-all p-3.5 flex items-center gap-3.5 select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-            isRefSelected
-              ? "border-primary bg-primary/5 ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md"
-              : "border-border bg-card hover:border-primary/40 opacity-80 hover:opacity-100",
-          )}
-        >
-          {/* Miniatura do Print de Referência */}
-          <div className="relative size-16 sm:size-20 shrink-0 aspect-square overflow-hidden rounded-xl border border-black/15 shadow-xs">
-            <img
-              src={referenceImageDataUrl!}
-              alt="Print de referência"
-              className="size-full object-cover"
-            />
-          </div>
-
-          {/* Textos e Badges */}
-          <div className="flex-1 min-w-0 space-y-1">
-            <div className="flex items-center justify-between gap-2">
-              <Badge
-                variant={isRefSelected ? "default" : "secondary"}
-                className="text-[10px] font-extrabold uppercase tracking-wide gap-1"
-              >
-                <Sparkles className="size-3 shrink-0" />
-                <span>Ativo / Recomendado</span>
-              </Badge>
-              {isRefSelected && (
-                <CheckCircle2
-                  data-testid="reference-selected-check-icon"
-                  className="size-4 text-primary shrink-0 ml-auto"
-                />
-              )}
-            </div>
-
-            <Typography
-              variant="h4"
-              className="text-sm font-bold text-foreground leading-tight"
-            >
-              Estilo do seu Print de Referência
-            </Typography>
-
-            <Typography variant="muted" className="text-xs leading-snug">
-              A IA vai copiar a estética, paleta de cores e tipografia do print
-              que você enviou.
-            </Typography>
-          </div>
-        </Card>
+        <ReferenceStyleCard
+          referenceImageDataUrl={referenceImageDataUrl!}
+          isRefSelected={isRefSelected}
+          onSelect={() => handleSelectStyle(REFERENCE_STYLE_PRESET_ID)}
+        />
       )}
 
       {/* Grade 2x3 de Mini-Posts com os dados reais do usuário */}
@@ -142,16 +98,12 @@ export function Step4StyleAndPalette({
             key={style.id}
             style={style}
             segmentData={segmentData}
-            isSelected={
-              hasReference
-                ? !isRefSelected && selectedStyleId === style.id
-                : activeCatalogStyleId === style.id
-            }
+            isSelected={activeCatalogStyleId === style.id}
             businessName={businessName}
             offerTitle={offerTitle}
             promoPrice={promoPrice}
             productImageDataUrl={productImageDataUrl}
-            onSelect={() => onSelectStyle(style.id)}
+            onSelect={() => handleSelectStyle(style.id)}
           />
         ))}
       </div>
@@ -196,6 +148,9 @@ export function Step4StyleAndPalette({
                     palette.value,
                   );
                   onCustomStyleNoteChange(updated);
+                  if (updated.trim().length > 0) {
+                    onSelectStyle("");
+                  }
                 }}
                 className={cn(
                   "h-8 min-h-[36px] rounded-full px-2.5 text-[11px] font-semibold gap-1.5 select-none",
@@ -228,7 +183,13 @@ export function Step4StyleAndPalette({
           data-testid="input-custom-palette"
           placeholder="Ex: Paleta: Preto e Dourado. Quero um estilo rústico com madeira, fundo escuro e letras douradas..."
           value={customStyleNote}
-          onChange={(e) => onCustomStyleNoteChange(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            onCustomStyleNoteChange(val);
+            if (val.trim().length > 0) {
+              onSelectStyle("");
+            }
+          }}
           className="min-h-[72px] resize-none rounded-xl text-xs sm:text-sm"
           rows={2}
         />

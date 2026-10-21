@@ -66,6 +66,7 @@ export function StyleMiniPostCard({
 
   return (
     <Card
+      data-testid="style-mini-post-card"
       role="button"
       tabIndex={0}
       aria-pressed={isSelected}

@@ -44,6 +44,12 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
+# Instala fontconfig e fontes essenciais para renderização vetorial no Sharp / librsvg
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core fonts-liberation && \
+    fc-cache -f && \
+    rm -rf /var/lib/apt/lists/*
+
 # Cria usuário e grupo não-root para execução segura
 RUN groupadd --system --gid 1001 nodejs && \
     useradd --system --uid 1001 -g nodejs ofertapronta
