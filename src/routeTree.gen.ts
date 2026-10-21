@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CriarRouteImport } from './routes/criar'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as CheckoutOrderIdRouteImport } from './routes/checkout.$orderId'
 import { Route as PedidoOrderIdRouteImport } from './routes/pedido.$orderId'
 import { Route as ApiDeliveryDownloadRouteImport } from './routes/api.delivery.download'
@@ -24,6 +26,16 @@ const IndexRoute = IndexRouteImport.update({
 const CriarRoute = CriarRouteImport.update({
   id: '/criar',
   path: '/criar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutOrderIdRoute = CheckoutOrderIdRouteImport.update({
@@ -50,6 +62,8 @@ const ApiWebhooksPixRoute = ApiWebhooksPixRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/criar': typeof CriarRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/checkout/$orderId': typeof CheckoutOrderIdRoute
   '/pedido/$orderId': typeof PedidoOrderIdRoute
   '/api/delivery/download': typeof ApiDeliveryDownloadRoute
@@ -58,6 +72,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/criar': typeof CriarRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/checkout/$orderId': typeof CheckoutOrderIdRoute
   '/pedido/$orderId': typeof PedidoOrderIdRoute
   '/api/delivery/download': typeof ApiDeliveryDownloadRoute
@@ -67,6 +83,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/criar': typeof CriarRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/checkout/$orderId': typeof CheckoutOrderIdRoute
   '/pedido/$orderId': typeof PedidoOrderIdRoute
   '/api/delivery/download': typeof ApiDeliveryDownloadRoute
@@ -77,6 +95,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/criar'
+    | '/privacidade'
+    | '/termos'
     | '/checkout/$orderId'
     | '/pedido/$orderId'
     | '/api/delivery/download'
@@ -85,6 +105,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/criar'
+    | '/privacidade'
+    | '/termos'
     | '/checkout/$orderId'
     | '/pedido/$orderId'
     | '/api/delivery/download'
@@ -93,6 +115,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/criar'
+    | '/privacidade'
+    | '/termos'
     | '/checkout/$orderId'
     | '/pedido/$orderId'
     | '/api/delivery/download'
@@ -102,6 +126,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CriarRoute: typeof CriarRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
+  TermosRoute: typeof TermosRoute
   CheckoutOrderIdRoute: typeof CheckoutOrderIdRoute
   PedidoOrderIdRoute: typeof PedidoOrderIdRoute
   ApiDeliveryDownloadRoute: typeof ApiDeliveryDownloadRoute
@@ -122,6 +148,20 @@ declare module '@tanstack/react-router' {
       path: '/criar'
       fullPath: '/criar'
       preLoaderRoute: typeof CriarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout/$orderId': {
@@ -158,6 +198,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CriarRoute: CriarRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
+  TermosRoute: TermosRoute,
   CheckoutOrderIdRoute: CheckoutOrderIdRoute,
   PedidoOrderIdRoute: PedidoOrderIdRoute,
   ApiDeliveryDownloadRoute: ApiDeliveryDownloadRoute,
