@@ -114,8 +114,8 @@ describe("StorageService Deep Module (TDD)", () => {
       const cdnDriver = new InMemoryStorageDriver({
         publicUrlBase: "https://cdn.teste.local/",
       });
-      expect(cdnDriver.getPublicUrl("/inputs/draft-123/product.png")).toBe(
-        "https://cdn.teste.local/inputs/draft-123/product.png",
+      expect(cdnDriver.getPublicUrl("/drafts/draft-123/product.png")).toBe(
+        "https://cdn.teste.local/drafts/draft-123/product.png",
       );
     });
   });
@@ -151,8 +151,8 @@ describe("StorageService Deep Module (TDD)", () => {
         publicUrl: "https://assets.ofertapronta.com.br/",
       });
 
-      expect(r2Driver.getPublicUrl("/deliveries/order-1/feed.png")).toBe(
-        "https://assets.ofertapronta.com.br/deliveries/order-1/feed.png",
+      expect(r2Driver.getPublicUrl("/orders/order-1/feed.png")).toBe(
+        "https://assets.ofertapronta.com.br/orders/order-1/feed.png",
       );
     });
   });

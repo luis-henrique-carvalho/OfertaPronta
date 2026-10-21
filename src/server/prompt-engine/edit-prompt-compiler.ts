@@ -13,7 +13,7 @@ import {
 } from "./art-direction-blueprints";
 
 export const RECOMPOSE_INTENT_REGEX =
-  /\b(atrás|atras|frente|personagem|pessoa|modelo|rosto|cabeça|cabeca|escondid\w*|cobrind\w*|cobert\w*|cortad\w*|sobrepon\w*|sobrepos\w*|posiç\w*|posic\w*|mover|mova|mude\s+o\s+lugar|mudar\s+de\s+lugar|colocar?\s+em\s+cima|colocar?\s+em\s+baixo|mais\s+para\s+(baixo|cima|esquerda|direita)|topo|rodapé|rodape|lado|esquerda|direita|layout|estrutura|reestrutur\w*|reorganiz\w*|reposicion\w*|trocar\s+(o\s+)?(estilo|fundo|cenário|cenario|layout)|mudar\s+(o\s+)?(estilo|fundo|cenário|cenario|layout)|novo\s+preset|afastar|separar|desobstru\w*|visível|visivel|legível|legivel|1º\s*plano|primeiro\s+plano)\b/i;
+  /\b(centro|central|meio|centraliz\w*|destaqu\w*|foc\w*|produt\w*|maior|atrás|atras|frente|personagem|pessoa|modelo|rosto|cabeça|cabeca|escondid\w*|cobrind\w*|cobert\w*|cortad\w*|sobrepon\w*|sobrepos\w*|posiç\w*|posic\w*|mover|mova|mude\s+o\s+lugar|mudar\s+de\s+lugar|colocar?\s+em\s+cima|colocar?\s+em\s+baixo|mais\s+para\s+(baixo|cima|esquerda|direita)|topo|rodapé|rodape|lado|esquerda|direita|layout|estrutura|reestrutur\w*|reorganiz\w*|reposicion\w*|trocar\s+(o\s+)?(estilo|fundo|cenário|cenario|layout)|mudar\s+(o\s+)?(estilo|fundo|cenário|cenario|layout)|novo\s+preset|afastar|separar|desobstru\w*|visível|visivel|legível|legivel|1º\s*plano|primeiro\s+plano)\b/i;
 
 /**
  * Classifica a intenção de edição entre 'SURGICAL' (ajustes pontuais em texto/preço/contato)

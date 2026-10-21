@@ -344,6 +344,86 @@ describe("PromptEngine Deep Module", () => {
 
       expect(brief.source).toBe("deterministic-fallback");
     });
+
+    it("compileDynamicCardPrompt deve interpretar pedido de ajuste com Gemini 3.8 Flash na edição de card existente", async () => {
+      const generateContentSpy = vi.fn().mockResolvedValue({
+        text: JSON.stringify({
+          mode: "RECOMPOSE",
+          reason: "Cliente solicitou reposicionar o produto no centro.",
+          compositionArchetype: "center-showcase",
+        }),
+      });
+
+      const fakeClient: PromptPlannerClient = {
+        models: {
+          generateContent: generateContentSpy,
+        },
+      };
+
+      const input = createSampleInput({
+        baseCardImageDataUrl: SAMPLE_BASE64_PNG,
+        customStyleInstructions: "Dar mais impacto geral à apresentação",
+      });
+
+      const prompt = await compileDynamicCardPrompt(input, {
+        client: fakeClient,
+      });
+
+      expect(generateContentSpy).toHaveBeenCalledTimes(1);
+      expect(prompt).toContain(
+        "RECOMPOSIÇÃO VISUAL E REESTRUTURAÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE)",
+      );
+    });
+
+    it("compileDynamicCardPrompt deve aplicar fallback gracioso para regex quando o modelo dinâmico falhar na edição", async () => {
+      const fakeClient: PromptPlannerClient = {
+        models: {
+          generateContent: vi
+            .fn()
+            .mockRejectedValue(new Error("Network timeout")),
+        },
+      };
+
+      const input = createSampleInput({
+        baseCardImageDataUrl: SAMPLE_BASE64_PNG,
+        customStyleInstructions: "Mudar apenas o preço para R$ 50,00",
+      });
+
+      const prompt = await compileDynamicCardPrompt(input, {
+        client: fakeClient,
+      });
+
+      expect(prompt).toContain("EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE");
+    });
+
+    it("buildMultimodalPromptPartsAsync deve usar planejamento dinâmico na edição quando client for fornecido", async () => {
+      const generateContentSpy = vi.fn().mockResolvedValue({
+        text: JSON.stringify({
+          mode: "RECOMPOSE",
+          reason: "Repensar layout e foco visual.",
+        }),
+      });
+
+      const fakeClient: PromptPlannerClient = {
+        models: {
+          generateContent: generateContentSpy,
+        },
+      };
+
+      const input = createSampleInput({
+        baseCardImageDataUrl: SAMPLE_BASE64_PNG,
+        customStyleInstructions: "Dar mais destaque e centralizar a foto",
+      });
+
+      const parts = await buildMultimodalPromptPartsAsync(input, {
+        client: fakeClient,
+      });
+
+      expect(generateContentSpy).toHaveBeenCalledTimes(1);
+      expect(parts[0]).toContain(
+        "RECOMPOSIÇÃO VISUAL E REESTRUTURAÇÃO DE LAYOUT",
+      );
+    });
   });
 
   describe("Edição Pós-Pagamento Adaptativa (SURGICAL vs RECOMPOSE)", () => {
@@ -391,6 +471,26 @@ describe("PromptEngine Deep Module", () => {
         ];
 
         for (const phrase of recomposePhrases) {
+          expect(
+            detectEditIntentMode({ customStyleInstructions: phrase }),
+            `Falhou para a frase: "${phrase}"`,
+          ).toBe("RECOMPOSE");
+        }
+      });
+
+      it("deve classificar como RECOMPOSE quando o usuário pedir centralização, destaque ou termos correlatos", () => {
+        const phrases = [
+          "Dar mais destaque para a foto do produto no centro",
+          "centralizar o produto",
+          "colocar no meio da tela",
+          "dar mais foco no produto",
+          "quero o produto maior",
+          "posicionar no centro",
+          "mudar para o centro",
+          "dar destaque na foto",
+        ];
+
+        for (const phrase of phrases) {
           expect(
             detectEditIntentMode({ customStyleInstructions: phrase }),
             `Falhou para a frase: "${phrase}"`,

@@ -159,10 +159,8 @@ describe("DeliveryService Deep Module (TDD)", () => {
       expect(savedExport).toBeDefined();
       expect(savedExport.downloadCount).toBe(0);
       expect(savedExport.expiresAt).toBeNull();
-      expect(savedExport.feedAssetKey).toBe(`deliveries/${order.id}/feed.png`);
-      expect(savedExport.storyAssetKey).toBe(
-        `deliveries/${order.id}/story.png`,
-      );
+      expect(savedExport.feedAssetKey).toBe(`orders/${order.id}/feed.png`);
+      expect(savedExport.storyAssetKey).toBe(`orders/${order.id}/story.png`);
 
       // Verify assets were uploaded to storage
       const storedFeed = await storageDriver.getAsset(
@@ -326,8 +324,8 @@ describe("DeliveryService Deep Module (TDD)", () => {
       expect(updated.orderId).toBe(order.id);
       expect(updated.feedUrl).toBeDefined();
       expect(updated.storyUrl).toBeDefined();
-      expect(updated.feedAssetKey).toBe(`deliveries/${order.id}/feed.png`);
-      expect(updated.storyAssetKey).toBe(`deliveries/${order.id}/story.png`);
+      expect(updated.feedAssetKey).toBe(`orders/${order.id}/feed.png`);
+      expect(updated.storyAssetKey).toBe(`orders/${order.id}/story.png`);
       expect(updated.updatedAt).toBeInstanceOf(Date);
 
       const storedFeed = await storageDriver.getAsset(updated.feedAssetKey!);
@@ -360,7 +358,7 @@ describe("DeliveryService Deep Module (TDD)", () => {
 
       expect(updated.feedUrl).toBeDefined();
       expect(updated.storyUrl).toBeDefined();
-      expect(updated.feedAssetKey).toBe(`deliveries/${order.id}/feed.png`);
+      expect(updated.feedAssetKey).toBe(`orders/${order.id}/feed.png`);
 
       const storedFeed = await storageDriver.getAsset(updated.feedAssetKey!);
       expect(storedFeed?.buffer.toString()).toBe(

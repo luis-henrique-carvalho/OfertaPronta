@@ -11,7 +11,7 @@ describe("LiveCardPreview - Image Rendering Compatibility", () => {
         businessName="Mercado Teste"
         offerTitle="Oferta Especial"
         promoPrice="R$ 19,90"
-        previewCardImageUrl="https://r2.cdn.ofertapronta.com.br/previews/draft-123/preview.png"
+        previewCardImageUrl="https://r2.cdn.ofertapronta.com.br/drafts/draft-123/preview.webp"
         targetAspectRatio="feed"
       />,
     );
@@ -19,7 +19,7 @@ describe("LiveCardPreview - Image Rendering Compatibility", () => {
     const img = screen.getByAltText("Oferta Especial") as HTMLImageElement;
     expect(img).toBeDefined();
     expect(img.src).toBe(
-      "https://r2.cdn.ofertapronta.com.br/previews/draft-123/preview.png",
+      "https://r2.cdn.ofertapronta.com.br/drafts/draft-123/preview.webp",
     );
   });
 

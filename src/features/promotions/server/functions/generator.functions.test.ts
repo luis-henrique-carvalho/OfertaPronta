@@ -212,7 +212,7 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       expect(response).toEqual({
         success: true,
         previewUrl: expect.stringMatching(
-          /^https?:\/\/.+\/previews\/draft-123\/\d+\.(webp|png)$/,
+          /^https?:\/\/.+\/drafts\/draft-123\/preview\.webp$/,
         ),
         aiGenerationCount: 1,
       });
@@ -239,11 +239,11 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       expect(updateDraftPreview).toHaveBeenCalledWith(
         "draft-123",
         expect.stringMatching(
-          /^https?:\/\/.+\/previews\/draft-123\/\d+\.(webp|png)$/,
+          /^https?:\/\/.+\/drafts\/draft-123\/preview\.webp$/,
         ),
         `data:image/png;base64,${syntheticBuffer.toString("base64")}`,
-        expect.stringMatching(/^previews\/draft-123\/\d+\.(webp|png)$/),
-        expect.stringMatching(/^masters\/(drafts\/)?draft-123\/\d+\.png$/),
+        "drafts/draft-123/preview.webp",
+        expect.stringMatching(/^drafts\/draft-123\/private-master-\d+\.png$/),
       );
     });
 
@@ -355,7 +355,7 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       if (firstResponse.success) {
         expect(firstResponse.aiGenerationCount).toBe(1);
         expect(firstResponse.previewUrl).toMatch(
-          /^https?:\/\/.+\/previews\/.+\.(webp|png)$/,
+          /^https?:\/\/.+\/drafts\/.+\/preview\.webp$/,
         );
       }
 
@@ -367,10 +367,10 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
         firstResponse.success ? firstResponse.previewUrl : null,
       );
       expect(fetchedAfter?.previewAssetKey).toMatch(
-        /^previews\/.+\.(webp|png)$/,
+        /^drafts\/.+\/preview\.webp$/,
       );
       expect(fetchedAfter?.cleanMasterAssetKey).toMatch(
-        /^masters\/(drafts\/)?.+\.png$/,
+        /^drafts\/.+\/private-master-.+\.png$/,
       );
 
       // 5. Attempt 2nd generation on same draft -> must be blocked

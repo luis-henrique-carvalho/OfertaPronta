@@ -225,14 +225,12 @@ describe("ExportEngine Deep Module", () => {
         rawImageBuffer: rawImage,
       });
 
-      expect(result.previewAssetKey).toMatch(
-        /^previews\/draft-abc\/\d+\.webp$/,
-      );
+      expect(result.previewAssetKey).toBe("drafts/draft-abc/preview.webp");
       expect(result.cleanMasterAssetKey).toMatch(
-        /^masters\/drafts\/draft-abc\/\d+\.png$/,
+        /^drafts\/draft-abc\/private-master-\d+\.png$/,
       );
-      expect(result.previewUrl).toContain(
-        "https://assets.ofertapronta.com.br/previews/draft-abc/",
+      expect(result.previewUrl).toBe(
+        "https://assets.ofertapronta.com.br/drafts/draft-abc/preview.webp",
       );
       expect(result.watermarkedBuffer).toBeInstanceOf(Buffer);
 
@@ -259,13 +257,13 @@ describe("ExportEngine Deep Module", () => {
         },
       });
 
-      expect(result.feedAssetKey).toBe("deliveries/order-xyz/feed.png");
-      expect(result.storyAssetKey).toBe("deliveries/order-xyz/story.png");
+      expect(result.feedAssetKey).toBe("orders/order-xyz/feed.png");
+      expect(result.storyAssetKey).toBe("orders/order-xyz/story.png");
       expect(result.feedUrl).toMatch(
-        /^https:\/\/assets\.ofertapronta\.com\.br\/deliveries\/order-xyz\/feed\.png\?v=\d+$/,
+        /^https:\/\/assets\.ofertapronta\.com\.br\/orders\/order-xyz\/feed\.png\?v=\d+$/,
       );
       expect(result.storyUrl).toMatch(
-        /^https:\/\/assets\.ofertapronta\.com\.br\/deliveries\/order-xyz\/story\.png\?v=\d+$/,
+        /^https:\/\/assets\.ofertapronta\.com\.br\/orders\/order-xyz\/story\.png\?v=\d+$/,
       );
 
       const feedMeta = await sharp(result.feedBuffer).metadata();
@@ -277,16 +275,16 @@ describe("ExportEngine Deep Module", () => {
       expect(storyMeta.height).toBe(1920);
 
       const storedFeed = await memoryStorage.getAsset(
-        "deliveries/order-xyz/feed.png",
+        "orders/order-xyz/feed.png",
       );
       const storedStory = await memoryStorage.getAsset(
-        "deliveries/order-xyz/story.png",
+        "orders/order-xyz/story.png",
       );
       expect(storedFeed).not.toBeNull();
       expect(storedStory).not.toBeNull();
     });
 
-    it("saveCleanMaster deve salvar arte mestre sob chave canônica masters/{prefix}/{ownerId}/{timestamp}.png", async () => {
+    it("saveCleanMaster deve salvar arte mestre sob chave canônica {prefix}/{ownerId}/private-master-{timestamp}.png", async () => {
       const masterBuffer = await createTestImage(1080, 1350);
       const result = await exportEngine.saveCleanMaster({
         ownerId: "order-xyz",
@@ -294,9 +292,11 @@ describe("ExportEngine Deep Module", () => {
         prefix: "orders",
       });
 
-      expect(result.key).toMatch(/^masters\/orders\/order-xyz\/\d+\.png$/);
+      expect(result.key).toMatch(
+        /^orders\/order-xyz\/private-master-\d+\.png$/,
+      );
       expect(result.url).toContain(
-        "https://assets.ofertapronta.com.br/masters/orders/order-xyz/",
+        "https://assets.ofertapronta.com.br/orders/order-xyz/private-master-",
       );
 
       const stored = await memoryStorage.getAsset(result.key);

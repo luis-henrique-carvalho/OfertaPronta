@@ -87,8 +87,8 @@ export class DefaultExportEngine implements ExportEngine {
       subText: input.subText,
     });
 
-    const previewAssetKey = `previews/${input.draftId}/${timestamp}.webp`;
-    const cleanMasterAssetKey = `masters/drafts/${input.draftId}/${timestamp}.png`;
+    const previewAssetKey = `drafts/${input.draftId}/preview.webp`;
+    const cleanMasterAssetKey = `drafts/${input.draftId}/private-master-${timestamp}.png`;
 
     const [previewUpload] = await Promise.all([
       this.storageService.uploadAsset({
@@ -133,8 +133,8 @@ export class DefaultExportEngine implements ExportEngine {
       });
     }
 
-    const feedAssetKey = `deliveries/${input.orderId}/feed.png`;
-    const storyAssetKey = `deliveries/${input.orderId}/story.png`;
+    const feedAssetKey = `orders/${input.orderId}/feed.png`;
+    const storyAssetKey = `orders/${input.orderId}/story.png`;
 
     const [feedUpload, storyUpload] = await Promise.all([
       this.storageService.uploadAsset({
@@ -174,7 +174,7 @@ export class DefaultExportEngine implements ExportEngine {
   ): Promise<SaveCleanMasterResult> {
     const timestamp = Date.now();
     const prefix = input.prefix ?? "orders";
-    const key = `masters/${prefix}/${input.ownerId}/${timestamp}.png`;
+    const key = `${prefix}/${input.ownerId}/private-master-${timestamp}.png`;
 
     const upload = await this.storageService.uploadAsset({
       key,

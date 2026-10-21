@@ -98,3 +98,10 @@ export interface ResolveRegenerationInstructionsOptions {
   newStylePresetId?: string | null;
   colorPalette?: string | null;
 }
+
+export interface DynamicEditPlanResult {
+  mode: EditIntentMode;
+  compositionArchetype?: CompositionArchetype;
+  reason?: string;
+  source: "ai-dynamic" | "deterministic-fallback";
+}

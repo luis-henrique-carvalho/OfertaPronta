@@ -86,8 +86,8 @@ function createCustomExportEngine(
           aspectRatio: "story",
         });
       }
-      const feedAssetKey = `deliveries/${input.orderId}/feed.png`;
-      const storyAssetKey = `deliveries/${input.orderId}/story.png`;
+      const feedAssetKey = `orders/${input.orderId}/feed.png`;
+      const storyAssetKey = `orders/${input.orderId}/story.png`;
       const [feedUpload, storyUpload] = await Promise.all([
         storage.uploadAsset({
           key: feedAssetKey,
@@ -123,7 +123,7 @@ function createCustomExportEngine(
     saveCleanMaster: async (input) => {
       const timestamp = Date.now();
       const prefix = input.prefix ?? "orders";
-      const key = `masters/${prefix}/${input.ownerId}/${timestamp}.png`;
+      const key = `${prefix}/${input.ownerId}/private-master-${timestamp}.png`;
       const upload = await storage.uploadAsset({
         key,
         buffer: input.buffer,

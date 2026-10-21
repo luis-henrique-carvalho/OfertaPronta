@@ -2,6 +2,7 @@ import type {
   CompositionArchetype,
   DynamicCompositionBrief,
   DynamicPromptCompileOptions,
+  EditIntentMode,
   InlineDataPart,
   PromptEngineInput,
 } from "./types";
@@ -32,6 +33,7 @@ import {
 import {
   buildDeterministicCompositionBrief,
   planDynamicCompositionBrief,
+  planDynamicEditIntent,
 } from "./dynamic-planner";
 
 export { AUTHENTIC_PHOTOGRAPHY_DIRECTIVE, ZERO_TEXT_OCCLUSION_DIRECTIVE };
@@ -335,6 +337,12 @@ export async function compileDynamicCardPrompt(
   options?: DynamicPromptCompileOptions,
 ): Promise<string> {
   if (input.baseCardImageDataUrl) {
+    if (options?.client && input.customStyleInstructions?.trim()) {
+      const editPlan = await planDynamicEditIntent(input, options);
+      return buildAdaptiveEditPromptText(input, {
+        mode: editPlan.mode,
+      });
+    }
     return buildAdaptiveEditPromptText(input);
   }
 
@@ -392,10 +400,12 @@ export async function compileDynamicCardPrompt(
 
 function buildBaseCardMultimodalParts(
   input: PromptEngineInput,
+  forcedMode?: EditIntentMode,
 ): Array<string | InlineDataPart> {
   const parts: Array<string | InlineDataPart> = [];
-  const isRecompose = detectEditIntentMode(input) === "RECOMPOSE";
-  parts.push(buildAdaptiveEditPromptText(input));
+  const mode = forcedMode ?? detectEditIntentMode(input);
+  const isRecompose = mode === "RECOMPOSE";
+  parts.push(buildAdaptiveEditPromptText(input, { mode }));
 
   if (input.baseCardImageDataUrl) {
     const requestedAdjustment =
@@ -475,11 +485,16 @@ export async function buildMultimodalPromptPartsAsync(
   input: PromptEngineInput,
   options?: DynamicPromptCompileOptions,
 ): Promise<Array<string | InlineDataPart>> {
-  const parts: Array<string | InlineDataPart> = [];
-
   if (input.baseCardImageDataUrl) {
-    return buildBaseCardMultimodalParts(input);
+    let plannedMode: EditIntentMode | undefined;
+    if (options?.client && input.customStyleInstructions?.trim()) {
+      const editPlan = await planDynamicEditIntent(input, options);
+      plannedMode = editPlan.mode;
+    }
+    return buildBaseCardMultimodalParts(input, plannedMode);
   }
+
+  const parts: Array<string | InlineDataPart> = [];
 
   const promptText = await compileDynamicCardPrompt(input, options);
   parts.push(promptText);

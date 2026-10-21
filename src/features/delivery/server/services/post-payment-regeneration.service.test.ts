@@ -243,7 +243,7 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
 
       expect(updatedOrder.aiRegenerationCount).toBe(1);
       expect(updatedOrder.cleanMasterAssetKey).toMatch(
-        new RegExp(`^masters/orders/${order.id}/\\d+\\.png$`),
+        new RegExp(`^orders/${order.id}/private-master-\\d+\\.png$`),
       );
       expect(updatedOrder.cleanMasterImageDataUrl).toBeNull();
 
@@ -263,12 +263,8 @@ describe("PostPaymentRegenerationService Deep Module (TDD)", () => {
 
       expect(updatedExport.feedUrl).toBeDefined();
       expect(updatedExport.storyUrl).toBeDefined();
-      expect(updatedExport.feedAssetKey).toBe(
-        `deliveries/${order.id}/feed.png`,
-      );
-      expect(updatedExport.storyAssetKey).toBe(
-        `deliveries/${order.id}/story.png`,
-      );
+      expect(updatedExport.feedAssetKey).toBe(`orders/${order.id}/feed.png`);
+      expect(updatedExport.storyAssetKey).toBe(`orders/${order.id}/story.png`);
     });
 
     it("should preserve original product image, reference image, style preset and business segment", async () => {

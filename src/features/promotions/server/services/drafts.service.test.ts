@@ -125,13 +125,13 @@ describe("Drafts Service (Deep Domain Module)", () => {
         customStyleInstructions: "Iluminação de estúdio suave",
       });
 
-      expect(saved.productAssetKey).toBe(`inputs/${saved.id}/product.png`);
+      expect(saved.productAssetKey).toBe(`drafts/${saved.id}/product.png`);
       expect(saved.productImageDataUrl).toContain(
-        `/inputs/${saved.id}/product.png`,
+        `/drafts/${saved.id}/product.png`,
       );
-      expect(saved.referenceAssetKey).toBe(`inputs/${saved.id}/reference.png`);
+      expect(saved.referenceAssetKey).toBe(`drafts/${saved.id}/reference.png`);
       expect(saved.referenceImageDataUrl).toContain(
-        `/inputs/${saved.id}/reference.png`,
+        `/drafts/${saved.id}/reference.png`,
       );
       expect(saved.customStyleInstructions).toBe("Iluminação de estúdio suave");
     });
@@ -152,9 +152,9 @@ describe("Drafts Service (Deep Domain Module)", () => {
 
       expect(created.cardIntent).toBe("new-arrival");
       expect(created.customIntentText).toBe("Chegaram as novidades da estação");
-      expect(created.logoAssetKey).toBe(`inputs/${created.id}/logo.png`);
+      expect(created.logoAssetKey).toBe(`drafts/${created.id}/logo.png`);
       expect(created.logoImageDataUrl).toContain(
-        `/inputs/${created.id}/logo.png`,
+        `/drafts/${created.id}/logo.png`,
       );
 
       const fetched = await getOfferDraft(created.id);
@@ -163,9 +163,9 @@ describe("Drafts Service (Deep Domain Module)", () => {
       expect(fetched?.customIntentText).toBe(
         "Chegaram as novidades da estação",
       );
-      expect(fetched?.logoAssetKey).toBe(`inputs/${created.id}/logo.png`);
+      expect(fetched?.logoAssetKey).toBe(`drafts/${created.id}/logo.png`);
       expect(fetched?.logoImageDataUrl).toContain(
-        `/inputs/${created.id}/logo.png`,
+        `/drafts/${created.id}/logo.png`,
       );
     });
 
@@ -216,17 +216,17 @@ describe("Drafts Service (Deep Domain Module)", () => {
       expect(updated.id).toBe(initial.id);
       expect(updated.cardIntent).toBe("custom");
       expect(updated.customIntentText).toBe("Comemoração de 5 anos da loja");
-      expect(updated.logoAssetKey).toBe(`inputs/${initial.id}/logo.png`);
+      expect(updated.logoAssetKey).toBe(`drafts/${initial.id}/logo.png`);
       expect(updated.logoImageDataUrl).toContain(
-        `/inputs/${initial.id}/logo.png`,
+        `/drafts/${initial.id}/logo.png`,
       );
 
       const fetched = await getOfferDraft(initial.id);
       expect(fetched?.cardIntent).toBe("custom");
       expect(fetched?.customIntentText).toBe("Comemoração de 5 anos da loja");
-      expect(fetched?.logoAssetKey).toBe(`inputs/${initial.id}/logo.png`);
+      expect(fetched?.logoAssetKey).toBe(`drafts/${initial.id}/logo.png`);
       expect(fetched?.logoImageDataUrl).toContain(
-        `/inputs/${initial.id}/logo.png`,
+        `/drafts/${initial.id}/logo.png`,
       );
     });
 
@@ -357,9 +357,9 @@ describe("Drafts Service (Deep Domain Module)", () => {
       });
 
       // 1. Asset keys gravados no PostgreSQL
-      expect(saved.productAssetKey).toBe(`inputs/${saved.id}/product.png`);
-      expect(saved.referenceAssetKey).toBe(`inputs/${saved.id}/reference.png`);
-      expect(saved.logoAssetKey).toBe(`inputs/${saved.id}/logo.png`);
+      expect(saved.productAssetKey).toBe(`drafts/${saved.id}/product.png`);
+      expect(saved.referenceAssetKey).toBe(`drafts/${saved.id}/reference.png`);
+      expect(saved.logoAssetKey).toBe(`drafts/${saved.id}/logo.png`);
 
       // 2. Coluna no banco PostgreSQL mantida como NULL para eliminar TOAST bloat
       const [dbRow] = await db
@@ -370,9 +370,9 @@ describe("Drafts Service (Deep Domain Module)", () => {
       expect(dbRow.productImageDataUrl).toBeNull();
       expect(dbRow.referenceImageDataUrl).toBeNull();
       expect(dbRow.logoImageDataUrl).toBeNull();
-      expect(dbRow.productAssetKey).toBe(`inputs/${saved.id}/product.png`);
+      expect(dbRow.productAssetKey).toBe(`drafts/${saved.id}/product.png`);
 
-      // 3. Binários gravados no storage sob inputs/{draftId}/...
+      // 3. Binários gravados no storage sob drafts/{draftId}/...
       const storedProduct = await storageDriver.getAsset(
         dbRow.productAssetKey!,
       );
@@ -382,13 +382,13 @@ describe("Drafts Service (Deep Domain Module)", () => {
       // 4. getOfferDraft resolve a URL pública para transparência completa do frontend
       const fetched = await getOfferDraft(saved.id);
       expect(fetched?.productImageDataUrl).toBe(
-        `https://pub-test.r2.dev/inputs/${saved.id}/product.png`,
+        `https://pub-test.r2.dev/drafts/${saved.id}/product.png`,
       );
       expect(fetched?.referenceImageDataUrl).toBe(
-        `https://pub-test.r2.dev/inputs/${saved.id}/reference.png`,
+        `https://pub-test.r2.dev/drafts/${saved.id}/reference.png`,
       );
       expect(fetched?.logoImageDataUrl).toBe(
-        `https://pub-test.r2.dev/inputs/${saved.id}/logo.png`,
+        `https://pub-test.r2.dev/drafts/${saved.id}/logo.png`,
       );
     });
 

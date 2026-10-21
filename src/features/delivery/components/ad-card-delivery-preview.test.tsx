@@ -45,8 +45,8 @@ describe("AdCardDeliveryPreview Component", () => {
   it("renderiza perfeitamente tanto URLs HTTPS de CDN quanto Data URLs Base64 legados", () => {
     const { rerender } = render(
       <AdCardDeliveryPreview
-        feedCardUrl="https://r2.cdn.ofertapronta.com.br/deliveries/order-1/feed.png"
-        storyCardUrl="https://r2.cdn.ofertapronta.com.br/deliveries/order-1/story.png"
+        feedCardUrl="https://r2.cdn.ofertapronta.com.br/orders/order-1/feed.png"
+        storyCardUrl="https://r2.cdn.ofertapronta.com.br/orders/order-1/story.png"
         offerTitle="CDN Promo"
       />,
     );
@@ -55,7 +55,7 @@ describe("AdCardDeliveryPreview Component", () => {
       "Arte de Feed da promoção: CDN Promo",
     ) as HTMLImageElement;
     expect(cdnImg.src).toBe(
-      "https://r2.cdn.ofertapronta.com.br/deliveries/order-1/feed.png",
+      "https://r2.cdn.ofertapronta.com.br/orders/order-1/feed.png",
     );
 
     rerender(

@@ -118,8 +118,8 @@ function resolveDependencies(deps: GeneratePreviewDependencies) {
             const wmResult = await deps.watermark!(input.rawImageBuffer);
             const watermarkedBuffer = resolveWatermarkedBuffer(wmResult);
             const timestamp = Date.now();
-            const previewAssetKey = `previews/${input.draftId}/${timestamp}.webp`;
-            const cleanMasterAssetKey = `masters/drafts/${input.draftId}/${timestamp}.png`;
+            const previewAssetKey = `drafts/${input.draftId}/preview.webp`;
+            const cleanMasterAssetKey = `drafts/${input.draftId}/private-master-${timestamp}.png`;
             const [pUpload] = await Promise.all([
               storageService.uploadAsset({
                 key: previewAssetKey,

@@ -4,7 +4,9 @@ import {
   DEFAULT_GEMINI_PROMPT_MODEL,
   type CompositionArchetype,
   type DynamicCompositionBrief,
+  type DynamicEditPlanResult,
   type DynamicPromptCompileOptions,
+  type EditIntentMode,
   type InlineDataPart,
   type PromptEngineInput,
   type PromptPlannerGenerateResponse,
@@ -14,6 +16,7 @@ import {
   parseDataUrl,
   SEGMENT_ART_DIRECTIVES,
 } from "./art-direction-blueprints";
+import { detectEditIntentMode } from "./edit-prompt-compiler";
 import { createServerLogger } from "@/server/logger";
 
 const log = createServerLogger("prompt-engine.dynamic-planner");
@@ -357,5 +360,201 @@ export async function planDynamicCompositionBrief(
       { error },
     );
     return buildDeterministicCompositionBrief(input);
+  }
+}
+
+function buildPlannerEditPromptContents(
+  input: PromptEngineInput,
+): Array<string | InlineDataPart> {
+  const segmentConfig =
+    SEGMENT_ART_DIRECTIVES[input.businessSegment] ??
+    SEGMENT_ART_DIRECTIVES.supermarket;
+
+  const instructions = `
+Você é um Diretor de Arte Sênior e Especialista em Design Gráfico Publicitário.
+Sua missão é atuar como Planejador de Edição Criativa (Etapa 1) para interpretar uma solicitação de ajuste feita pelo cliente sobre um card publicitário já existente.
+
+DADOS DO CARD ATUAL:
+- Segmento: ${segmentConfig.segmentTitle}
+- Estabelecimento: "${input.businessName}"
+- Título da Oferta: "${input.offerTitle}"
+- Preço Atual: "${input.promoPrice || "Institucional sem preço"}"
+
+AJUSTE SOLICITADO PELO CLIENTE:
+"${input.customStyleInstructions?.trim() || "Ajuste padrão"}"
+
+INSTRUÇÕES CRÍTICAS DE CLASSIFICAÇÃO:
+Classifique a intenção da edição em exatamente um dos dois modos:
+1. "RECOMPOSE": Escolha este modo se o cliente deseja alterar layout, reorganizar ou mover elementos, centralizar o produto, dar destaque ou foco na foto/produto, aumentar tamanho do produto, trocar cenário ou plano de fundo, alterar cores/estilo, reposicionar textos ou desobstruir elementos. No modo RECOMPOSE a IA tem autorização para reposicionar elementos e quebrar o layout anterior.
+2. "SURGICAL": Escolha este modo SOMENTE se for uma alteração pontual e estritamente localizada de conteúdo textual (ex.: mudar telefone, corrigir digitação no título, mudar o valor do preço), mantendo 100% de todo o layout e posições inalterados.
+
+Se o modo for "RECOMPOSE", você pode opcionalmente sugerir um "compositionArchetype" adequado:
+("split-editorial" | "hero-bottom-staged" | "diagonal-dynamic" | "overhead-flatlay" | "center-showcase" | "minimal-negative-space").
+
+Retorne EXCLUSIVAMENTE um objeto JSON no formato:
+{
+  "mode": "RECOMPOSE" | "SURGICAL",
+  "reason": "breve justificativa da decisão",
+  "compositionArchetype": "center-showcase" | "split-editorial" | "hero-bottom-staged" | "diagonal-dynamic" | "overhead-flatlay" | "minimal-negative-space" | null
+}
+`.trim();
+
+  const parts: Array<string | InlineDataPart> = [instructions];
+  if (input.baseCardImageDataUrl) {
+    const parsed = parseDataUrl(input.baseCardImageDataUrl);
+    if (parsed) {
+      parts.push({
+        inlineData: {
+          mimeType: parsed.mimeType,
+          data: parsed.data,
+        },
+      });
+      parts.push(
+        "IMAGEM ATUAL DO CARD: Analise a arte atual que o cliente deseja editar.",
+      );
+    }
+  }
+
+  return parts;
+}
+
+function parseOrExtractEditPlan(
+  rawText: string,
+  fallbackMode: EditIntentMode,
+): DynamicEditPlanResult {
+  const jsonMatch =
+    rawText.match(/```json\s*([\s\S]*?)\s*```/) || rawText.match(/\{[\s\S]*\}/);
+
+  const jsonCandidate = jsonMatch ? (jsonMatch[1] ?? jsonMatch[0]) : rawText;
+
+  try {
+    const parsed = JSON.parse(jsonCandidate) as {
+      mode?: string;
+      reason?: string;
+      compositionArchetype?: string;
+    };
+
+    const mode =
+      parsed.mode === "RECOMPOSE" || parsed.mode === "SURGICAL"
+        ? parsed.mode
+        : fallbackMode;
+
+    const VALID_ARCHETYPES: CompositionArchetype[] = [
+      "split-editorial",
+      "hero-bottom-staged",
+      "diagonal-dynamic",
+      "overhead-flatlay",
+      "center-showcase",
+      "minimal-negative-space",
+    ];
+
+    const archetype = VALID_ARCHETYPES.includes(
+      parsed.compositionArchetype as CompositionArchetype,
+    )
+      ? (parsed.compositionArchetype as CompositionArchetype)
+      : undefined;
+
+    return {
+      mode,
+      compositionArchetype: archetype,
+      reason: parsed.reason,
+      source: "ai-dynamic",
+    };
+  } catch {
+    if (/\bRECOMPOSE\b/i.test(rawText)) {
+      return { mode: "RECOMPOSE", source: "ai-dynamic" };
+    }
+    if (/\bSURGICAL\b/i.test(rawText)) {
+      return { mode: "SURGICAL", source: "ai-dynamic" };
+    }
+    return { mode: fallbackMode, source: "deterministic-fallback" };
+  }
+}
+
+/**
+ * Planejador Dinâmico de Edição: Interpreta o pedido de ajuste pós-compra via Gemini 3.8 Flash,
+ * determinando se a alteração requer RECOMPOSE (reposicionamento/estilo) ou SURGICAL (texto/preço pontual).
+ */
+export async function planDynamicEditIntent(
+  input: PromptEngineInput,
+  options?: DynamicPromptCompileOptions,
+): Promise<DynamicEditPlanResult> {
+  const fallbackMode = detectEditIntentMode({
+    customStyleInstructions: input.customStyleInstructions,
+  });
+
+  const client = options?.client;
+  if (!client || typeof client.models?.generateContent !== "function") {
+    return {
+      mode: fallbackMode,
+      source: "deterministic-fallback",
+    };
+  }
+
+  const instructions = input.customStyleInstructions?.trim();
+  if (!instructions) {
+    return {
+      mode: fallbackMode,
+      source: "deterministic-fallback",
+    };
+  }
+
+  const model =
+    options?.model ||
+    process.env.GEMINI_PROMPT_MODEL ||
+    serverEnv.GEMINI_PROMPT_MODEL ||
+    DEFAULT_GEMINI_PROMPT_MODEL;
+
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS;
+
+  try {
+    const contents = buildPlannerEditPromptContents(input);
+
+    const response = await callWithTimeout(
+      client.models.generateContent({
+        model,
+        contents,
+        config: {
+          responseModalities: ["text"],
+          maxOutputTokens: 400,
+          temperature: 0.1,
+          thinkingConfig: {
+            thinkingLevel: "low",
+          },
+        },
+      }),
+      timeoutMs,
+    );
+
+    const rawText = extractTextFromResponse(response);
+    if (!rawText || rawText.trim().length === 0) {
+      log.info(
+        "Resposta vazia no planejador dinâmico de edição; aplicando fallback determinístico.",
+      );
+      return {
+        mode: fallbackMode,
+        source: "deterministic-fallback",
+      };
+    }
+
+    const plan = parseOrExtractEditPlan(rawText, fallbackMode);
+    log.info(
+      "Interpretação dinâmica de ajuste via Gemini 3.8 Flash (Etapa 1):",
+      {
+        model,
+        rawText,
+        plan,
+      },
+    );
+    return plan;
+  } catch (error) {
+    log.warn(
+      "Falha ou timeout no planejador dinâmico de edição; aplicando fallback gracioso.",
+      { error },
+    );
+    return {
+      mode: fallbackMode,
+      source: "deterministic-fallback",
+    };
   }
 }

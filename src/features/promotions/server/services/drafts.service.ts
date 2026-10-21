@@ -64,7 +64,7 @@ async function processVisualAsset(
   ) {
     const parsed = parseDataUrl(inputDataUrl);
     if (parsed) {
-      const key = `inputs/${draftId}/${assetType}.png`;
+      const key = `drafts/${draftId}/${assetType}.png`;
       await storageService.uploadAsset({
         key,
         buffer: parsed.buffer,
@@ -82,7 +82,7 @@ async function processVisualAsset(
 
   // 4. URL pública já persistida (não data:), mantém a chave sem re-upload
   if (typeof inputDataUrl === "string" && !inputDataUrl.startsWith("data:")) {
-    const key = existingAssetKey ?? `inputs/${draftId}/${assetType}.png`;
+    const key = existingAssetKey ?? `drafts/${draftId}/${assetType}.png`;
     return { assetKey: key, dataUrl: null };
   }
 
@@ -166,7 +166,7 @@ function buildDraftRowValues(
 
 /**
  * Salva ou atualiza um rascunho de briefing no banco de dados via Upsert Atômico.
- * Insumos visuais em Base64 são interceptados, persistidos no StorageService sob inputs/{draftId}/...
+ * Insumos visuais em Base64 são interceptados, persistidos no StorageService sob drafts/{draftId}/...
  * e salvos no PostgreSQL exclusivamente como chaves leves, eliminando bloat na tabela TOAST.
  */
 export async function saveOfferDraft(
