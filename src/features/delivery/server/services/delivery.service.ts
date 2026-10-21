@@ -588,6 +588,10 @@ export class DeliveryService {
     return {
       orderId: order.id,
       status: "PAID",
+      amountCents: order.amountCents,
+      frozenPlan: {
+        amountCents: order.amountCents,
+      },
       offerTitle: String(snapshot.offerTitle || "Oferta Especial"),
       businessName: String(snapshot.businessName || "Estabelecimento"),
       businessSegment: String(snapshot.businessSegment || "supermarket"),

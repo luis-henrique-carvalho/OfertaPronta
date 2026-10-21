@@ -1,9 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Typography } from "@/components/ui/typography";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ShieldCheck, ArrowLeft, Store } from "lucide-react";
 import type { CheckoutDetailsResult } from "../data/checkout.schemas";
 import { useOrderPolling } from "../hooks/use-order-polling";
 import { usePixCheckout } from "../hooks/use-pix-checkout";
@@ -12,6 +9,8 @@ import { CobrandingDiscountCard } from "../components/cobranding-discount-card";
 import { UnifiedPixPaymentCard } from "../components/unified-pix-payment-card";
 import { DevPaymentSimulatorCard } from "../components/dev-payment-simulator-card";
 import { CheckoutPaidSuccessCard } from "../components/checkout-paid-success-card";
+import { CheckoutHeader } from "../components/checkout-header";
+import { trackInitiateCheckout } from "@/lib/tracking";
 
 export interface CheckoutViewProps {
   initialDetails: CheckoutDetailsResult;
@@ -28,6 +27,12 @@ export function CheckoutView({
   const [isSuccessPaid, setIsSuccessPaid] = useState(
     initialDetails.status === "PAID",
   );
+
+  useEffect(() => {
+    if (details.orderId && details.amountCents) {
+      trackInitiateCheckout(details.orderId, details.amountCents);
+    }
+  }, [details.orderId, details.amountCents]);
 
   let navigateHook: ReturnType<typeof useNavigate> | null = null;
   try {
@@ -138,39 +143,7 @@ export function CheckoutView({
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-6">
-      {/* Top Header do Checkout */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {onNavigateBack && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={onNavigateBack}
-              className="size-9 rounded-lg"
-              aria-label="Voltar"
-            >
-              <ArrowLeft className="size-4" />
-            </Button>
-          )}
-          <div className="flex items-center gap-1.5">
-            <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Store className="size-3.5" />
-            </div>
-            <Typography variant="h4" className="text-sm font-bold">
-              Oferta<span className="text-primary">Pronta</span>
-            </Typography>
-          </div>
-        </div>
-
-        <Badge
-          variant="secondary"
-          className="gap-1 px-2.5 py-0.5 text-[11px] font-semibold"
-        >
-          <ShieldCheck className="size-3 text-emerald-500" />
-          Checkout Seguro Pix
-        </Badge>
-      </div>
+      <CheckoutHeader onNavigateBack={onNavigateBack} />
 
       {/* Modo de Desenvolvimento: Simulação de Pagamento Pix */}
       {details.isDevMode && !isPaid && !isSuccessPaid && (

@@ -54,5 +54,11 @@ export const deliveryDetailsResultSchema = z.object({
   downloadCount: z.number().int().min(0),
   customerWhatsapp: z.string().optional().nullable(),
   permanentOrderUrl: z.string(),
+  amountCents: z.number().int().optional(),
+  frozenPlan: z
+    .object({
+      amountCents: z.number().int(),
+    })
+    .optional(),
 });
 export type DeliveryDetailsResult = z.infer<typeof deliveryDetailsResultSchema>;

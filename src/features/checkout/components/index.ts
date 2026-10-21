@@ -58,3 +58,4 @@ export {
 } from "./dev-payment-simulator-card";
 
 export { CheckoutPaidSuccessCard } from "./checkout-paid-success-card";
+export { CheckoutHeader, type CheckoutHeaderProps } from "./checkout-header";

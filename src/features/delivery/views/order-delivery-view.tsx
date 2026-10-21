@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Typography } from "@/components/ui/typography";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { useDeliveryOrder } from "../hooks/use-delivery-order";
 import { toAbsoluteOrderUrl } from "../lib/delivery-urls";
 import { AdCardUnifiedDeliveryHero } from "../components/ad-card-unified-delivery-hero";
 import { AiRegenerationQuickPanel } from "../components/ai-regeneration-quick-panel";
+import { trackPurchase } from "@/lib/tracking";
 
 export interface OrderDeliveryViewProps {
   initialDetails: DeliveryDetailsResult;
@@ -44,6 +46,19 @@ export function OrderDeliveryView({
     getOrderDetailsFn,
     recordDownloadFn,
   });
+
+  useEffect(() => {
+    if (details.status === "PAID") {
+      const amountCents =
+        details.frozenPlan?.amountCents ?? details.amountCents ?? 990;
+      trackPurchase(details.orderId, amountCents);
+    }
+  }, [
+    details.status,
+    details.orderId,
+    details.frozenPlan?.amountCents,
+    details.amountCents,
+  ]);
 
   const handleCreateNew = () => {
     if (onNavigateHome) {
