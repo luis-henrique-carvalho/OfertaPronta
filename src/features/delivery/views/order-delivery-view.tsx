@@ -8,6 +8,7 @@ import type {
   RequestRegenerationInput,
 } from "../data/delivery.schemas";
 import { useDeliveryOrder } from "../hooks/use-delivery-order";
+import { toAbsoluteOrderUrl } from "../lib/delivery-urls";
 import { AdCardUnifiedDeliveryHero } from "../components/ad-card-unified-delivery-hero";
 import { AiRegenerationQuickPanel } from "../components/ai-regeneration-quick-panel";
 
@@ -168,7 +169,7 @@ export function OrderDeliveryView({
           variant="muted"
           className="text-[10px] text-muted-foreground/70"
         >
-          Link do pedido: {details.permanentOrderUrl}
+          Link do pedido: {toAbsoluteOrderUrl(details.permanentOrderUrl)}
         </Typography>
       </div>
     </div>

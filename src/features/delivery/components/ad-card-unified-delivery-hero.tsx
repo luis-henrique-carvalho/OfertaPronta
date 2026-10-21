@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Typography } from "@/components/ui/typography";
 import { LayoutGrid, Smartphone, ShieldCheck, Sparkles } from "lucide-react";
 import type { DownloadFormat } from "../data/delivery.schemas";
+import { toAbsoluteOrderUrl } from "../lib/delivery-urls";
 import { DeliveryArtworkViewer } from "./delivery-artwork-viewer";
 import { DeliveryHeroActions } from "./delivery-hero-actions";
 
@@ -63,7 +64,8 @@ export function AdCardUnifiedDeliveryHero({
   };
 
   const targetPhone = getCleanWhatsappDigits(customerWhatsapp);
-  const shareMessage = `🎨 *Meus Cards da Promoção no OfertaPronta!*\n\nOlá! Aqui está o link permanente para acessar e baixar as artes de *${offerTitle}* em alta resolução:\n🔗 ${permanentOrderUrl}\n\nGuarde este link para acessar quando quiser!`;
+  const absoluteOrderUrl = toAbsoluteOrderUrl(permanentOrderUrl);
+  const shareMessage = `🎨 *Meus Cards da Promoção no OfertaPronta!*\n\nOlá! Aqui está o link permanente para acessar e baixar as artes de *${offerTitle}* em alta resolução:\n🔗 ${absoluteOrderUrl}\n\nGuarde este link para acessar quando quiser!`;
   const whatsappUrl = targetPhone
     ? `https://wa.me/${targetPhone}?text=${encodeURIComponent(shareMessage)}`
     : `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
@@ -77,7 +79,7 @@ export function AdCardUnifiedDeliveryHero({
   const handleCopyLink = async () => {
     try {
       if (typeof navigator !== "undefined" && navigator.clipboard) {
-        await navigator.clipboard.writeText(permanentOrderUrl);
+        await navigator.clipboard.writeText(absoluteOrderUrl);
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2500);
       }

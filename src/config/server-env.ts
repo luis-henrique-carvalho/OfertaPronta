@@ -9,6 +9,7 @@ export const serverEnvSchema = z.object({
     .enum(["development", "test", "production"])
     .default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
+  APP_URL: z.string().url().optional(),
   GEMINI_API_KEY: z.string().optional(),
   PUSHIN_PAY_TOKEN: z.string().optional(),
   PUSHIN_PAY_BASE_URL: z.string().url().default("https://api.pushinpay.com.br"),

@@ -14,6 +14,7 @@ import {
   downloadFormatEnum,
 } from "../../data/delivery.schemas";
 import { createServerLogger } from "../../../../server/logger";
+import { serverEnv } from "../../../../config/server-env";
 
 const log = createServerLogger("delivery.service");
 
@@ -37,6 +38,7 @@ export interface DeliveryBinaryResult {
 
 export interface DeliveryServiceDependencies {
   database?: AppDatabase;
+  baseUrl?: string;
   formatFeed?: (buffer: Buffer) => Promise<Buffer>;
   formatStory?: (buffer: Buffer) => Promise<Buffer>;
   applySignature?: (
@@ -52,6 +54,7 @@ export interface DeliveryServiceDependencies {
  */
 export class DeliveryService {
   private readonly database: AppDatabase;
+  private readonly baseUrl: string;
   private readonly formatFeed: (buffer: Buffer) => Promise<Buffer>;
   private readonly formatStory: (buffer: Buffer) => Promise<Buffer>;
   private readonly applySignature: (
@@ -61,6 +64,13 @@ export class DeliveryService {
 
   constructor(deps?: DeliveryServiceDependencies) {
     this.database = deps?.database ?? db;
+    const rawBaseUrl =
+      deps?.baseUrl ??
+      serverEnv.APP_URL ??
+      process.env.APP_URL ??
+      process.env.VITE_PUBLIC_APP_URL ??
+      "";
+    this.baseUrl = rawBaseUrl.replace(/\/$/, "");
     this.formatFeed = deps?.formatFeed ?? formatFeedCard;
     this.formatStory = deps?.formatStory ?? formatStoryCard;
     this.applySignature = deps?.applySignature ?? applyCobrandingSignature;
@@ -426,7 +436,9 @@ export class DeliveryService {
       customerWhatsapp:
         order.customerWhatsapp ||
         (typeof snapshot.whatsapp === "string" ? snapshot.whatsapp : null),
-      permanentOrderUrl: `/pedido/${order.id}`,
+      permanentOrderUrl: this.baseUrl
+        ? `${this.baseUrl}/pedido/${order.id}`
+        : `/pedido/${order.id}`,
     };
   }
 

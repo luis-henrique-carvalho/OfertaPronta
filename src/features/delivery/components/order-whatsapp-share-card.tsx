@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Check, Copy, ExternalLink } from "lucide-react";
+import { toAbsoluteOrderUrl } from "../lib/delivery-urls";
 
 export interface OrderWhatsappShareCardProps {
   orderId: string;
@@ -36,9 +37,10 @@ export function OrderWhatsappShareCard({
   };
 
   const targetPhone = getCleanWhatsappDigits(customerWhatsapp);
+  const absoluteOrderUrl = toAbsoluteOrderUrl(permanentOrderUrl);
 
   // Monta mensagem amigável com link permanente
-  const shareMessage = `🎨 *Meus Cards da Promoção no OfertaPronta!*\n\nOlá! Aqui está o link permanente para baixar as artes de *${offerTitle}* em alta resolução:\n🔗 ${permanentOrderUrl}\n\nGuarde este link para acessar quando quiser!`;
+  const shareMessage = `🎨 *Meus Cards da Promoção no OfertaPronta!*\n\nOlá! Aqui está o link permanente para baixar as artes de *${offerTitle}* em alta resolução:\n🔗 ${absoluteOrderUrl}\n\nGuarde este link para acessar quando quiser!`;
 
   const encodedText = encodeURIComponent(shareMessage);
   const whatsappUrl = targetPhone
@@ -48,7 +50,7 @@ export function OrderWhatsappShareCard({
   const handleCopyLink = async () => {
     try {
       if (typeof navigator !== "undefined" && navigator.clipboard) {
-        await navigator.clipboard.writeText(permanentOrderUrl);
+        await navigator.clipboard.writeText(absoluteOrderUrl);
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2500);
       }
@@ -112,7 +114,7 @@ export function OrderWhatsappShareCard({
             variant="muted"
             className="truncate text-[11px] text-muted-foreground"
           >
-            Link permanente: {permanentOrderUrl}
+            Link permanente: {absoluteOrderUrl}
           </Typography>
           <Button
             type="button"
