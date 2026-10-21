@@ -125,8 +125,14 @@ describe("Drafts Service (Deep Domain Module)", () => {
         customStyleInstructions: "Iluminação de estúdio suave",
       });
 
-      expect(saved.productImageDataUrl).toBe(pngData);
-      expect(saved.referenceImageDataUrl).toBe(pngData);
+      expect(saved.productAssetKey).toBe(`inputs/${saved.id}/product.png`);
+      expect(saved.productImageDataUrl).toContain(
+        `/inputs/${saved.id}/product.png`,
+      );
+      expect(saved.referenceAssetKey).toBe(`inputs/${saved.id}/reference.png`);
+      expect(saved.referenceImageDataUrl).toContain(
+        `/inputs/${saved.id}/reference.png`,
+      );
       expect(saved.customStyleInstructions).toBe("Iluminação de estúdio suave");
     });
 
@@ -146,7 +152,10 @@ describe("Drafts Service (Deep Domain Module)", () => {
 
       expect(created.cardIntent).toBe("new-arrival");
       expect(created.customIntentText).toBe("Chegaram as novidades da estação");
-      expect(created.logoImageDataUrl).toBe(pngData);
+      expect(created.logoAssetKey).toBe(`inputs/${created.id}/logo.png`);
+      expect(created.logoImageDataUrl).toContain(
+        `/inputs/${created.id}/logo.png`,
+      );
 
       const fetched = await getOfferDraft(created.id);
       expect(fetched).not.toBeNull();
@@ -154,7 +163,10 @@ describe("Drafts Service (Deep Domain Module)", () => {
       expect(fetched?.customIntentText).toBe(
         "Chegaram as novidades da estação",
       );
-      expect(fetched?.logoImageDataUrl).toBe(pngData);
+      expect(fetched?.logoAssetKey).toBe(`inputs/${created.id}/logo.png`);
+      expect(fetched?.logoImageDataUrl).toContain(
+        `/inputs/${created.id}/logo.png`,
+      );
     });
 
     it("defaults cardIntent to promo and nullable fields to null when not provided", async () => {
@@ -204,12 +216,18 @@ describe("Drafts Service (Deep Domain Module)", () => {
       expect(updated.id).toBe(initial.id);
       expect(updated.cardIntent).toBe("custom");
       expect(updated.customIntentText).toBe("Comemoração de 5 anos da loja");
-      expect(updated.logoImageDataUrl).toBe(pngLogo2);
+      expect(updated.logoAssetKey).toBe(`inputs/${initial.id}/logo.png`);
+      expect(updated.logoImageDataUrl).toContain(
+        `/inputs/${initial.id}/logo.png`,
+      );
 
       const fetched = await getOfferDraft(initial.id);
       expect(fetched?.cardIntent).toBe("custom");
       expect(fetched?.customIntentText).toBe("Comemoração de 5 anos da loja");
-      expect(fetched?.logoImageDataUrl).toBe(pngLogo2);
+      expect(fetched?.logoAssetKey).toBe(`inputs/${initial.id}/logo.png`);
+      expect(fetched?.logoImageDataUrl).toContain(
+        `/inputs/${initial.id}/logo.png`,
+      );
     });
 
     it("retrieves saved draft by ID with getOfferDraft", async () => {

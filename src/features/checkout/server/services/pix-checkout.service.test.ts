@@ -279,7 +279,8 @@ describe("PixCheckoutService Deep Module", () => {
       expect(snapshot.businessSegment).toBe("fashion");
       expect(snapshot.cardIntent).toBe("new-arrival");
       expect(snapshot.customIntentText).toBe("Exibição de novos modelos");
-      expect(snapshot.logoImageDataUrl).toBe(pngLogo);
+      expect(typeof snapshot.logoImageDataUrl).toBe("string");
+      expect(snapshot.logoImageDataUrl as string).toContain("/inputs/");
     });
   });
 
