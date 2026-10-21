@@ -545,45 +545,20 @@ export class DeliveryService {
     const isWithinWindow = now <= windowEndsAtDate.getTime();
     const canRegenerate = isWithinWindow && remainingRegenerations > 0;
 
-    let feedCardUrl = exportRecord.feedUrl;
-    let storyCardUrl = exportRecord.storyUrl;
     const cacheBuster = exportRecord.updatedAt
       ? `?v=${new Date(exportRecord.updatedAt).getTime()}`
       : "";
 
-    if (
-      exportRecord.feedAssetKey &&
-      !exportRecord.feedUrl?.startsWith("data:")
-    ) {
-      const publicUrl = this.storageService.getPublicUrl(
-        exportRecord.feedAssetKey,
-      );
-      if (publicUrl.startsWith("data:")) {
-        feedCardUrl = publicUrl;
-      } else {
-        const separator = publicUrl.includes("?") ? "&" : "?";
-        feedCardUrl = cacheBuster
-          ? `${publicUrl}${separator}${cacheBuster.replace(/^\?/, "")}`
-          : publicUrl;
-      }
-    }
-
-    if (
-      exportRecord.storyAssetKey &&
-      !exportRecord.storyUrl?.startsWith("data:")
-    ) {
-      const publicUrl = this.storageService.getPublicUrl(
-        exportRecord.storyAssetKey,
-      );
-      if (publicUrl.startsWith("data:")) {
-        storyCardUrl = publicUrl;
-      } else {
-        const separator = publicUrl.includes("?") ? "&" : "?";
-        storyCardUrl = cacheBuster
-          ? `${publicUrl}${separator}${cacheBuster.replace(/^\?/, "")}`
-          : publicUrl;
-      }
-    }
+    const feedCardUrl = this.resolveExportCardUrl(
+      exportRecord.feedUrl,
+      exportRecord.feedAssetKey,
+      cacheBuster,
+    );
+    const storyCardUrl = this.resolveExportCardUrl(
+      exportRecord.storyUrl,
+      exportRecord.storyAssetKey,
+      cacheBuster,
+    );
 
     return {
       orderId: order.id,
@@ -611,6 +586,26 @@ export class DeliveryService {
         ? `${this.baseUrl}/pedido/${order.id}`
         : `/pedido/${order.id}`,
     };
+  }
+
+  private resolveExportCardUrl(
+    rawUrl: string,
+    assetKey: string | null | undefined,
+    cacheBuster: string,
+  ): string {
+    if (!assetKey || rawUrl?.startsWith("data:")) {
+      return rawUrl;
+    }
+
+    const publicUrl = this.storageService.getPublicUrl(assetKey);
+    if (publicUrl.startsWith("data:")) {
+      return publicUrl;
+    }
+
+    const separator = publicUrl.includes("?") ? "&" : "?";
+    return cacheBuster
+      ? `${publicUrl}${separator}${cacheBuster.replace(/^\?/, "")}`
+      : publicUrl;
   }
 
   private parseDataUrlBuffer(dataUrl: string): Buffer {
