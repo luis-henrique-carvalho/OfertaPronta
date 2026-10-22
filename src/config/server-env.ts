@@ -12,7 +12,7 @@ export const serverEnvSchema = z.object({
   APP_URL: z.string().url().optional(),
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_PROMPT_MODEL: z.string().default("gemini-3.8-flash"),
-  GEMINI_DYNAMIC_PLANNER_ENABLED: z.coerce.boolean().default(false),
+  GEMINI_DYNAMIC_PLANNER_ENABLED: z.coerce.boolean().default(true),
   PUSHIN_PAY_TOKEN: z.string().optional(),
   PUSHIN_PAY_BASE_URL: z.string().url().default("https://api.pushinpay.com.br"),
   PUSHIN_PAY_WEBHOOK_URL: z.string().url().optional(),

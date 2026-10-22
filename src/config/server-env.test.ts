@@ -10,6 +10,7 @@ describe("serverEnv", () => {
     );
     expect(env.NODE_ENV).toBe("development");
     expect(env.PORT).toBe(3000);
+    expect(env.GEMINI_DYNAMIC_PLANNER_ENABLED).toBe(true);
   });
 
   it("should override defaults with custom values", () => {

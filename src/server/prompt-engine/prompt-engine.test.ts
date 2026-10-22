@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS,
+  DEFAULT_MASTER_PROMPT_TIMEOUT_MS,
   DEFAULT_GEMINI_PROMPT_MODEL,
   buildAdaptiveEditPromptText,
   buildDeterministicCompositionBrief,
+  buildMasterPromptAuthorContents,
   buildMultimodalPromptParts,
   buildMultimodalPromptPartsAsync,
   buildPromptText,
@@ -16,6 +18,7 @@ import {
   planDynamicCompositionBrief,
   resolveArtDirectionDirective,
   resolveRegenerationStyleInstructions,
+  assembleAuthoredMasterPrompt,
   AUTHENTIC_PHOTOGRAPHY_DIRECTIVE,
   ZERO_TEXT_OCCLUSION_DIRECTIVE,
   buildVisualHierarchy,
@@ -957,6 +960,308 @@ describe("PromptEngine Deep Module", () => {
       expect(prompt).toContain("sem selos explosivos");
       expect(prompt).not.toContain("selo explosivo no quadrante direito");
       expect(prompt).not.toContain("- Clima e Atmosfera Geral:");
+    });
+  });
+
+  describe("Autoria Integral do Prompt Final pelo Gemini 3.8 Flash (Ticket 01)", () => {
+    it("deve exportar DEFAULT_MASTER_PROMPT_TIMEOUT_MS com valor canônico de 25000ms", () => {
+      expect(DEFAULT_MASTER_PROMPT_TIMEOUT_MS).toBe(25000);
+      expect(DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS).toBe(8000);
+    });
+
+    describe("buildMasterPromptAuthorContents", () => {
+      const segments = [
+        "burger-shop",
+        "pizzeria",
+        "restaurant",
+        "supermarket",
+        "fashion",
+        "beauty-salon",
+        "local-retail",
+      ] as const;
+
+      it.each(segments)(
+        "deve instruir o modelo a atuar como Diretor de Arte Sênior de Agência para o segmento %s",
+        (segment) => {
+          const input = createSampleInput({
+            businessSegment: segment,
+            offerTitle: "Oferta Especial do Segmento",
+          });
+          const parts = buildMasterPromptAuthorContents(input);
+          const promptText = parts.find((p) => typeof p === "string") as string;
+
+          expect(promptText).toContain(
+            "Você é um Diretor de Arte Publicitário Sênior de Agência",
+          );
+          expect(promptText).toContain(
+            "CENA ÚNICA TRIDIMENSIONAL CONTÍNUA (FULL-BLEED, PROIBIDO DIVISÃO 50/50 CHAPADA)",
+          );
+          expect(promptText).toContain(
+            "É TERMINANTEMENTE PROIBIDO criar divisão 50/50 chapada por linha reta artificial",
+          );
+          expect(promptText).toContain(
+            "DETALHAMENTO SENSORIAL E PRODUCT/FOOD STYLING HIPER-REALISTA",
+          );
+          expect(promptText).toContain("lente 85mm f/2.0");
+          expect(promptText).toContain("rim light");
+          expect(promptText).toContain(
+            "TIPOGRAFIA PUBLICITÁRIA EXPRESSIVA MULTI-ESTILO",
+          );
+          expect(promptText).toContain("Assinatura da Loja no Topo");
+          expect(promptText).toContain("fonte display condensada robusta");
+          expect(promptText).toContain("lettering brush script");
+          expect(promptText).toContain("Micro-copy de Atributos Sensoriais");
+          expect(promptText).toContain("Selo de Chamada / CTA");
+          expect(promptText).toContain("grunge brush stroke");
+        },
+      );
+
+      it("deve destacar preço promocional e original quando informados", () => {
+        const input = createSampleInput({
+          promoPrice: "R$ 49,90",
+          originalPrice: "R$ 69,90",
+        });
+        const parts = buildMasterPromptAuthorContents(input);
+        const promptText = parts.find((p) => typeof p === "string") as string;
+
+        expect(promptText).toContain("De R$ 69,90 Por R$ 49,90");
+        expect(promptText).toContain("R$ 49,90");
+      });
+
+      it("deve aplicar supressão estrita de valores monetários / R$ mantendo 100% da agressividade promocional quando sem preço", () => {
+        const input = createSampleInput({
+          promoPrice: null,
+          originalPrice: null,
+        });
+        const parts = buildMasterPromptAuthorContents(input);
+        const promptText = parts.find((p) => typeof p === "string") as string;
+
+        expect(promptText).toContain(
+          "INVARIANTE CRÍTICA DE ANÚNCIO SEM PREÇO (SUPRESSÃO ESTRITA DE VALORES MONETÁRIOS)",
+        );
+        expect(promptText).toContain(
+          'É TERMINANTEMENTE PROIBIDO inventar valores numéricos, inserir "R$ 0,00", cifras ou símbolos "R$"',
+        );
+        expect(promptText).toContain(
+          "MANTENHA 100% DA AGRESSIVIDADE E DO APELO PROMOCIONAL",
+        );
+      });
+
+      it("deve configurar modo reference-driven com Zero-HEX e sem presets no prompt de sistema", () => {
+        const input = createSampleInput({
+          referenceImageDataUrl: SAMPLE_BASE64_PNG,
+          stylePresetId: "reference-style",
+        });
+        const parts = buildMasterPromptAuthorContents(input);
+        const promptText = parts.find((p) => typeof p === "string") as string;
+
+        expect(promptText).toContain("MODO REFERENCE-DRIVEN");
+        expect(promptText).toContain(
+          "Extraia 100% da paleta cromática, iluminação, composição espacial",
+        );
+        expect(promptText).toContain("PROIBIÇÃO ABSOLUTA DE CÓDIGOS HEX");
+        expect(promptText).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+      });
+
+      it("deve anexar produto, referência e logotipo como inlineData quando fornecidos", () => {
+        const input = createSampleInput({
+          productImageDataUrl: SAMPLE_BASE64_PNG,
+          referenceImageDataUrl: SAMPLE_BASE64_PNG,
+          logoImageDataUrl: SAMPLE_BASE64_PNG,
+        });
+        const parts = buildMasterPromptAuthorContents(input);
+
+        const inlineParts = parts.filter(
+          (p) => typeof p === "object" && p !== null && "inlineData" in p,
+        );
+        expect(inlineParts.length).toBe(3);
+      });
+    });
+
+    describe("planDynamicCompositionBrief & compileDynamicCardPrompt com Master Prompt Integral", () => {
+      it("deve invocar gemini-3.8-flash com maxOutputTokens: 4096, temp: 0.4 e timeout de 25000ms", async () => {
+        const naturalLanguagePrompt = `
+Fotografia comercial publicitária épica de hambúrguer artesanal triplo na chapa, destacando a reação de Maillard intensa na crosta da carne farta, queijo cheddar inglês derretendo dramaticamente pelas laterais e sementes de gergelim douradas sobre pão brioche macio. Iluminação lateral suave com óptica 85mm f/2.0 e rim light dourada nos contornos da carne.
+
+No topo, emblema artesanal da marca "Supermercado Compre Bem" com insígnia clássica. O título "Alface Americana Fresca" ocupa posição superior imponente, combinando fonte display robusta condensada em branco com lettering brush script expressivo em amarelo mostarda vibrante. Abaixo do título, micro-copy refinado com atributos "FRESCO • CROCANTE • SELECIONADO".
+
+Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferior direito, acompanhado de selo de CTA estilizado como carimbo artesanal dizendo "Aproveite hoje mesmo". Todos os textos e elementos gráficos em primeiro plano absoluto sobre zona de penumbra limpa.
+`.trim();
+
+        const generateContentSpy = vi.fn().mockResolvedValue({
+          text: naturalLanguagePrompt,
+        });
+
+        const fakeClient: PromptPlannerClient = {
+          models: {
+            generateContent: generateContentSpy,
+          },
+        };
+
+        const input = createSampleInput();
+        const brief = await planDynamicCompositionBrief(input, {
+          client: fakeClient,
+        });
+
+        expect(generateContentSpy).toHaveBeenCalledTimes(1);
+        const callArgs = generateContentSpy.mock.calls[0][0];
+        expect(callArgs.model).toBe("gemini-3.8-flash");
+        expect(callArgs.config?.maxOutputTokens).toBe(4096);
+        expect(callArgs.config?.temperature).toBe(0.4);
+        expect(callArgs.config?.thinkingConfig).toEqual({
+          thinkingLevel: "low",
+        });
+
+        expect(brief.source).toBe("ai-dynamic");
+        expect(brief.authoredMasterPrompt).toBe(naturalLanguagePrompt);
+
+        // Ao compilar o card dinâmico, deve retornar o prompt autoral acompanhado de metadados garantidos
+        const compiled = await compileDynamicCardPrompt(input, {
+          client: fakeClient,
+        });
+
+        expect(compiled).toContain(naturalLanguagePrompt);
+        expect(compiled).toContain("- Proporção Obrigatória: 4:5 vertical");
+        expect(compiled).toContain(
+          "ZERO OCLUSÃO TIPOGRÁFICA / 100% FOREGROUND TEXT PRIORITY",
+        );
+        // Não deve empilhar as 4 camadas estáticas legadas
+        expect(compiled).not.toContain(
+          "--- ARQUITETURA DE COMPOSIÇÃO EM 4 CAMADAS (STEP-BY-STEP) ---",
+        );
+        expect(compiled).not.toContain("CAMADA 1 — FUNDO FULL-BLEED");
+      });
+
+      it("deve injetar Safe Zone obrigatória de 15% quando formato for Story", async () => {
+        const fakeClient: PromptPlannerClient = {
+          models: {
+            generateContent: vi.fn().mockResolvedValue({
+              text: "Master prompt para Story com narrativa autoral completa.",
+            }),
+          },
+        };
+
+        const input = createSampleInput({ targetAspectRatio: "story" });
+        const compiled = await compileDynamicCardPrompt(input, {
+          client: fakeClient,
+        });
+
+        expect(compiled).toContain(
+          "Master prompt para Story com narrativa autoral completa.",
+        );
+        expect(compiled).toContain("9:16 vertical");
+        expect(compiled).toContain("SAFE ZONE OBRIGATÓRIA");
+        expect(compiled).toContain(
+          "Deixar 15% da altura no topo e 15% na base totalmente livres",
+        );
+        expect(compiled).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
+      });
+
+      it("assembleAuthoredMasterPrompt deve montar prompt com diretrizes de anexos e proporção", () => {
+        const input = createSampleInput({
+          logoImageDataUrl: SAMPLE_BASE64_PNG,
+          productImageDataUrl: SAMPLE_BASE64_PNG,
+          referenceImageDataUrl: SAMPLE_BASE64_PNG,
+        });
+
+        const assembled = assembleAuthoredMasterPrompt({
+          authoredMasterPrompt: "Prompt autoral direto.",
+          input,
+          isStory: false,
+          proportionDirectives: "- Proporção Obrigatória: 4:5 vertical",
+        });
+
+        expect(assembled).toContain("Prompt autoral direto.");
+        expect(assembled).toContain("- Proporção Obrigatória: 4:5 vertical");
+        expect(assembled).toContain("LOGOTIPO DA LOJA FORNECIDO");
+        expect(assembled).toContain(
+          "FOTO DO PRODUTO REAL FORNECIDA PELO CLIENTE",
+        );
+        expect(assembled).toContain("IMAGEM DE REFERÊNCIA ESTÉTICA");
+        expect(assembled).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
+      });
+    });
+
+    describe("Destravamento Real de Pixels no Modo RECOMPOSE", () => {
+      it("não deve anexar baseCardImageDataUrl como inlineData em modo RECOMPOSE síncrono ou assíncrono", async () => {
+        const input = createSampleInput({
+          baseCardImageDataUrl: SAMPLE_BASE64_PNG,
+          productImageDataUrl: SAMPLE_BASE64_PNG,
+          logoImageDataUrl: SAMPLE_BASE64_PNG,
+          customStyleInstructions:
+            "Dar mais destaque para a foto do produto no centro",
+        });
+
+        // 1. Modo síncrono
+        const syncParts = buildMultimodalPromptParts(input);
+        const syncInlineImages = syncParts.filter(
+          (p) => typeof p === "object" && p !== null && "inlineData" in p,
+        );
+        // Deve conter produto e logo, mas NÃO a imagem base anterior
+        expect(syncInlineImages.length).toBe(2);
+        expect(
+          syncParts.some(
+            (p) =>
+              typeof p === "string" &&
+              p.includes(
+                "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA)",
+              ),
+          ),
+        ).toBe(false);
+
+        // 2. Modo assíncrono com mock de planejamento
+        const fakeClient: PromptPlannerClient = {
+          models: {
+            generateContent: vi.fn().mockResolvedValue({
+              text: JSON.stringify({
+                mode: "RECOMPOSE",
+                reason: "Centralizar o produto e quebrar divisão anterior.",
+              }),
+            }),
+          },
+        };
+
+        const asyncParts = await buildMultimodalPromptPartsAsync(input, {
+          client: fakeClient,
+        });
+        const asyncInlineImages = asyncParts.filter(
+          (p) => typeof p === "object" && p !== null && "inlineData" in p,
+        );
+        expect(asyncInlineImages.length).toBe(2);
+        expect(
+          asyncParts.some(
+            (p) =>
+              typeof p === "string" &&
+              p.includes(
+                "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA)",
+              ),
+          ),
+        ).toBe(false);
+      });
+
+      it("deve continuar anexando baseCardImageDataUrl como inlineData em modo SURGICAL para preservação estrita", () => {
+        const input = createSampleInput({
+          baseCardImageDataUrl: SAMPLE_BASE64_PNG,
+          productImageDataUrl: SAMPLE_BASE64_PNG,
+          customStyleInstructions: "Mudar o telefone para (11) 98888-7777",
+        });
+
+        const parts = buildMultimodalPromptParts(input);
+        const inlineImages = parts.filter(
+          (p) => typeof p === "object" && p !== null && "inlineData" in p,
+        );
+        // BaseCard + Produto = 2 imagens inline
+        expect(inlineImages.length).toBe(2);
+        expect(
+          parts.some(
+            (p) =>
+              typeof p === "string" &&
+              p.includes(
+                "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA)",
+              ),
+          ),
+        ).toBe(true);
+      });
     });
   });
 });

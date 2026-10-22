@@ -157,15 +157,17 @@ function buildRecomposePromptTemplate(
 
   return `
 Você é um diretor de arte e designer gráfico sênior executando uma RECOMPOSIÇÃO VISUAL E REESTRUTURAÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE).
-Uma IMAGEM BASE DO CARD PUBLICITÁRIO está anexa para fornecer o contexto de conteúdo comercial.
+Você está criando uma nova composição tridimensional reestruturada a partir dos dados comerciais aprovados da oferta.
 
 --- DIRETRIZ FUNDAMENTAL: DESTRAVAMENTO ESPACIAL E REESTRUTURAÇÃO DE LAYOUT ---
 1. DESTRAVAMENTO ESPACIAL E DE ESTILO: Você está AUTORIZADO E OBRIGADO a alterar posições, reorganizar o grid/layout, afastar elementos, corrigir textos encobertos e aplicar o novo estilo visual solicitado pelo cliente. É TERMINANTEMENTE PROIBIDO replicar a divisão espacial em colunas ou enquadramento da imagem anterior.
 2. REPOSICIONAMENTO DE ELEMENTOS: Reposicione livremente o sujeito, o título, o preço e os selos para garantir harmonia visual e leitura perfeita sem qualquer elemento encoberto.
-3. AJUSTE DE RECOMPOSIÇÃO PRIORITÁRIO SOLICITADO PELO CLIENTE (MÁXIMA PRIORIDADE):
+3. CENA ÚNICA TRIDIMENSIONAL CONTÍNUA (FULL-BLEED): Crie uma única cena contínua e tridimensional. É TERMINANTEMENTE PROIBIDO dividir o card em duas metades 50/50 por linhas retas, paredes ou divisões chapadas em colunas.
+4. TIPOGRAFIA PUBLICITÁRIA EXPRESSIVA: Combine contraste entre fonte display condensada robusta + lettering brush script / caligráfico dinâmico inclinado nas palavras-chave em cor de destaque vibrante + conectores à mão.
+5. AJUSTE DE RECOMPOSIÇÃO PRIORITÁRIO SOLICITADO PELO CLIENTE (MÁXIMA PRIORIDADE):
 "${parts.requestedAdjustment}"
 ${spatialRepositionDirective}${artDirectiveSection}
-4. DADOS DA OFERTA COMERCIAL A MANTER E REORGANIZAR:
+6. DADOS DA OFERTA COMERCIAL A MANTER E REORGANIZAR:
 - Estabelecimento: "${input.businessName}"
 - Título da Oferta: "${input.offerTitle}"
 ${parts.priceLine}${parts.ctaLine}${parts.whatsappLine}

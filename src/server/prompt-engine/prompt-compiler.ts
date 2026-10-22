@@ -350,6 +350,16 @@ export async function compileDynamicCardPrompt(
 
   // Executa o planejamento da Etapa 1
   const brief = await planDynamicCompositionBrief(input, options);
+
+  if (brief.authoredMasterPrompt) {
+    return assembleAuthoredMasterPrompt({
+      authoredMasterPrompt: brief.authoredMasterPrompt,
+      input,
+      isStory: ctx.isStory,
+      proportionDirectives: ctx.proportionDirectives,
+    });
+  }
+
   const dynamicBriefText = formatDynamicCompositionBrief(brief);
 
   const { artDirectiveText, layers, blueprint } = resolveArtAndLayers(
@@ -398,6 +408,55 @@ export async function compileDynamicCardPrompt(
   });
 }
 
+/**
+ * Monta o prompt final quando o Gemini 3.8 Flash assume a autoria integral do Master Prompt,
+ * anexando os metadados garantidos de proporção/safe zone, diretrizes de insumos multimodais e zero oclusão.
+ */
+export function assembleAuthoredMasterPrompt(params: {
+  authoredMasterPrompt: string;
+  input: PromptEngineInput;
+  isStory: boolean;
+  proportionDirectives: string;
+}): string {
+  const sections: string[] = [];
+
+  // 1. O prompt narrativo autoral integral redigido pelo Gemini 3.8 Flash
+  sections.push(params.authoredMasterPrompt.trim());
+
+  // 2. Diretriz mandatória de proporção e Safe Zone (se Story)
+  sections.push(params.proportionDirectives);
+
+  // 3. Diretrizes de fidelidade para insumos multimodais se presentes
+  const multimodalNotes: string[] = [];
+  if (params.input.logoImageDataUrl) {
+    multimodalNotes.push(
+      "- LOGOTIPO DA LOJA FORNECIDO: Incorpore fielmente o logotipo oficial da loja anexo (posicionado no topo, canto superior ou no rodapé do card). Preserve rigorosamente suas cores, proporção, contraste e legibilidade sem distorções.",
+    );
+  }
+  if (params.input.productImageDataUrl) {
+    multimodalNotes.push(
+      "- FOTO DO PRODUTO REAL FORNECIDA PELO CLIENTE: Preserve e destaque com máxima fidelidade o produto exibido na imagem anexa. Ele deve ser o elemento central anunciado na composição do card.",
+    );
+  }
+  if (params.input.referenceImageDataUrl) {
+    multimodalNotes.push(
+      "- IMAGEM DE REFERÊNCIA ESTÉTICA: Inspire-se na paleta de cores, tipografia, iluminação e atmosfera visual desta referência para guiar o estilo geral da composição do card.",
+    );
+  }
+  if (multimodalNotes.length > 0) {
+    sections.push(
+      ["--- INSUMOS VISUAIS MULTIMODAIS ANEXOS ---", ...multimodalNotes].join(
+        "\n",
+      ),
+    );
+  }
+
+  // 4. Guardrail inegociável de Zero Oclusão Tipográfica
+  sections.push(ZERO_TEXT_OCCLUSION_DIRECTIVE);
+
+  return sections.join("\n\n");
+}
+
 function buildBaseCardMultimodalParts(
   input: PromptEngineInput,
   forcedMode?: EditIntentMode,
@@ -407,15 +466,15 @@ function buildBaseCardMultimodalParts(
   const isRecompose = mode === "RECOMPOSE";
   parts.push(buildAdaptiveEditPromptText(input, { mode }));
 
-  if (input.baseCardImageDataUrl) {
-    const requestedAdjustment =
-      input.customStyleInstructions?.trim() ||
-      "Reorganizar o layout conforme solicitado";
-    const imagePartLabel = isRecompose
-      ? `REFERÊNCIA VISUAL DE PRODUTO E CORES (NÃO COPIE ESTE LAYOUT): Use esta imagem anterior exclusivamente como referência visual das características do produto e da paleta cromática. É TERMINANTEMENTE PROIBIDO reproduzir a divisão espacial em colunas ou o enquadramento lateral anterior. Você DEVE quebrar a estrutura anterior e reorganizar completamente a composição do card conforme a solicitação: "${requestedAdjustment}".`
-      : "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA): Use esta imagem como base gráfica principal. Mantenha rigorosamente todos os elementos visuais idênticos, aplicando EXCLUSIVAMENTE a alteração solicitada.";
-
-    appendInlineInputPart(parts, input.baseCardImageDataUrl, imagePartLabel);
+  // Em modo RECOMPOSE, NÃO anexamos baseCardImageDataUrl como inlineData para destravar os pixels
+  // e evitar que o gerador de imagem fique ancorado na divisão espacial ou enquadramento lateral anterior.
+  // Em modo SURGICAL, anexamos a imagem base como inlineData para garantir preservação estrita de pixels.
+  if (!isRecompose && input.baseCardImageDataUrl) {
+    appendInlineInputPart(
+      parts,
+      input.baseCardImageDataUrl,
+      "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA): Use esta imagem como base gráfica principal. Mantenha rigorosamente todos os elementos visuais idênticos, aplicando EXCLUSIVAMENTE a alteração solicitada.",
+    );
   }
 
   if (input.logoImageDataUrl) {
@@ -431,6 +490,14 @@ function buildBaseCardMultimodalParts(
       parts,
       input.productImageDataUrl,
       "FOTO DO PRODUTO REAL ORIGINAL: Mantenha a fidelidade absoluta a este produto exatamente como renderizado na imagem base.",
+    );
+  }
+
+  if (input.referenceImageDataUrl) {
+    appendInlineInputPart(
+      parts,
+      input.referenceImageDataUrl,
+      "IMAGEM DE REFERÊNCIA ESTÉTICA: Inspire-se na paleta de cores, tipografia, iluminação e atmosfera visual desta referência.",
     );
   }
 

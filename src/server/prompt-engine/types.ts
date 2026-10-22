@@ -6,6 +6,7 @@ import type {
 
 export const DEFAULT_GEMINI_PROMPT_MODEL = "gemini-3.8-flash";
 export const DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS = 8000;
+export const DEFAULT_MASTER_PROMPT_TIMEOUT_MS = 25000;
 
 export type EditIntentMode = "SURGICAL" | "RECOMPOSE";
 
@@ -77,6 +78,7 @@ export interface DynamicCompositionBrief {
   antiOcclusionStrategy: string;
   layoutAdaptation: string;
   compositionArchetype?: CompositionArchetype;
+  authoredMasterPrompt?: string;
   source: "ai-dynamic" | "deterministic-fallback";
 }
 
