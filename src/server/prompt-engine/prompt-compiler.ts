@@ -302,18 +302,14 @@ export function buildMultimodalPromptParts(
   parts.push(compileDeterministicCardPrompt(input));
 
   if (input.logoImageDataUrl) {
-    appendInlineInputPart(
-      parts,
-      input.logoImageDataUrl,
-      "LOGOTIPO DA LOJA FORNECIDO: Incorpore fielmente este logotipo no anúncio (posicionado no topo, canto superior ou no rodapé do card). Preserve rigorosamente suas cores, proporção, contraste e legibilidade sem distorções.",
-    );
+    appendInlineInputPart(parts, input.logoImageDataUrl, "[LOGOTIPO OFICIAL]");
   }
 
   if (input.productImageDataUrl) {
     appendInlineInputPart(
       parts,
       input.productImageDataUrl,
-      "FOTO DO PRODUTO REAL FORNECIDA PELO CLIENTE: Preserve e destaque com máxima fidelidade o produto exibido nesta imagem de referência. Ele deve ser o elemento central anunciado na composição do card.",
+      "[FOTO DO PRODUTO REAL]",
     );
   }
 
@@ -321,7 +317,7 @@ export function buildMultimodalPromptParts(
     appendInlineInputPart(
       parts,
       input.referenceImageDataUrl,
-      "IMAGEM DE REFERÊNCIA ESTÉTICA: Inspire-se na paleta de cores, tipografia, iluminação e atmosfera visual desta referência para guiar o estilo geral da composição do card.",
+      "[IMAGEM DE REFERÊNCIA ESTÉTICA]",
     );
   }
 

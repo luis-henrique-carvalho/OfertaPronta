@@ -231,14 +231,10 @@ export function buildPromptOptionalNotes(input: PromptEngineInput): {
     customInstructions: input.customStyleInstructions
       ? `INSTRUÇÕES ADICIONAIS DO CLIENTE: ${input.customStyleInstructions}`
       : "",
-    logoNote: input.logoImageDataUrl
-      ? "- LOGOTIPO DA LOJA FORNECIDO: Posicione o logotipo no topo, canto superior ou rodapé mantendo a fidelidade, integridade e legibilidade da marca sem distorções."
-      : "",
-    productNote: input.productImageDataUrl
-      ? "- FOTO DO PRODUTO FORNECIDA: Preserve e destaque com máxima fidelidade o produto real exibido na imagem anexa, tornando-o o ponto central do card."
-      : "",
+    logoNote: input.logoImageDataUrl ? "- [LOGOTIPO OFICIAL]" : "",
+    productNote: input.productImageDataUrl ? "- [FOTO DO PRODUTO REAL]" : "",
     referenceNote: input.referenceImageDataUrl
-      ? "- IMAGEM DE REFERÊNCIA ESTÉTICA FORNECIDA: Inspire-se na paleta de cores, tipografia e iluminação visual da referência anexa."
+      ? "- [IMAGEM DE REFERÊNCIA ESTÉTICA]"
       : "",
   };
 }

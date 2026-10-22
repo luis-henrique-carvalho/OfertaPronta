@@ -437,10 +437,7 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
       const promptText = callArgs.contents.find(
         (c: unknown) => typeof c === "string",
       ) as string;
-      expect(promptText).toContain("LOGOTIPO DA LOJA FORNECIDO");
-      expect(promptText).toMatch(/topo|canto superior|rodapé/i);
-      expect(promptText).toMatch(/fidelidade|legibilidade/i);
-      expect(promptText).toMatch(/distorç/i);
+      expect(promptText).toContain("[LOGOTIPO OFICIAL]");
     });
 
     it("deve injetar diretriz textual de objetivo específica para cada um dos 6 cardIntent", async () => {

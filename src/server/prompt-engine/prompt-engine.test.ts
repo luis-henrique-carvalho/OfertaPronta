@@ -566,22 +566,19 @@ describe("PromptEngine Deep Module", () => {
       expect(parts[0]).toContain("--- DADOS DA OFERTA COMERCIAL ---");
       expect(
         parts.some(
-          (p) =>
-            typeof p === "string" && p.includes("LOGOTIPO DA LOJA FORNECIDO"),
+          (p) => typeof p === "string" && p.includes("[LOGOTIPO OFICIAL]"),
+        ),
+      ).toBe(true);
+      expect(
+        parts.some(
+          (p) => typeof p === "string" && p.includes("[FOTO DO PRODUTO REAL]"),
         ),
       ).toBe(true);
       expect(
         parts.some(
           (p) =>
             typeof p === "string" &&
-            p.includes("FOTO DO PRODUTO REAL FORNECIDA"),
-        ),
-      ).toBe(true);
-      expect(
-        parts.some(
-          (p) =>
-            typeof p === "string" &&
-            p.includes("IMAGEM DE REFERÊNCIA ESTÉTICA"),
+            p.includes("[IMAGEM DE REFERÊNCIA ESTÉTICA]"),
         ),
       ).toBe(true);
     });
