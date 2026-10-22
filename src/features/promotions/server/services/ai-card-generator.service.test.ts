@@ -405,10 +405,13 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
       (c: unknown) => typeof c === "string",
     ) as string;
 
-    expect(promptText).toContain("EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE");
-    expect(promptText).toContain("PRESERVAÇÃO ESTRITA");
+    expect(promptText).toContain(
+      "--- EDIÇÃO DE CARD EXISTENTE (MODO CIRÚRGICO) ---",
+    );
+    expect(promptText).toContain(
+      "preservando estritamente toda a composição, cenário, iluminação e identidade do produto",
+    );
     expect(promptText).toContain("Mudar a logo para verde");
-    expect(promptText).toContain("PROIBIDO REINVENTAR");
   });
 
   describe("Épico 6: Logotipo Multimodal, Objetivos de Anúncio e Preço Opcional", () => {
@@ -952,12 +955,15 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
       ) as string;
 
       expect(promptText).toContain(
-        "RECOMPOSIÇÃO VISUAL E REESTRUTURAÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE)",
+        "--- RECOMPOSIÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE) ---",
       );
-      expect(promptText).toContain("DESTRAVAMENTO ESPACIAL E DE ESTILO");
+      expect(promptText).toContain(
+        "Reposicione os elementos e reestruture o layout",
+      );
       expect(promptText).toContain("não botar o texto atrás do personagem");
-      expect(promptText).not.toContain("PRESERVAÇÃO ESTRITA");
-      expect(promptText).not.toContain("PROIBIDO REINVENTAR");
+      expect(promptText).not.toContain(
+        "preservando estritamente toda a composição",
+      );
       expect(promptText).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
     });
 
@@ -977,9 +983,12 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
         (c: unknown) => typeof c === "string",
       ) as string;
 
-      expect(promptText).toContain("EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE");
-      expect(promptText).toContain("PRESERVAÇÃO ESTRITA");
-      expect(promptText).toContain("PROIBIDO REINVENTAR");
+      expect(promptText).toContain(
+        "--- EDIÇÃO DE CARD EXISTENTE (MODO CIRÚRGICO) ---",
+      );
+      expect(promptText).toContain(
+        "preservando estritamente toda a composição, cenário, iluminação e identidade do produto",
+      );
       expect(promptText).toContain(
         "Atualizar preço promocional para R$ 39,90 e WhatsApp para (11) 91234-5678",
       );

@@ -334,7 +334,7 @@ describe("PromptEngine Deep Module", () => {
 
       expect(generateContentSpy).toHaveBeenCalledTimes(1);
       expect(prompt).toContain(
-        "RECOMPOSIÇÃO VISUAL E REESTRUTURAÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE)",
+        "--- RECOMPOSIÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE) ---",
       );
     });
 
@@ -356,7 +356,9 @@ describe("PromptEngine Deep Module", () => {
         client: fakeClient,
       });
 
-      expect(prompt).toContain("EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE");
+      expect(prompt).toContain(
+        "--- EDIÇÃO DE CARD EXISTENTE (MODO CIRÚRGICO) ---",
+      );
     });
 
     it("buildMultimodalPromptPartsAsync deve usar planejamento dinâmico na edição quando client for fornecido", async () => {
@@ -384,7 +386,7 @@ describe("PromptEngine Deep Module", () => {
 
       expect(generateContentSpy).toHaveBeenCalledTimes(1);
       expect(parts[0]).toContain(
-        "RECOMPOSIÇÃO VISUAL E REESTRUTURAÇÃO DE LAYOUT",
+        "--- RECOMPOSIÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE) ---",
       );
     });
   });
@@ -463,7 +465,7 @@ describe("PromptEngine Deep Module", () => {
     });
 
     describe("buildAdaptiveEditPromptText em Modo SURGICAL", () => {
-      it("deve gerar prompt com marcadores estritos de preservação e proibição de reinventar", () => {
+      it("deve gerar prompt com marcadores estritos de preservação da imagem base", () => {
         const input = createSampleInput({
           baseCardImageDataUrl: SAMPLE_BASE64_PNG,
           customStyleInstructions: "Mudar telefone para (11) 91111-2222",
@@ -471,15 +473,12 @@ describe("PromptEngine Deep Module", () => {
 
         const prompt = buildAdaptiveEditPromptText(input, { mode: "SURGICAL" });
 
-        expect(prompt).toContain("EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE");
         expect(prompt).toContain(
-          "--- DIRETRIZ FUNDAMENTAL: PRESERVAÇÃO ESTRITA ---",
+          "--- EDIÇÃO DE CARD EXISTENTE (MODO CIRÚRGICO) ---",
         );
         expect(prompt).toContain(
-          "1. PRESERVAÇÃO TOTAL DO DESIGN: Mantenha 100% da estrutura, cenário, iluminação, produto anunciado, acompanhamentos, paleta de cores, tipografia, fontes, faixas e posições da IMAGEM BASE rigorosamente inalterados.",
+          "preservando estritamente toda a composição, cenário, iluminação e identidade do produto",
         );
-        expect(prompt).toContain("2. PROIBIDO REINVENTAR");
-        expect(prompt).toContain("3. AJUSTE CIRÚRGICO SOLICITADO");
         expect(prompt).toContain("Mudar telefone para (11) 91111-2222");
         expect(prompt).toContain(
           "ZERO OCLUSÃO TIPOGRÁFICA / 100% FOREGROUND TEXT PRIORITY",
@@ -499,7 +498,7 @@ describe("PromptEngine Deep Module", () => {
     });
 
     describe("buildAdaptiveEditPromptText em Modo RECOMPOSE", () => {
-      it("deve destrancar posições, autorizar reestruturação e aplicar novo estilo", () => {
+      it("deve autorizar reposicionamento mantendo a identidade do produto", () => {
         const input = createSampleInput({
           baseCardImageDataUrl: SAMPLE_BASE64_PNG,
           customStyleInstructions:
@@ -514,30 +513,20 @@ describe("PromptEngine Deep Module", () => {
         });
 
         expect(prompt).toContain(
-          "RECOMPOSIÇÃO VISUAL E REESTRUTURAÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE)",
+          "--- RECOMPOSIÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE) ---",
         );
         expect(prompt).toContain(
-          "--- DIRETRIZ FUNDAMENTAL: DESTRAVAMENTO ESPACIAL E REESTRUTURAÇÃO DE LAYOUT ---",
+          "Reposicione os elementos e reestruture o layout da IMAGEM BASE anexa",
         );
         expect(prompt).toContain(
-          "1. DESTRAVAMENTO ESPACIAL E DE ESTILO: Você está AUTORIZADO E OBRIGADO a alterar posições",
-        );
-        expect(prompt).toContain(
-          "2. PRESERVAÇÃO RIGOROSA DO PRODUTO/SUJEITO HERO: A IMAGEM BASE anexa contém o produto real aprovado pelo cliente.",
-        );
-        expect(prompt).toContain(
-          "3. REPOSICIONAMENTO DE ELEMENTOS: Reposicione livremente o sujeito, o título, o preço e os selos",
+          "mantendo rigorosamente a mesma identidade visual e características do produto/sujeito",
         );
 
-        // Trava estrita NÃO deve existir no modo RECOMPOSE
+        // Trava estrita cirúrgica NÃO deve existir no modo RECOMPOSE
         expect(prompt).not.toContain(
-          "Mantenha 100% da estrutura, cenário, iluminação, produto anunciado, acompanhamentos, paleta de cores, tipografia, fontes, faixas e posições da IMAGEM BASE rigorosamente inalterados",
+          "preservando estritamente toda a composição, cenário, iluminação e identidade do produto",
         );
 
-        // Deve incluir a diretriz do novo preset market-fresh
-        expect(prompt).toContain(
-          'DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Feira & Hortifrúti Natural"',
-        );
         expect(prompt).toContain(
           "ZERO OCLUSÃO TIPOGRÁFICA / 100% FOREGROUND TEXT PRIORITY",
         );
@@ -584,7 +573,9 @@ describe("PromptEngine Deep Module", () => {
 
       const parts = buildMultimodalPromptParts(input);
       expect(typeof parts[0]).toBe("string");
-      expect(parts[0]).toContain("EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE");
+      expect(parts[0]).toContain(
+        "--- EDIÇÃO DE CARD EXISTENTE (MODO CIRÚRGICO) ---",
+      );
       expect(parts.length).toBeGreaterThan(1);
     });
 

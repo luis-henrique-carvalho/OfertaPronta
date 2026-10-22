@@ -5,9 +5,6 @@ import type {
   ResolveRegenerationInstructionsOptions,
 } from "./types";
 import {
-  isReferenceDrivenMode,
-  resolveArtDirectionDirective,
-  REFERENCE_STYLE_PRESET_ID,
   AUTHENTIC_PHOTOGRAPHY_DIRECTIVE,
   ZERO_TEXT_OCCLUSION_DIRECTIVE,
 } from "./art-direction-blueprints";
@@ -89,100 +86,6 @@ function resolveSharedEditPromptParts(
   };
 }
 
-function buildSurgicalPromptTemplate(
-  input: PromptEngineInput,
-  parts: SharedEditPromptParts,
-): string {
-  return `
-Você é um diretor de arte e designer gráfico sênior executando uma EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE.
-Uma IMAGEM BASE DO CARD PUBLICITÁRIO já aprovada pelo cliente está anexa.
-
---- DIRETRIZ FUNDAMENTAL: PRESERVAÇÃO ESTRITA ---
-1. PRESERVAÇÃO TOTAL DO DESIGN: Mantenha 100% da estrutura, cenário, iluminação, produto anunciado, acompanhamentos, paleta de cores, tipografia, fontes, faixas e posições da IMAGEM BASE rigorosamente inalterados.
-2. PROIBIDO REINVENTAR: É TERMINANTEMENTE PROIBIDO gerar um novo cenário, mudar a aparência do produto, trocar recipientes/bandejas ou recriar a estrutura do anúncio do zero.
-3. AJUSTE CIRÚRGICO SOLICITADO: Modifique EXCLUSIVAMENTE o elemento pontual especificado a seguir:
-"${parts.requestedAdjustment}"
-4. DADOS DA OFERTA A MANTER:
-- Estabelecimento: "${input.businessName}"
-- Título da Oferta: "${input.offerTitle}"
-${parts.priceLine}${parts.ctaLine}${parts.whatsappLine}
-
-${parts.proportionDirectives}
-
-${ZERO_TEXT_OCCLUSION_DIRECTIVE}
-
-Todo o restante da imagem original deve permanecer visualmente idêntico à imagem base fornecida.
-`.trim();
-}
-
-function buildRecomposePromptTemplate(
-  input: PromptEngineInput,
-  parts: SharedEditPromptParts,
-  options?: BuildAdaptiveEditPromptOptions,
-): string {
-  const targetPresetId = options?.newStylePresetId ?? input.stylePresetId;
-  const isRef = isReferenceDrivenMode(input);
-  let artDirectiveSection = "";
-
-  const hasPrice = Boolean(
-    input.promoPrice && input.promoPrice.trim().length > 0,
-  );
-
-  if (
-    targetPresetId &&
-    !isRef &&
-    targetPresetId !== REFERENCE_STYLE_PRESET_ID
-  ) {
-    const directive = resolveArtDirectionDirective(
-      input.businessSegment,
-      targetPresetId,
-      {
-        hasPromoPrice: hasPrice,
-        hasReferenceImage: Boolean(input.referenceImageDataUrl),
-      },
-    );
-    if (directive) {
-      artDirectiveSection = `\n${directive}\n`;
-    }
-  }
-
-  const isCenteringRequested =
-    /\b(centro|central|meio|centraliz\w*|não\s+ao\s+lado|nao\s+ao\s+lado|sair\s+do\s+lado)\b/i.test(
-      parts.requestedAdjustment,
-    );
-
-  const spatialRepositionDirective = isCenteringRequested
-    ? `\n--- DIRETIVA PRIORITÁRIA DE CENTRALIZAÇÃO DO PRODUTO (LAYOUT VERTICAL HERO) ---\n- POSICIONAMENTO HERO NO CENTRO: O produto anunciado DEVE ser posicionado no CENTRO geométrico do card (eixos horizontal e vertical equilibrados).\n- QUEBRA DE LAYOUT LATERAL ANTERIOR: É TERMINANTEMENTE PROIBIDO manter o produto empurrado na lateral direita ou esquerda, e é PROIBIDO manter faixas verticais dividindo o card ao meio.\n- REDISTRIBUIÇÃO VERTICAL LIMPA: Posicione o cabeçalho/título da promoção na parte superior (acima do produto) e eventuais preços/chamadas na parte inferior (abaixo do produto), com o produto ocupando o centro da composição.\n`
-    : "";
-
-  return `
-Você é um diretor de arte e designer gráfico sênior executando uma RECOMPOSIÇÃO VISUAL E REESTRUTURAÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE).
-Você está criando uma nova composição tridimensional reestruturada a partir dos dados comerciais aprovados da oferta.
-
---- DIRETRIZ FUNDAMENTAL: DESTRAVAMENTO ESPACIAL E REESTRUTURAÇÃO DE LAYOUT ---
-1. DESTRAVAMENTO ESPACIAL E DE ESTILO: Você está AUTORIZADO E OBRIGADO a alterar posições, reorganizar o grid/layout, afastar elementos, corrigir textos encobertos e aplicar o novo estilo visual solicitado pelo cliente. É TERMINANTEMENTE PROIBIDO replicar a divisão espacial em colunas ou enquadramento da imagem anterior.
-2. PRESERVAÇÃO RIGOROSA DO PRODUTO/SUJEITO HERO: A IMAGEM BASE anexa contém o produto real aprovado pelo cliente. Mantenha rigorosamente a mesma identidade visual, aparência e características do produto e modelo exibidos na IMAGEM BASE, aplicando o novo layout e reposicionamento em torno do MESMO sujeito.
-3. REPOSICIONAMENTO DE ELEMENTOS: Reposicione livremente o sujeito, o título, o preço e os selos para garantir harmonia visual e leitura perfeita sem qualquer elemento encoberto.
-4. CENA ÚNICA TRIDIMENSIONAL CONTÍNUA (FULL-BLEED): Crie uma única cena contínua e tridimensional. É TERMINANTEMENTE PROIBIDO dividir o card em duas metades 50/50 por linhas retas, paredes ou divisões chapadas em colunas.
-5. TIPOGRAFIA PUBLICITÁRIA EXPRESSIVA: Combine contraste entre fonte display condensada robusta + lettering brush script / caligráfico dinâmico inclinado nas palavras-chave em cor de destaque vibrante + conectores à mão.
-6. AJUSTE DE RECOMPOSIÇÃO PRIORITÁRIO SOLICITADO PELO CLIENTE (MÁXIMA PRIORIDADE):
-"${parts.requestedAdjustment}"
-${spatialRepositionDirective}${artDirectiveSection}
-6. DADOS DA OFERTA COMERCIAL A MANTER E REORGANIZAR:
-- Estabelecimento: "${input.businessName}"
-- Título da Oferta: "${input.offerTitle}"
-${parts.priceLine}${parts.ctaLine}${parts.whatsappLine}
-
-${parts.proportionDirectives}
-
-${AUTHENTIC_PHOTOGRAPHY_DIRECTIVE}
-
-${ZERO_TEXT_OCCLUSION_DIRECTIVE}
-
-Crie a nova versão do card com a recomposição solicitada, garantindo impacto visual, legibilidade absoluta de todos os textos em 1º plano e sem oclusões.
-`.trim();
-}
-
 export function buildAdaptiveEditPromptText(
   input: PromptEngineInput,
   options?: BuildAdaptiveEditPromptOptions,
@@ -195,11 +98,29 @@ export function buildAdaptiveEditPromptText(
       presetChanged: options?.presetChanged,
     });
 
-  if (mode === "SURGICAL") {
-    return buildSurgicalPromptTemplate(input, parts);
-  }
+  const isSurgical = mode === "SURGICAL";
 
-  return buildRecomposePromptTemplate(input, parts, options);
+  const editDirective = isSurgical
+    ? `--- EDIÇÃO DE CARD EXISTENTE (MODO CIRÚRGICO) ---
+Modifique pontualmente o elemento indicado a seguir, preservando estritamente toda a composição, cenário, iluminação e identidade do produto da IMAGEM BASE anexa:
+"${parts.requestedAdjustment}"`
+    : `--- RECOMPOSIÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE) ---
+Reposicione os elementos e reestruture o layout da IMAGEM BASE anexa para atender ao ajuste solicitado pelo cliente, mantendo rigorosamente a mesma identidade visual e características do produto/sujeito:
+"${parts.requestedAdjustment}"`;
+
+  return [
+    `Você é um designer gráfico sênior executando a edição de um card publicitário a partir da imagem base anexa.`,
+    editDirective,
+    `--- DADOS DA OFERTA COMERCIAL A MANTER ---
+- Estabelecimento: "${input.businessName}"
+- Título da Oferta: "${input.offerTitle}"
+${parts.priceLine}${parts.ctaLine}${parts.whatsappLine}`,
+    parts.proportionDirectives,
+    AUTHENTIC_PHOTOGRAPHY_DIRECTIVE,
+    ZERO_TEXT_OCCLUSION_DIRECTIVE,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 /**
