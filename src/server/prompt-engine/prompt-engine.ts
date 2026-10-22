@@ -634,6 +634,15 @@ function buildCreationBriefingText(input: PromptEngineInput): string {
     `- Título Principal da Oferta: "${input.offerTitle}"`,
   ];
 
+  if (input.cardIntent) {
+    const customDetail = input.customIntentText?.trim()
+      ? ` (${input.customIntentText.trim()})`
+      : "";
+    lines.push(
+      `- Propósito Comercial / Intenção do Card: "${input.cardIntent}"${customDetail}`,
+    );
+  }
+
   if (input.promoPrice && input.promoPrice.trim().length > 0) {
     lines.push(`- Preço Promocional: "${input.promoPrice.trim()}"`);
     if (input.originalPrice?.trim()) {
@@ -685,6 +694,15 @@ function buildEditBriefingText(input: PromptEngineInput): string {
     `- Nome da Marca: "${input.businessName}"`,
     `- Título da Oferta: "${input.offerTitle}"`,
   ];
+
+  if (input.cardIntent) {
+    const customDetail = input.customIntentText?.trim()
+      ? ` (${input.customIntentText.trim()})`
+      : "";
+    lines.push(
+      `- Propósito Comercial / Intenção do Card: "${input.cardIntent}"${customDetail}`,
+    );
+  }
 
   if (input.promoPrice && input.promoPrice.trim().length > 0) {
     lines.push(`- Preço Promocional: "${input.promoPrice.trim()}"`);

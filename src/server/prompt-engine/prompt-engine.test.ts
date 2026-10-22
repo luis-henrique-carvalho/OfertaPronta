@@ -97,7 +97,10 @@ describe("PromptEngine v2 Deep Module", () => {
         "2. DENSIDADE SENSORIAL, MATERIAIS FÍSICOS E ÓPTICA DE ESTÚDIO",
       );
       expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
-        "3. HIERARQUIA TIPOGRÁFICA MULTI-NÍVEL (100% Verbatim em Português)",
+        "3. HIERARQUIA TIPOGRÁFICA MULTI-NÍVEL & COPYWRITING AUTÊNTICO (100% Verbatim em Português)",
+      );
+      expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
+        "ALINHAMENTO AO PROPÓSITO E STORYTELLING DE COPY",
       );
       expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
         "4. SAÍDA VISUAL PURA (Zero Diluição de Prompt)",
@@ -179,6 +182,32 @@ describe("PromptEngine v2 Deep Module", () => {
       );
       expect(result.parts).toContain(
         "[FOTO DO PRODUTO REAL: Manter fidelidade visual e integrar harmonicamente à cena]",
+      );
+    });
+
+    it("deve repassar cardIntent e customIntentText de forma desacoplada no briefing do Estágio 1", async () => {
+      const input = createSampleInput({
+        cardIntent: "special-date",
+        customIntentText: "Comemoração especial do Dia do Cliente",
+      });
+
+      let capturedBriefing = "";
+
+      const mockClient: PromptPlannerClient = {
+        models: {
+          generateContent: vi.fn().mockImplementation(async (params) => {
+            capturedBriefing = params.contents[0] as string;
+            return {
+              text: GOLDEN_FEW_SHOT_MASTER_PROMPT,
+            };
+          }),
+        },
+      };
+
+      await compileAdCardPrompt(input, { client: mockClient });
+
+      expect(capturedBriefing).toContain(
+        '- Propósito Comercial / Intenção do Card: "special-date" (Comemoração especial do Dia do Cliente)',
       );
     });
   });
