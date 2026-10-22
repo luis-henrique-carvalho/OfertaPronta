@@ -9,6 +9,8 @@ import {
   isReferenceDrivenMode,
   parseDataUrl,
   GOLDEN_FEW_SHOT_MASTER_PROMPT,
+  INFOGRAPHIC_FEW_SHOT_MASTER_PROMPT,
+  STYLIZED_3D_FEW_SHOT_MASTER_PROMPT,
   UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION,
   CONVERSATIONAL_EDIT_SYSTEM_INSTRUCTION,
   DEFAULT_GEMINI_PROMPT_MODEL,
@@ -89,12 +91,30 @@ describe("PromptEngine v2 Deep Module", () => {
       );
     });
 
-    it("UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION deve ensinar os 4 Pilares Universais e incluir o Golden Few-Shot", () => {
+    it("UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION deve ensinar os 4 Pilares Universais e incluir os Few-Shots Contrastantes", () => {
       expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
         "1. ZONEAMENTO ESPACIAL ASSIMÉTRICO (Split Composition & Zero Colisão)",
       );
       expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
+        "LIBERDADE DE ARQUITETURA DE LAYOUT",
+      );
+      expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
         "2. DENSIDADE SENSORIAL, MATERIAIS FÍSICOS E ÓPTICA DE ESTÚDIO",
+      );
+      expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
+        "REPERTÓRIO VISUAL MULTIESTILO (FIM DA MONOCULTURA)",
+      );
+      expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
+        "Informativo / Infográfico / Educacional",
+      );
+      expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
+        "3D Estilizado / Cartunesco / Pop Art",
+      );
+      expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
+        "Bold Graphic / Retail Pop de Varejo",
+      );
+      expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
+        "Clean & High-Key / Luz Natural (Daylight)",
       );
       expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
         "3. HIERARQUIA TIPOGRÁFICA MULTI-NÍVEL & COPYWRITING AUTÊNTICO (100% Verbatim em Português)",
@@ -109,7 +129,28 @@ describe("PromptEngine v2 Deep Module", () => {
         GOLDEN_FEW_SHOT_MASTER_PROMPT,
       );
       expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
+        INFOGRAPHIC_FEW_SHOT_MASTER_PROMPT,
+      );
+      expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
+        STYLIZED_3D_FEW_SHOT_MASTER_PROMPT,
+      );
+      expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
         "preservando 15% no topo e 15% na base totalmente livres de textos",
+      );
+    });
+
+    it("deve conter os 4 parágrafos nos few-shots adicionais de infográfico e 3D estilizado", () => {
+      expect(INFOGRAPHIC_FEW_SHOT_MASTER_PROMPT).toContain(
+        "Design gráfico publicitário editorial e infográfico comercial moderno",
+      );
+      expect(INFOGRAPHIC_FEW_SHOT_MASTER_PROMPT).toContain(
+        "Orbitando o produto central de forma harmônica e estruturada, distribuem-se três selos informativos",
+      );
+      expect(STYLIZED_3D_FEW_SHOT_MASTER_PROMPT).toContain(
+        "Arte publicitária 3D estilizada e carismática em estilo animação moderna",
+      );
+      expect(STYLIZED_3D_FEW_SHOT_MASTER_PROMPT).toContain(
+        "No topo da composição, a assinatura da marca",
       );
     });
 
