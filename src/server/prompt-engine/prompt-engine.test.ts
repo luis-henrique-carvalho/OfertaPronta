@@ -23,7 +23,6 @@ import {
   assembleAuthoredMasterPrompt,
   AUTHENTIC_PHOTOGRAPHY_DIRECTIVE,
   ZERO_TEXT_OCCLUSION_DIRECTIVE,
-  buildVisualHierarchy,
   RECOMPOSE_INTENT_REGEX,
   type PromptEngineInput,
   type PromptPlannerClient,
@@ -64,36 +63,20 @@ describe("PromptEngine Deep Module", () => {
   });
 
   describe("Compilação Determinística (compileDeterministicCardPrompt / buildPromptText)", () => {
-    it("deve compilar prompt em 4 camadas estruturadas com enquadramento full-bleed e ótica fotográfica", () => {
+    it("deve compilar prompt determinístico estruturado com dados comerciais e guardrails", () => {
       const input = createSampleInput();
       const prompt = compileDeterministicCardPrompt(input);
 
       expect(prompt).toContain("--- DADOS DA OFERTA COMERCIAL ---");
-      expect(prompt).toContain(
-        "- Segmento do Negócio: Supermercado & Hortifrúti",
-      );
-      expect(prompt).toContain(
-        "- Nome do Estabelecimento: Supermercado Compre Bem",
-      );
-      expect(prompt).toContain(
-        "- Item ou Oferta Anunciada: Alface Americana Fresca",
-      );
+      expect(prompt).toContain("- Segmento: Supermercado & Hortifrúti");
+      expect(prompt).toContain('- Estabelecimento: "Supermercado Compre Bem"');
+      expect(prompt).toContain('- Item ou Oferta: "Alface Americana Fresca"');
       expect(prompt).toContain("PREÇO PROMOCIONAL EM DESTAQUE MÁXIMO");
       expect(prompt).toContain("De R$ 5,99 Por R$ 3,99");
+      expect(prompt).toContain("ZERO OCLUSÃO TIPOGRÁFICA");
       expect(prompt).toContain(
-        "--- ARQUITETURA DE COMPOSIÇÃO EM 4 CAMADAS (STEP-BY-STEP) ---",
+        "--- DIRETIVA MANDATÓRIA DE AUTENTICIDADE FOTOGRÁFICA (ANTI-GENERIC AI LOOK) ---",
       );
-      expect(prompt).toContain("CAMADA 1 — FUNDO FULL-BLEED & ATMOSFERA");
-      expect(prompt).toContain(
-        "CAMADA 2 — SUJEITO HERO & ÓPTICA FOTOGRÁFICA COMERCIAL",
-      );
-      expect(prompt).toContain(
-        "CAMADA 3 — GEOMETRIA DE GRID, SAFE ZONE & TIPOGRAFIA DESCRITIVA",
-      );
-      expect(prompt).toContain(
-        "CAMADA 4 — ANCORAGEM DE PREÇO & RODAPÉ COMERCIAL",
-      );
-      expect(prompt).toContain("--- HIERARQUIA VISUAL OBRIGATÓRIA ---");
     });
 
     it("deve aplicar safe zone de 15% e aspect ratio 9:16 quando targetAspectRatio for story", () => {
@@ -190,7 +173,7 @@ describe("PromptEngine Deep Module", () => {
         "--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---",
       );
       expect(prompt).toContain(
-        "extraídos 100% com fidelidade da IMAGEM DE REFERÊNCIA anexa",
+        "Extraia com fidelidade as cores de fundo, contrastes, gradientes",
       );
 
       // Garantia de Zero Attention Bleeding:
@@ -205,17 +188,11 @@ describe("PromptEngine Deep Module", () => {
   });
 
   describe("Etapa 1: Planejador Dinâmico Híbrido (dynamic-planner.ts & compileDynamicCardPrompt)", () => {
-    it("deve invocar o modelo rápido gemini-3.8-flash com brief estruturado e fundir no prompt final", async () => {
+    it("deve invocar o modelo rápido gemini-3.8-flash como autor do master prompt e fundir guardrails", async () => {
+      const sampleMasterPrompt =
+        "Cena publicitária imersiva de corte nobre com iluminação de estúdio comercial...";
       const generateContentSpy = vi.fn().mockResolvedValue({
-        text: JSON.stringify({
-          subjectAnatomy:
-            "Pessoa e modelo em pé no canto esquerdo olhando para a frente.",
-          safeTypographyZone: "Quadrante superior direito com respiro limpo.",
-          antiOcclusionStrategy:
-            "Título renderizado em faixa sólida à direita em 1º plano.",
-          layoutAdaptation:
-            "Layout assimétrico com sujeito à esquerda e conteúdo comercial à direita.",
-        }),
+        text: sampleMasterPrompt,
       });
 
       const fakeClient: PromptPlannerClient = {
@@ -237,26 +214,9 @@ describe("PromptEngine Deep Module", () => {
       const callArgs = generateContentSpy.mock.calls[0][0];
       expect(callArgs.model).toBe("gemini-3.8-flash");
 
-      // Verifica que o planejamento dinâmico foi incorporado
-      expect(compiledPrompt).toContain(
-        "--- PLANEJAMENTO DE COMPOSIÇÃO DINÂMICA (ETAPA 1 - AI-DYNAMIC) ---",
-      );
-      expect(compiledPrompt).toContain(
-        "Pessoa e modelo em pé no canto esquerdo",
-      );
-      expect(compiledPrompt).toContain(
-        "Quadrante superior direito com respiro limpo",
-      );
-      expect(compiledPrompt).toContain(
-        "Título renderizado em faixa sólida à direita em 1º plano",
-      );
-
-      // Verifica que os guardrails determinísticos e Zero Oclusão continuam presentes
+      expect(compiledPrompt).toContain(sampleMasterPrompt);
       expect(compiledPrompt).toContain(
         "ZERO OCLUSÃO TIPOGRÁFICA / 100% FOREGROUND TEXT PRIORITY",
-      );
-      expect(compiledPrompt).toContain(
-        "CAMADA 1 — FUNDO FULL-BLEED & ATMOSFERA",
       );
     });
 
@@ -269,9 +229,7 @@ describe("PromptEngine Deep Module", () => {
       expect(brief.antiOcclusionStrategy).toContain("100% de primeiro plano");
 
       const compiled = await compileDynamicCardPrompt(input);
-      expect(compiled).toContain(
-        "PLANEJAMENTO DE COMPOSIÇÃO DINÂMICA (ETAPA 1 - DETERMINISTIC-FALLBACK)",
-      );
+      expect(compiled).toContain("--- DADOS DA OFERTA COMERCIAL ---");
       expect(compiled).toContain("ZERO OCLUSÃO TIPOGRÁFICA");
     });
 
@@ -663,12 +621,7 @@ describe("PromptEngine Deep Module", () => {
       const fakeClient: PromptPlannerClient = {
         models: {
           generateContent: vi.fn().mockResolvedValue({
-            text: JSON.stringify({
-              subjectAnatomy: "Sujeito planejado dinamicamente.",
-              safeTypographyZone: "Topo e centro livres.",
-              antiOcclusionStrategy: "Foreground 100%.",
-              layoutAdaptation: "Layout harmônico.",
-            }),
+            text: "Sujeito planejado dinamicamente em cena fotográfica profissional de alta conversão.",
           }),
         },
       };
@@ -679,7 +632,9 @@ describe("PromptEngine Deep Module", () => {
       });
 
       expect(typeof parts[0]).toBe("string");
-      expect(parts[0]).toContain("Sujeito planejado dinamicamente.");
+      expect(parts[0]).toContain(
+        "Sujeito planejado dinamicamente em cena fotográfica",
+      );
       expect(parts[0]).toContain("ZERO OCLUSÃO TIPOGRÁFICA");
     });
   });
@@ -718,250 +673,6 @@ describe("PromptEngine Deep Module", () => {
       expect(recomposePrompt).toContain(
         "--- DIRETIVA MANDATÓRIA DE AUTENTICIDADE FOTOGRÁFICA (ANTI-GENERIC AI LOOK) ---",
       );
-    });
-
-    it("deve diversificar a hierarquia visual para o objetivo 'schedule' (foco em serviço e agendamento)", () => {
-      const hierarchy = buildVisualHierarchy(
-        true,
-        "Corte & Barba Terapia",
-        "Barbearia Retrô",
-        "R$ 80,00",
-        { cardIntent: "schedule" },
-      );
-
-      expect(hierarchy).toContain("TRANSFORMAÇÃO & SERVIÇO EM FOCO");
-      expect(hierarchy).toContain("TÍTULO E CHAMADA DE AGENDAMENTO");
-      expect(hierarchy).toContain("CANAL DE ATENDIMENTO / WHATSAPP");
-      expect(hierarchy).toContain("R$ 80,00");
-    });
-
-    it("deve diversificar a hierarquia visual para o objetivo 'announcement' (foco em mensagem e ambiente, sem preço)", () => {
-      const hierarchy = buildVisualHierarchy(
-        false,
-        "Horário Especial de Fim de Ano",
-        "Supermercado Compre Bem",
-        null,
-        { cardIntent: "announcement" },
-      );
-
-      expect(hierarchy).toContain("MENSAGEM OU COMUNICADO PRINCIPAL");
-      expect(hierarchy).toContain("AMBIENTAÇÃO COMERCIAL AUTÊNTICA");
-      expect(hierarchy).toContain("CARD INFORMATIVO");
-      expect(hierarchy).not.toContain("R$");
-    });
-
-    it("deve diversificar a hierarquia visual para layout 'clean-frame' (composição assimétrica na regra dos terços)", () => {
-      const hierarchy = buildVisualHierarchy(
-        true,
-        "Vestido Linho Puro",
-        "Boutique Bella",
-        "R$ 189,90",
-        { layoutType: "clean-frame", layoutVariant: "clean-minimal" },
-      );
-
-      expect(hierarchy).toContain("PRODUTO HERO EM ENQUADRAMENTO ASSIMÉTRICO");
-      expect(hierarchy).toContain("regra dos terços");
-      expect(hierarchy).toContain("TÍTULO EDITORIAL");
-      expect(hierarchy).toContain("TAG GEOMÉTRICA DE PREÇO");
-    });
-
-    it("deve diversificar a hierarquia visual para layout 'dark-premium' (iluminação chiaroscuro e texturas nobres)", () => {
-      const hierarchy = buildVisualHierarchy(
-        true,
-        "Smash Burger Duplo Artesanal",
-        "Burgueria do Zé",
-        "R$ 38,00",
-        { layoutType: "dark-premium", layoutVariant: "dark-luxury" },
-      );
-
-      expect(hierarchy).toContain("ILUMINAÇÃO CHIAROSCURO & APETITE MÁXIMO");
-      expect(hierarchy).toContain("rim light dourada");
-      expect(hierarchy).toContain(
-        "TÍTULO DA OFERTA COM TIPOGRAFIA SOFISTICADA",
-      );
-      expect(hierarchy).toContain("SELO ARTESANAL / BADGE PREMIUM");
-    });
-
-    it("deve diversificar a hierarquia visual para layout 'vibrant-pop' (perspectiva dinâmica e energia)", () => {
-      const hierarchy = buildVisualHierarchy(
-        true,
-        "Açaí Especial 500ml",
-        "Ponto do Açaí",
-        "R$ 22,00",
-        { layoutType: "vibrant-pop", layoutVariant: "fresh-organic" },
-      );
-
-      expect(hierarchy).toContain("DINÂMICA VISUAL EM PERSPECTIVA");
-      expect(hierarchy).toContain("BADGE DE OFERTA ENERGÉTICO");
-    });
-
-    it("deve compilar prompts diferentes dinamicamente para presets e intenções distintos", () => {
-      const promoInput = createSampleInput({
-        businessSegment: "fashion",
-        stylePresetId: "fashion-boutique",
-        cardIntent: "promo",
-        offerTitle: "Vestido Floral",
-        promoPrice: "R$ 120,00",
-      });
-
-      const scheduleInput = createSampleInput({
-        businessSegment: "beauty-salon",
-        stylePresetId: "salon-glamour",
-        cardIntent: "schedule",
-        offerTitle: "Dia de Noiva",
-        promoPrice: "R$ 350,00",
-      });
-
-      const promptPromo = compileDeterministicCardPrompt(promoInput);
-      const promptSchedule = compileDeterministicCardPrompt(scheduleInput);
-
-      expect(promptPromo).toContain(
-        "PRODUTO HERO EM ENQUADRAMENTO ASSIMÉTRICO",
-      );
-      expect(promptSchedule).toContain("TRANSFORMAÇÃO & SERVIÇO EM FOCO");
-      expect(promptPromo).not.toEqual(promptSchedule);
-    });
-  });
-
-  describe("Arquétipos de Composição Dinâmica (CompositionArchetype)", () => {
-    it("deve aplicar hierarquia 'split-editorial' para qualquer segmento quando indicado pelo arquétipo", () => {
-      const hierarchy = buildVisualHierarchy(
-        true,
-        "Picanha Fatiada Prime 1kg",
-        "Supermercado Compre Bem",
-        "R$ 89,90",
-        { compositionArchetype: "split-editorial" },
-      );
-
-      expect(hierarchy).toContain("PRODUTO HERO EM ENQUADRAMENTO ASSIMÉTRICO");
-      expect(hierarchy).toContain("regra dos terços");
-      expect(hierarchy).toContain("TÍTULO EDITORIAL");
-      expect(hierarchy).toContain("R$ 89,90");
-    });
-
-    it("deve aplicar hierarquia 'hero-bottom-staged' para produtos em base inferior com safe zone superior", () => {
-      const hierarchy = buildVisualHierarchy(
-        true,
-        "Smash Combo com Fritas",
-        "Burgueria Artesanal",
-        "R$ 45,00",
-        { compositionArchetype: "hero-bottom-staged" },
-      );
-
-      expect(hierarchy).toContain("PRODUTO HERO EM BASE CENOGRÁFICA");
-      expect(hierarchy).toContain("45% inferiores");
-      expect(hierarchy).toContain("TÍTULO PRINCIPAL EM 1º PLANO");
-      expect(hierarchy).toContain("R$ 45,00");
-    });
-
-    it("deve aplicar hierarquia 'overhead-flatlay' com visão zenital 90 graus", () => {
-      const hierarchy = buildVisualHierarchy(
-        true,
-        "Pizza Margherita Artesanal",
-        "Pizzaria Bella Itália",
-        "R$ 69,90",
-        { compositionArchetype: "overhead-flatlay" },
-      );
-
-      expect(hierarchy).toContain(
-        "COMPOSIÇÃO ZENITAL FLAT-LAY (90° BIRD'S EYE)",
-      );
-      expect(hierarchy).toContain("visão aérea sofisticada");
-      expect(hierarchy).toContain("R$ 69,90");
-    });
-
-    it("deve aplicar hierarquia 'minimal-negative-space' com respiro amplo e requinte", () => {
-      const hierarchy = buildVisualHierarchy(
-        true,
-        "Clínica Estética & Botox",
-        "Dermato Care",
-        "R$ 490,00",
-        { compositionArchetype: "minimal-negative-space" },
-      );
-
-      expect(hierarchy).toContain(
-        "ESPAÇO NEGATIVO DOMINANTE (60%+ DE RESPIRO)",
-      );
-      expect(hierarchy).toContain("TÍTULO EDITORIAL REFINADO");
-      expect(hierarchy).toContain("R$ 490,00");
-    });
-
-    it("deve permitir que o Gemini 3.8 Flash selecione split-editorial para supermercado e injetar no prompt final", async () => {
-      const input = createSampleInput({
-        businessSegment: "supermarket",
-        stylePresetId: "market-discount",
-        offerTitle: "Picanha Angus 1kg",
-        promoPrice: "R$ 79,90",
-      });
-
-      const mockClient = {
-        models: {
-          generateContent: vi.fn().mockResolvedValue({
-            text: JSON.stringify({
-              compositionArchetype: "split-editorial",
-              subjectAnatomy:
-                "Picanha fatiada apetitosa ocupando a lateral direita.",
-              safeTypographyZone:
-                "Coluna esquerda em espaço negativo com fundo escuro.",
-              antiOcclusionStrategy:
-                "Textos 100% à esquerda sem qualquer sobreposição à carne.",
-              layoutAdaptation: "Divisão 50/50 em formato Feed 4:5.",
-            }),
-          }),
-        },
-      };
-
-      const prompt = await compileDynamicCardPrompt(input, {
-        client: mockClient,
-      });
-
-      expect(prompt).toContain(
-        "Arquétipo de Composição Curado: split-editorial",
-      );
-      expect(prompt).toContain("PRODUTO HERO EM ENQUADRAMENTO ASSIMÉTRICO");
-      expect(prompt).toContain("Picanha Angus 1kg");
-      expect(prompt).toContain("R$ 79,90");
-    });
-
-    it("deve harmonizar o blueprint quando minimal-negative-space for selecionado para ótica/varejo, removendo selos explosivos", async () => {
-      const input = createSampleInput({
-        businessSegment: "local-retail",
-        stylePresetId: "retail-vibrant",
-        businessName: "Ótica Visão Perfeita",
-        offerTitle: "Armação de Grau Completa com Lentes Antirreflexo",
-        cardIntent: "schedule",
-        promoPrice: null,
-      });
-
-      const mockClient = {
-        models: {
-          generateContent: vi.fn().mockResolvedValue({
-            text: JSON.stringify({
-              compositionArchetype: "minimal-negative-space",
-              subjectAnatomy:
-                "Óculos de grau de design sofisticado repousando suavemente sobre superfície minimalista nos 40% inferiores.",
-              safeTypographyZone:
-                "Os 50% superiores do quadro com respiro generoso.",
-              antiOcclusionStrategy:
-                "Segregação vertical estrita sem sobreposição.",
-              layoutAdaptation:
-                "Aproveitamento de espaço negativo superior e foco no produto na base.",
-            }),
-          }),
-        },
-      };
-
-      const prompt = await compileDynamicCardPrompt(input, {
-        client: mockClient,
-      });
-
-      expect(prompt).toContain(
-        "Arquétipo de Composição Curado: minimal-negative-space",
-      );
-      expect(prompt).toContain("ESPAÇO NEGATIVO DOMINANTE (60%+ DE RESPIRO)");
-      expect(prompt).toContain("sem selos explosivos");
-      expect(prompt).not.toContain("selo explosivo no quadrante direito");
-      expect(prompt).not.toContain("- Clima e Atmosfera Geral:");
     });
   });
 

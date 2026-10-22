@@ -12,9 +12,7 @@ import {
   buildReferenceDrivenArtDirective,
   ZERO_TEXT_OCCLUSION_DIRECTIVE,
   SEGMENT_ART_DIRECTIVES,
-  compileReferenceDrivenFourLayers,
   REFERENCE_STYLE_PRESET_ID,
-  type CompileReferenceDrivenFourLayersParams,
   type PromptPlannerClient,
   type PromptEngineInput,
   type InlineDataPart,
@@ -31,8 +29,6 @@ export {
   buildReferenceDrivenArtDirective,
   ZERO_TEXT_OCCLUSION_DIRECTIVE,
   SEGMENT_ART_DIRECTIVES,
-  compileReferenceDrivenFourLayers,
-  type CompileReferenceDrivenFourLayersParams,
   type PromptPlannerClient,
   type InlineDataPart,
 };

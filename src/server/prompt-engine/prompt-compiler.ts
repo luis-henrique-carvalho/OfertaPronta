@@ -1,37 +1,27 @@
 import type {
-  CompositionArchetype,
-  DynamicCompositionBrief,
   DynamicPromptCompileOptions,
   EditIntentMode,
   InlineDataPart,
   PromptEngineInput,
 } from "./types";
 import {
-  adaptBlueprintForArchetype,
   buildProportionDirectives,
   buildPromptOptionalNotes,
   buildReferenceDrivenArtDirective,
-  buildVisualHierarchy,
-  compileFourLayersNarrative,
-  compileReferenceDrivenFourLayers,
   isReferenceDrivenMode,
   parseDataUrl,
-  resolveArtDirectionDirective,
   resolveIntentDirective,
-  resolvePresetAndBlueprint,
   resolvePriceInstructions,
+  resolveArtDirectionDirective,
   SEGMENT_ART_DIRECTIVES,
-  LAYOUT_VARIANT_BLUEPRINTS,
   AUTHENTIC_PHOTOGRAPHY_DIRECTIVE,
   ZERO_TEXT_OCCLUSION_DIRECTIVE,
-  type LayoutVariantBlueprint,
 } from "./art-direction-blueprints";
 import {
   buildAdaptiveEditPromptText,
   detectEditIntentMode,
 } from "./edit-prompt-compiler";
 import {
-  buildDeterministicCompositionBrief,
   planDynamicCompositionBrief,
   planDynamicEditIntent,
 } from "./dynamic-planner";
@@ -114,157 +104,8 @@ function resolvePromptContext(
   };
 }
 
-function resolveArtAndLayers(
-  input: PromptEngineInput,
-  resolvedSegmentConfig: (typeof SEGMENT_ART_DIRECTIVES)[keyof typeof SEGMENT_ART_DIRECTIVES],
-  options: {
-    isReferenceDriven: boolean;
-    hasPrice: boolean;
-    hasReferenceImage: boolean;
-    hasCustomPalette: boolean;
-    isStory: boolean;
-    compositionArchetype?: CompositionArchetype;
-  },
-): {
-  artDirectiveText: string;
-  layers: [string, string, string, string];
-  blueprint: LayoutVariantBlueprint;
-} {
-  if (options.isReferenceDriven) {
-    return {
-      artDirectiveText: buildReferenceDrivenArtDirective(input),
-      layers: compileReferenceDrivenFourLayers({
-        input,
-        hasPrice: options.hasPrice,
-        isStory: options.isStory,
-      }),
-      blueprint: LAYOUT_VARIANT_BLUEPRINTS["retail-burst"],
-    };
-  }
-
-  const { preset, blueprint: baseBlueprint } = resolvePresetAndBlueprint(
-    input.businessSegment,
-    input.stylePresetId,
-  );
-
-  const blueprint = adaptBlueprintForArchetype(
-    baseBlueprint,
-    options.compositionArchetype,
-  );
-
-  const artDirectiveText = resolveArtDirectionDirective(
-    input.businessSegment,
-    input.stylePresetId,
-    {
-      hasReferenceImage: options.hasReferenceImage,
-      hasCustomPalette: options.hasCustomPalette,
-      cardIntent: input.cardIntent,
-      hasPromoPrice: options.hasPrice,
-      overrideBlueprint: blueprint,
-    },
-  );
-
-  const layers = compileFourLayersNarrative({
-    input,
-    segmentAtmosphere: resolvedSegmentConfig.atmosphere,
-    preset,
-    blueprint,
-    hasPrice: options.hasPrice,
-    hasReferenceImage: options.hasReferenceImage,
-    hasCustomPalette: options.hasCustomPalette,
-    isStory: options.isStory,
-  });
-
-  return { artDirectiveText, layers, blueprint };
-}
-
-interface AssemblePromptParams {
-  audienceText: string;
-  segmentConfig: (typeof SEGMENT_ART_DIRECTIVES)[keyof typeof SEGMENT_ART_DIRECTIVES];
-  businessName: string;
-  offerTitle: string;
-  priceInstructions: string;
-  notes: ReturnType<typeof buildPromptOptionalNotes>;
-  intentText: string;
-  proportionDirectives: string;
-  artDirectiveText: string;
-  dynamicBriefText?: string;
-  layers: [string, string, string, string];
-  visualHierarchy: string;
-}
-
-function assemblePromptText(params: AssemblePromptParams): string {
-  const {
-    audienceText,
-    segmentConfig,
-    businessName,
-    offerTitle,
-    priceInstructions,
-    notes,
-    intentText,
-    proportionDirectives,
-    artDirectiveText,
-    dynamicBriefText,
-    layers: [layer1, layer2, layer3, layer4],
-    visualHierarchy,
-  } = params;
-
-  return `
-Você é um diretor de arte publicitário sênior especialista em anúncios e cards promocionais para ${audienceText}.
-Crie um CARD PUBLICITÁRIO COMPLETO, profissional, esteticamente impecável e pronto para postagem imediata.
-
---- DADOS DA OFERTA COMERCIAL ---
-- Segmento do Negócio: ${segmentConfig.segmentTitle}
-- Nome do Estabelecimento: ${businessName}
-- Item ou Oferta Anunciada: ${offerTitle}
-- ${priceInstructions}
-${notes.ctaInstruction}
-${notes.whatsappInstruction}
-- ${intentText}
-
---- DIRETRIZES DE DIREÇÃO DE ARTE E DESIGN GRÁFICO ---
-${proportionDirectives}
-- Estilo Visual do Segmento: ${segmentConfig.visualStyle}
-${artDirectiveText ? `\n${artDirectiveText}\n` : ""}
-${notes.logoNote ? `${notes.logoNote}\n` : ""}${notes.productNote ? `${notes.productNote}\n` : ""}${notes.referenceNote ? `${notes.referenceNote}\n` : ""}${notes.customInstructions ? `- ${notes.customInstructions}` : ""}
-${dynamicBriefText ? `\n${dynamicBriefText}\n` : ""}
---- ARQUITETURA DE COMPOSIÇÃO EM 4 CAMADAS (STEP-BY-STEP) ---
-- ${layer1}
-- ${layer2}
-- ${layer3}
-- ${layer4}
-
-${AUTHENTIC_PHOTOGRAPHY_DIRECTIVE}
-
-${ZERO_TEXT_OCCLUSION_DIRECTIVE}
-
---- HIERARQUIA VISUAL OBRIGATÓRIA ---
-${visualHierarchy}
-`.trim();
-}
-
-export function formatDynamicCompositionBrief(
-  brief: DynamicCompositionBrief,
-): string {
-  const parts = [
-    `--- PLANEJAMENTO DE COMPOSIÇÃO DINÂMICA (ETAPA 1 - ${brief.source.toUpperCase()}) ---`,
-    `- Diagnóstico de Sujeito: ${brief.subjectAnatomy}`,
-    `- Zona Segura para Tipografia: ${brief.safeTypographyZone}`,
-    `- Estratégia de Anti-Oclusão: ${brief.antiOcclusionStrategy}`,
-    `- Adaptação de Layout: ${brief.layoutAdaptation}`,
-  ];
-  if (brief.compositionArchetype) {
-    parts.splice(
-      1,
-      0,
-      `- Arquétipo de Composição Curado: ${brief.compositionArchetype}`,
-    );
-  }
-  return parts.join("\n");
-}
-
 /**
- * Compila o prompt do card de maneira determinística e estruturada em 4 camadas,
+ * Compila o prompt do card de maneira determinística direta (fallback síncrono offline),
  * com guardrails de fidelidade e diretriz explícita de Zero Oclusão Tipográfica.
  */
 export function compileDeterministicCardPrompt(
@@ -276,51 +117,45 @@ export function compileDeterministicCardPrompt(
   }
 
   const ctx = resolvePromptContext(input, segmentConfig);
-  const brief = buildDeterministicCompositionBrief(input);
 
-  const { artDirectiveText, layers, blueprint } = resolveArtAndLayers(
-    input,
-    ctx.resolvedSegmentConfig,
-    {
-      isReferenceDriven: ctx.isReferenceDriven,
-      hasPrice: ctx.hasPrice,
-      hasReferenceImage: ctx.hasReferenceImage,
-      hasCustomPalette: ctx.hasCustomPalette,
-      isStory: ctx.isStory,
-      compositionArchetype: brief.compositionArchetype,
-    },
-  );
+  const styleSection = ctx.isReferenceDriven
+    ? buildReferenceDrivenArtDirective(input)
+    : resolveArtDirectionDirective(input.businessSegment, input.stylePresetId, {
+        hasReferenceImage: ctx.hasReferenceImage,
+        hasCustomPalette: ctx.hasCustomPalette,
+        cardIntent: input.cardIntent,
+        hasPromoPrice: ctx.hasPrice,
+      });
 
-  const visualHierarchy = buildVisualHierarchy(
-    ctx.hasPrice,
-    input.offerTitle,
-    input.businessName,
-    input.promoPrice,
-    {
-      layoutType: blueprint.layoutType,
-      layoutVariant: blueprint.layoutVariant,
-      cardIntent: input.cardIntent,
-      isStory: ctx.isStory,
-      compositionArchetype: brief.compositionArchetype,
-    },
-  );
+  const notesText = [
+    ctx.notes.logoNote,
+    ctx.notes.productNote,
+    ctx.notes.referenceNote,
+    ctx.notes.customInstructions ? `- ${ctx.notes.customInstructions}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-  return assemblePromptText({
-    audienceText: ctx.audienceText,
-    segmentConfig: ctx.resolvedSegmentConfig,
-    businessName: input.businessName,
-    offerTitle: input.offerTitle,
-    priceInstructions: ctx.priceInstructions,
-    notes: ctx.notes,
-    intentText: resolveIntentDirective(
-      input.cardIntent,
-      input.customIntentText,
-    ),
-    proportionDirectives: ctx.proportionDirectives,
-    artDirectiveText,
-    layers,
-    visualHierarchy,
-  });
+  const sections: string[] = [
+    `Você é um diretor de arte publicitário sênior especialista em anúncios para ${ctx.audienceText}.\nCrie um CARD PUBLICITÁRIO COMPLETO, profissional, esteticamente impecável e pronto para postagem imediata.`,
+    `--- DADOS DA OFERTA COMERCIAL ---
+- Segmento: ${ctx.resolvedSegmentConfig.segmentTitle}
+- Estabelecimento: "${input.businessName}"
+- Item ou Oferta: "${input.offerTitle}"
+- ${ctx.priceInstructions}${ctx.notes.ctaInstruction ? `\n- ${ctx.notes.ctaInstruction}` : ""}${ctx.notes.whatsappInstruction ? `\n- ${ctx.notes.whatsappInstruction}` : ""}
+- ${resolveIntentDirective(input.cardIntent, input.customIntentText)}`,
+    ctx.proportionDirectives,
+    styleSection,
+  ];
+
+  if (notesText) {
+    sections.push(`--- INSUMOS E OBSERVAÇÕES ---\n${notesText}`);
+  }
+
+  sections.push(AUTHENTIC_PHOTOGRAPHY_DIRECTIVE);
+  sections.push(ZERO_TEXT_OCCLUSION_DIRECTIVE);
+
+  return sections.join("\n\n");
 }
 
 /**
@@ -329,8 +164,8 @@ export function compileDeterministicCardPrompt(
 export const buildPromptText = compileDeterministicCardPrompt;
 
 /**
- * Compila o prompt completo orquestrando a Etapa 1 (Planejador Dinâmico Gemini 3.8 Flash)
- * e fundindo o DynamicCompositionBrief resultante com os guardrails determinísticos da Etapa 2.
+ * Compila o prompt completo orquestrando o Gemini 3.8 Flash como autor único do Master Prompt
+ * e fundindo o texto autoral com os guardrails determinísticos (Safe Zone, Zero Oclusão e Insumos).
  */
 export async function compileDynamicCardPrompt(
   input: PromptEngineInput,
@@ -358,7 +193,7 @@ export async function compileDynamicCardPrompt(
 
   const ctx = resolvePromptContext(input);
 
-  // Executa o planejamento da Etapa 1
+  // Executa a autoria do Master Prompt pelo Gemini 3.8 Flash (Etapa 1)
   const brief = await planDynamicCompositionBrief(input, options);
 
   if (brief.authoredMasterPrompt) {
@@ -370,52 +205,7 @@ export async function compileDynamicCardPrompt(
     });
   }
 
-  const dynamicBriefText = formatDynamicCompositionBrief(brief);
-
-  const { artDirectiveText, layers, blueprint } = resolveArtAndLayers(
-    input,
-    ctx.resolvedSegmentConfig,
-    {
-      isReferenceDriven: ctx.isReferenceDriven,
-      hasPrice: ctx.hasPrice,
-      hasReferenceImage: ctx.hasReferenceImage,
-      hasCustomPalette: ctx.hasCustomPalette,
-      isStory: ctx.isStory,
-      compositionArchetype: brief.compositionArchetype,
-    },
-  );
-
-  const visualHierarchy = buildVisualHierarchy(
-    ctx.hasPrice,
-    input.offerTitle,
-    input.businessName,
-    input.promoPrice,
-    {
-      layoutType: blueprint.layoutType,
-      layoutVariant: blueprint.layoutVariant,
-      cardIntent: input.cardIntent,
-      isStory: ctx.isStory,
-      compositionArchetype: brief.compositionArchetype,
-    },
-  );
-
-  return assemblePromptText({
-    audienceText: ctx.audienceText,
-    segmentConfig: ctx.resolvedSegmentConfig,
-    businessName: input.businessName,
-    offerTitle: input.offerTitle,
-    priceInstructions: ctx.priceInstructions,
-    notes: ctx.notes,
-    intentText: resolveIntentDirective(
-      input.cardIntent,
-      input.customIntentText,
-    ),
-    proportionDirectives: ctx.proportionDirectives,
-    artDirectiveText,
-    dynamicBriefText,
-    layers,
-    visualHierarchy,
-  });
+  return compileDeterministicCardPrompt(input);
 }
 
 /**
