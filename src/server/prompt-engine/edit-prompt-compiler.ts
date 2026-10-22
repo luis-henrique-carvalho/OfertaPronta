@@ -9,12 +9,9 @@ import {
   ZERO_TEXT_OCCLUSION_DIRECTIVE,
 } from "./art-direction-blueprints";
 
-export const RECOMPOSE_INTENT_REGEX =
-  /\b(centro|central|meio|centraliz\w*|destaqu\w*|foc\w*|produt\w*|maior|atrás|atras|frente|personagem|pessoa|modelo|rosto|cabeça|cabeca|escondid\w*|cobrind\w*|cobert\w*|cortad\w*|sobrepon\w*|sobrepos\w*|posiç\w*|posic\w*|mover|mova|mude\s+o\s+lugar|mudar\s+de\s+lugar|colocar?\s+em\s+cima|colocar?\s+em\s+baixo|mais\s+para\s+(baixo|cima|esquerda|direita)|topo|rodapé|rodape|lado|esquerda|direita|layout|estrutura|reestrutur\w*|reorganiz\w*|reposicion\w*|trocar\s+(o\s+)?(estilo|fundo|cenário|cenario|layout)|mudar\s+(o\s+)?(estilo|fundo|cenário|cenario|layout)|novo\s+preset|afastar|separar|desobstru\w*|visível|visivel|legível|legivel|1º\s*plano|primeiro\s+plano)\b/i;
-
 /**
- * Classifica a intenção de edição entre 'SURGICAL' (ajustes pontuais em texto/preço/contato)
- * e 'RECOMPOSE' (mudança espacial, desobstrução de texto atrás de personagem, novo estilo visual ou layout).
+ * Classifica a intenção de edição entre 'SURGICAL' (apenas dados pontuais sem instruções visuais)
+ * e 'RECOMPOSE' (qualquer instrução customizada de estilo, tipografia, reposicionamento ou novo preset).
  */
 export function detectEditIntentMode(
   input: DetectEditIntentInput,
@@ -24,7 +21,7 @@ export function detectEditIntentMode(
   }
 
   const instructions = input.customStyleInstructions?.trim();
-  if (instructions && RECOMPOSE_INTENT_REGEX.test(instructions)) {
+  if (instructions && instructions.length > 0) {
     return "RECOMPOSE";
   }
 

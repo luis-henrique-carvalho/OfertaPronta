@@ -551,12 +551,15 @@ AJUSTE SOLICITADO PELO CLIENTE:
 
 INSTRUÇÕES CRÍTICAS DE CLASSIFICAÇÃO:
 Classifique a intenção da edição em exatamente um dos dois modos:
-1. "RECOMPOSE": Escolha este modo se o cliente deseja alterar layout, reorganizar ou mover elementos, centralizar o produto, dar destaque ou foco na foto/produto, aumentar tamanho do produto, trocar cenário ou plano de fundo, alterar cores/estilo, reposicionar textos ou desobstruir elementos. No modo RECOMPOSE a IA tem autorização para reposicionar elementos e quebrar o layout anterior.
-2. "SURGICAL": Escolha este modo SOMENTE se for uma alteração pontual e estritamente localizada de conteúdo textual (ex.: mudar telefone, corrigir digitação no título, mudar o valor do preço), mantendo 100% de todo o layout e posições inalterados.
+1. "RECOMPOSE": Escolha este modo se o cliente deseja alterar layout, reorganizar ou mover elementos, centralizar o produto, mudar a tipografia/fonte do título ou textos, trocar estilo de letras, dar destaque ou foco na foto/produto, aumentar tamanho do produto, trocar cenário ou plano de fundo, alterar cores/estilo, reposicionar textos ou desobstruir elementos. No modo RECOMPOSE a IA tem autorização para reposicionar elementos e aplicar novo tratamento estético e tipográfico.
+2. "SURGICAL": Escolha este modo SOMENTE se for uma alteração pontual e estritamente localizada de conteúdo textual ou valores numéricos (ex.: mudar telefone, corrigir digitação de uma palavra no título sem mudar fonte, alterar o valor do preço), mantendo 100% de todo o layout, estilo de fonte e posições rigorosamente inalterados.
 
 DIRETRIZ DE AUTORIA DO MASTER PROMPT:
-- Se modo for "RECOMPOSE": Redija no campo "authoredMasterPrompt" um NOVO Master Prompt completo (3 a 5 parágrafos densos e coesos em português) para o gerador de imagem. PRESERVE RIGOROSAMENTE A IDENTIDADE VISUAL DO PRODUTO/MODELO DA IMAGEM BASE ANEXA: a imagem base contém o produto real já aprovado pelo cliente. A sua missão é reorganizar o layout, o enquadramento (ex: posicionar no centro), a tipografia e o cenário em torno do MESMO produto/sujeito visual, garantindo cena contínua tridimensional (full-bleed, sem divisões 50/50 chapadas) e tipografia expressiva em 1º plano absoluto (zero oclusão).
-- Se modo for "SURGICAL": Redija no campo "authoredMasterPrompt" uma diretriz concisa de edição cirúrgica instruindo a manter 100% da imagem base inalterada e modificar exclusivamente o texto/preço solicitado.
+- Se modo for "RECOMPOSE": Redija no campo "authoredMasterPrompt" um NOVO Master Prompt completo (3 a 5 parágrafos densos e coesos em português) para o gerador de imagem:
+  * PRESERVAÇÃO DO SUJEITO: Preserve rigorosamente a identidade visual do produto/modelo da IMAGEM BASE anexa (o produto real aprovado pelo cliente).
+  * TRATAMENTO TIPOGRÁFICO: Se o cliente solicitou mudança de fonte, estilo tipográfico ou tipo de letra, descreva uma tipografia NOVA, marcante e VISUALMENTE DISTINTA da arte atual e da referência (ex.: fonte display condensada pesada em caixa alta com forte contraste, serifada editorial elegante, ou lettering moderno arrojado). É EXPRESSAMENTE PROIBIDO solicitar fonte "idêntica à referência" ou "idêntica à imagem base" quando o cliente pediu para mudar a tipografia.
+  * COMPOSIÇÃO: Garanta cena contínua tridimensional (full-bleed, sem divisões 50/50 chapadas) e tipografia legível em 1º plano absoluto (zero oclusão).
+- Se modo for "SURGICAL": Redija no campo "authoredMasterPrompt" uma diretriz concisa de edição cirúrgica instruindo a manter a composição base inalterada e modificar exclusivamente o dado pontual solicitado (ex.: novo número de WhatsApp ou novo valor de preço).
 
 Se o modo for "RECOMPOSE", você pode opcionalmente sugerir um "compositionArchetype" adequado:
 ("split-editorial" | "hero-bottom-staged" | "diagonal-dynamic" | "overhead-flatlay" | "center-showcase" | "minimal-negative-space").

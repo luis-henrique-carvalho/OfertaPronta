@@ -226,32 +226,7 @@ export function assembleAuthoredMasterPrompt(params: {
   // 2. Diretriz mandatória de proporção e Safe Zone (se Story)
   sections.push(params.proportionDirectives);
 
-  // 3. Diretrizes de fidelidade para insumos multimodais se presentes
-  const multimodalNotes: string[] = [];
-  if (params.input.logoImageDataUrl) {
-    multimodalNotes.push(
-      "- LOGOTIPO DA LOJA FORNECIDO: Incorpore fielmente o logotipo oficial da loja anexo (posicionado no topo, canto superior ou no rodapé do card). Preserve rigorosamente suas cores, proporção, contraste e legibilidade sem distorções.",
-    );
-  }
-  if (params.input.productImageDataUrl) {
-    multimodalNotes.push(
-      "- FOTO DO PRODUTO REAL FORNECIDA PELO CLIENTE: Preserve e destaque com máxima fidelidade o produto exibido na imagem anexa. Ele deve ser o elemento central anunciado na composição do card.",
-    );
-  }
-  if (params.input.referenceImageDataUrl) {
-    multimodalNotes.push(
-      "- IMAGEM DE REFERÊNCIA ESTÉTICA: Inspire-se na paleta de cores, tipografia, iluminação e atmosfera visual desta referência para guiar o estilo geral da composição do card.",
-    );
-  }
-  if (multimodalNotes.length > 0) {
-    sections.push(
-      ["--- INSUMOS VISUAIS MULTIMODAIS ANEXOS ---", ...multimodalNotes].join(
-        "\n",
-      ),
-    );
-  }
-
-  // 4. Guardrail inegociável de Zero Oclusão Tipográfica
+  // 3. Guardrail inegociável de Zero Oclusão Tipográfica
   sections.push(ZERO_TEXT_OCCLUSION_DIRECTIVE);
 
   return sections.join("\n\n");
@@ -264,7 +239,6 @@ function buildBaseCardMultimodalParts(
 ): Array<string | InlineDataPart> {
   const parts: Array<string | InlineDataPart> = [];
   const mode = forcedMode ?? detectEditIntentMode(input);
-  const isRecompose = mode === "RECOMPOSE";
 
   if (authoredMasterPrompt) {
     const isStory = input.targetAspectRatio === "story";
@@ -281,31 +255,24 @@ function buildBaseCardMultimodalParts(
     parts.push(buildAdaptiveEditPromptText(input, { mode }));
   }
 
-  // A imagem base do card aprovado DEVE ser sempre fornecida como insumo multimodal de referência visual
-  // tanto em ajustes cirúrgicos pontuais quanto em reposicionamento de layout (RECOMPOSE).
-  // Em modo RECOMPOSE, ela serve como guia absoluto de fidelidade do produto/sujeito, estilo e iluminação,
-  // enquanto o modelo aplica o novo layout e reposicionamento solicitado.
+  // A imagem base do card aprovado é fornecida com identificador neutro
   if (input.baseCardImageDataUrl) {
-    const instruction = isRecompose
-      ? "IMAGEM BASE DO CARD PUBLICITÁRIO (REFERÊNCIA DE PRODUTO E IDENTIDADE VISUAL): Use esta imagem como referência visual absoluta do produto anunciado, pessoa/modelo, estilo e iluminação. Aplique a recomposição espacial e os novos ajustes solicitados mantendo rigorosamente a mesma identidade e produto desta imagem."
-      : "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA): Use esta imagem como base gráfica principal. Mantenha rigorosamente todos os elementos visuais idênticos, aplicando EXCLUSIVAMENTE a alteração solicitada.";
-
-    appendInlineInputPart(parts, input.baseCardImageDataUrl, instruction);
+    appendInlineInputPart(
+      parts,
+      input.baseCardImageDataUrl,
+      "[IMAGEM BASE DO CARD]",
+    );
   }
 
   if (input.logoImageDataUrl) {
-    appendInlineInputPart(
-      parts,
-      input.logoImageDataUrl,
-      "LOGOTIPO DA LOJA FORNECIDO: Mantenha a fidelidade absoluta ao logotipo oficial.",
-    );
+    appendInlineInputPart(parts, input.logoImageDataUrl, "[LOGOTIPO OFICIAL]");
   }
 
   if (input.productImageDataUrl) {
     appendInlineInputPart(
       parts,
       input.productImageDataUrl,
-      "FOTO DO PRODUTO REAL ORIGINAL: Mantenha a fidelidade absoluta a este produto exatamente como renderizado na imagem base.",
+      "[FOTO DO PRODUTO REAL]",
     );
   }
 
@@ -313,7 +280,7 @@ function buildBaseCardMultimodalParts(
     appendInlineInputPart(
       parts,
       input.referenceImageDataUrl,
-      "IMAGEM DE REFERÊNCIA ESTÉTICA: Inspire-se na paleta de cores, tipografia, iluminação e atmosfera visual desta referência.",
+      "[IMAGEM DE REFERÊNCIA ESTÉTICA]",
     );
   }
 
@@ -389,18 +356,14 @@ export async function buildMultimodalPromptPartsAsync(
   parts.push(promptText);
 
   if (input.logoImageDataUrl) {
-    appendInlineInputPart(
-      parts,
-      input.logoImageDataUrl,
-      "LOGOTIPO DA LOJA FORNECIDO: Incorpore fielmente este logotipo no anúncio (posicionado no topo, canto superior ou no rodapé do card). Preserve rigorosamente suas cores, proporção, contraste e legibilidade sem distorções.",
-    );
+    appendInlineInputPart(parts, input.logoImageDataUrl, "[LOGOTIPO OFICIAL]");
   }
 
   if (input.productImageDataUrl) {
     appendInlineInputPart(
       parts,
       input.productImageDataUrl,
-      "FOTO DO PRODUTO REAL FORNECIDA PELO CLIENTE: Preserve e destaque com máxima fidelidade o produto exibido nesta imagem de referência. Ele deve ser o elemento central anunciado na composição do card.",
+      "[FOTO DO PRODUTO REAL]",
     );
   }
 
@@ -408,7 +371,7 @@ export async function buildMultimodalPromptPartsAsync(
     appendInlineInputPart(
       parts,
       input.referenceImageDataUrl,
-      "IMAGEM DE REFERÊNCIA ESTÉTICA: Inspire-se na paleta de cores, tipografia, iluminação e atmosfera visual desta referência para guiar o estilo geral da composição do card.",
+      "[IMAGEM DE REFERÊNCIA ESTÉTICA]",
     );
   }
 

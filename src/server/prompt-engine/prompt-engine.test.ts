@@ -23,7 +23,6 @@ import {
   assembleAuthoredMasterPrompt,
   AUTHENTIC_PHOTOGRAPHY_DIRECTIVE,
   ZERO_TEXT_OCCLUSION_DIRECTIVE,
-  RECOMPOSE_INTENT_REGEX,
   type PromptEngineInput,
   type PromptPlannerClient,
 } from "./index";
@@ -55,7 +54,6 @@ describe("PromptEngine Deep Module", () => {
       expect(ZERO_TEXT_OCCLUSION_DIRECTIVE).toContain(
         "ZERO OCLUSÃO TIPOGRÁFICA / 100% FOREGROUND TEXT PRIORITY",
       );
-      expect(RECOMPOSE_INTENT_REGEX).toBeInstanceOf(RegExp);
       expect(typeof buildDeterministicCompositionBrief).toBe("function");
       expect(typeof buildReferenceDrivenArtDirective).toBe("function");
       expect(typeof resolveArtDirectionDirective).toBe("function");
@@ -357,7 +355,7 @@ describe("PromptEngine Deep Module", () => {
       });
 
       expect(prompt).toContain(
-        "--- EDIÇÃO DE CARD EXISTENTE (MODO CIRÚRGICO) ---",
+        "--- RECOMPOSIÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE) ---",
       );
     });
 
@@ -393,22 +391,22 @@ describe("PromptEngine Deep Module", () => {
 
   describe("Edição Pós-Pagamento Adaptativa (SURGICAL vs RECOMPOSE)", () => {
     describe("detectEditIntentMode", () => {
-      it("deve classificar como SURGICAL quando o ajuste for pontual de dados ou texto", () => {
+      it("deve classificar como SURGICAL apenas quando não houver instruções de ajuste", () => {
         expect(
           detectEditIntentMode({
-            customStyleInstructions: "Mudar o telefone para (11) 98888-7777",
+            customStyleInstructions: undefined,
           }),
         ).toBe("SURGICAL");
 
         expect(
           detectEditIntentMode({
-            customStyleInstructions: "Corrigir preço de R$ 5,00 para R$ 4,50",
+            customStyleInstructions: "",
           }),
         ).toBe("SURGICAL");
 
         expect(
           detectEditIntentMode({
-            customStyleInstructions: "Mudar a cor da logo para azul escuro",
+            customStyleInstructions: "   ",
           }),
         ).toBe("SURGICAL");
       });
@@ -417,42 +415,19 @@ describe("PromptEngine Deep Module", () => {
         expect(
           detectEditIntentMode({
             presetChanged: true,
-            customStyleInstructions: "Ajustar texto",
           }),
         ).toBe("RECOMPOSE");
       });
 
-      it("deve classificar como RECOMPOSE quando houver termos de desobstrução, personagem ou espacial", () => {
-        const recomposePhrases = [
+      it("deve classificar como RECOMPOSE para qualquer instrução de ajuste do cliente", () => {
+        const phrases = [
+          "Mudar o telefone para (11) 98888-7777",
+          "Corrigir preço de R$ 5,00 para R$ 4,50",
+          "Mudar a cor da logo para azul escuro",
           "não colocar o texto atrás do personagem",
           "mover o título para baixo",
-          "o texto ficou coberto pelo modelo",
-          "reorganizar o layout para dar mais respiro",
-          "trocar o fundo por algo mais clean",
-          "mudar o estilo para premium",
-          "colocar o preço em primeiro plano",
-          "afastar o título da pessoa",
-          "o texto está escondido atrás do hambúrguer",
-        ];
-
-        for (const phrase of recomposePhrases) {
-          expect(
-            detectEditIntentMode({ customStyleInstructions: phrase }),
-            `Falhou para a frase: "${phrase}"`,
-          ).toBe("RECOMPOSE");
-        }
-      });
-
-      it("deve classificar como RECOMPOSE quando o usuário pedir centralização, destaque ou termos correlatos", () => {
-        const phrases = [
           "Dar mais destaque para a foto do produto no centro",
-          "centralizar o produto",
-          "colocar no meio da tela",
-          "dar mais foco no produto",
-          "quero o produto maior",
-          "posicionar no centro",
-          "mudar para o centro",
-          "dar destaque na foto",
+          "quero mudar a fonte do titulo principal para outra tipografia",
         ];
 
         for (const phrase of phrases) {
@@ -880,11 +855,6 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
 
         expect(assembled).toContain("Prompt autoral direto.");
         expect(assembled).toContain("- Proporção Obrigatória: 4:5 vertical");
-        expect(assembled).toContain("LOGOTIPO DA LOJA FORNECIDO");
-        expect(assembled).toContain(
-          "FOTO DO PRODUTO REAL FORNECIDA PELO CLIENTE",
-        );
-        expect(assembled).toContain("IMAGEM DE REFERÊNCIA ESTÉTICA");
         expect(assembled).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
       });
     });
@@ -908,11 +878,7 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
         expect(syncInlineImages.length).toBe(3);
         expect(
           syncParts.some(
-            (p) =>
-              typeof p === "string" &&
-              p.includes(
-                "IMAGEM BASE DO CARD PUBLICITÁRIO (REFERÊNCIA DE PRODUTO E IDENTIDADE VISUAL)",
-              ),
+            (p) => typeof p === "string" && p.includes("[IMAGEM BASE DO CARD]"),
           ),
         ).toBe(true);
 
@@ -938,11 +904,7 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
         expect(asyncInlineImages.length).toBe(3);
         expect(
           asyncParts.some(
-            (p) =>
-              typeof p === "string" &&
-              p.includes(
-                "IMAGEM BASE DO CARD PUBLICITÁRIO (REFERÊNCIA DE PRODUTO E IDENTIDADE VISUAL)",
-              ),
+            (p) => typeof p === "string" && p.includes("[IMAGEM BASE DO CARD]"),
           ),
         ).toBe(true);
       });
@@ -951,7 +913,7 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
         const input = createSampleInput({
           baseCardImageDataUrl: SAMPLE_BASE64_PNG,
           productImageDataUrl: SAMPLE_BASE64_PNG,
-          customStyleInstructions: "Mudar o telefone para (11) 98888-7777",
+          customStyleInstructions: undefined,
         });
 
         const parts = buildMultimodalPromptParts(input);
@@ -962,11 +924,7 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
         expect(inlineImages.length).toBe(2);
         expect(
           parts.some(
-            (p) =>
-              typeof p === "string" &&
-              p.includes(
-                "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA)",
-              ),
+            (p) => typeof p === "string" && p.includes("[IMAGEM BASE DO CARD]"),
           ),
         ).toBe(true);
       });
@@ -1109,11 +1067,7 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
         expect(inlineImages.length).toBe(3);
         expect(
           parts.some(
-            (p) =>
-              typeof p === "string" &&
-              p.includes(
-                "IMAGEM BASE DO CARD PUBLICITÁRIO (REFERÊNCIA DE PRODUTO E IDENTIDADE VISUAL)",
-              ),
+            (p) => typeof p === "string" && p.includes("[IMAGEM BASE DO CARD]"),
           ),
         ).toBe(true);
       });

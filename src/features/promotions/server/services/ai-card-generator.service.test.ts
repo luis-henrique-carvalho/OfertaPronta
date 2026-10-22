@@ -374,12 +374,11 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
     }
   });
 
-  it("deve incluir baseCardImageDataUrl e ativar modo de edição cirúrgica estrita quando imagem base for fornecida", async () => {
+  it("deve incluir baseCardImageDataUrl e ativar modo SURGICAL quando imagem base for fornecida sem instruções customizadas", async () => {
     const fakeClient = createFakeGeminiClient();
     const inputWithBaseCard: GenerateAdCardInput = {
       ...baseInput,
       baseCardImageDataUrl: `data:image/png;base64,${fakeBase64Png}`,
-      customStyleInstructions: "Mudar a logo para verde",
     };
 
     await generateAdCardImage(inputWithBaseCard, fakeClient);
@@ -411,7 +410,6 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
     expect(promptText).toContain(
       "preservando estritamente toda a composição, cenário, iluminação e identidade do produto",
     );
-    expect(promptText).toContain("Mudar a logo para verde");
   });
 
   describe("Épico 6: Logotipo Multimodal, Objetivos de Anúncio e Preço Opcional", () => {
@@ -963,34 +961,6 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
       expect(promptText).toContain("não botar o texto atrás do personagem");
       expect(promptText).not.toContain(
         "preservando estritamente toda a composição",
-      );
-      expect(promptText).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
-    });
-
-    it("deve manter o modo SURGICAL na edição adaptativa para ajustes pontuais de texto ou preço sem termos espaciais", async () => {
-      const fakeImageClient = createFakeGeminiClient();
-      const inputSurgicalEdit: GenerateAdCardInput = {
-        ...baseInput,
-        baseCardImageDataUrl: `data:image/png;base64,${fakeBase64Png}`,
-        customStyleInstructions:
-          "Atualizar preço promocional para R$ 39,90 e WhatsApp para (11) 91234-5678",
-      };
-
-      await generateAdCardImage(inputSurgicalEdit, fakeImageClient);
-
-      const callArgs = fakeImageClient.generateContentSpy.mock.calls[0][0];
-      const promptText = callArgs.contents.find(
-        (c: unknown) => typeof c === "string",
-      ) as string;
-
-      expect(promptText).toContain(
-        "--- EDIÇÃO DE CARD EXISTENTE (MODO CIRÚRGICO) ---",
-      );
-      expect(promptText).toContain(
-        "preservando estritamente toda a composição, cenário, iluminação e identidade do produto",
-      );
-      expect(promptText).toContain(
-        "Atualizar preço promocional para R$ 39,90 e WhatsApp para (11) 91234-5678",
       );
       expect(promptText).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
     });
