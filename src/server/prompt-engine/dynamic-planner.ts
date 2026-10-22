@@ -211,73 +211,6 @@ function parseOrExtractBrief(
   };
 }
 
-export const SEGMENT_AUTHOR_PROFILES = {
-  "burger-shop": {
-    heroDescription:
-      "Hambúrguer artesanal ou smash burger monumental, pão brioche dourado com sementes de gergelim tostadas, hambúrguer alto com crosta de Maillard evidente, queijo derretendo dramaticamente pelas laterais, fatias de bacon crocante com brilho caramelizado e molho artesanal escorrendo suavemente.",
-    sensoryKeywords:
-      "suculência, vapor sutil, queijo derretido, crosta grelhada, textura farta e irresistível",
-    environmentAtmosphere:
-      "Bancada de madeira rústica escura ou chapa de ferro forjado, fundo com bokeh quente e luz âmbar de filamento de carbono de hamburgueria industrial contemporânea.",
-    sampleMicroCopy: "ARTESANAL • SUCULENTO • CROCANTE",
-  },
-  pizzeria: {
-    heroDescription:
-      "Pizza artesanal recém-saída do forno com borda aerada levemente tostada (cornicione napolitano), queijo mozzarella gratinado borbulhante formando fios elásticos na fatia, molho de tomate pomodoro vermelho vibrante e folhas frescas de manjericão aromático com gotas de azeite extravirgem brilhando.",
-    sensoryKeywords:
-      "forno a lenha, queijo esticando, borda crocante aerada, manjericão fresco, apetite imediato",
-    environmentAtmosphere:
-      "Mesa de madeira nobre de cantina ou pá de pizza de madeira rústica, farinha sutilmente polvilhada na bancada, fundo em bokeh com brilho avermelhado e dourado de forno a lenha.",
-    sampleMicroCopy: "FORNO A LENHA • FERMENTAÇÃO NATURAL • QUEIJO BORBULHANTE",
-  },
-  restaurant: {
-    heroDescription:
-      "Prato gastronômico com empratamento de alta gastronomia contemporânea, cortes nobres perfeitamente selados com ponto rosado e suculento, guarnições sofisticadas, reduções de molhos acetinados espelhados e finalização com brotos frescos e flor de sal.",
-    sensoryKeywords:
-      "empratamento refinado, brilho acetinado, sabor autêntico, corte nobre, experiência memorável",
-    environmentAtmosphere:
-      "Mesa posta elegante de restaurante conceituado com guardanapo de linho, talheres clássicos, taça de cristal ao fundo com desfoque óptico e iluminação quente acolhedora.",
-    sampleMicroCopy: "ALTA GASTRONOMIA • SABOR AUTÊNTICO • INGREDIENTES NOBRES",
-  },
-  supermarket: {
-    heroDescription:
-      "Corte nobre de carne fresca marmorizada com sal grosso ou frutas/vegetais frescos com gotículas cristalinas de água, exibindo frescor supremo, cores vibrantes naturais e abundância de feira e encarte de alto padrão.",
-    sensoryKeywords:
-      "frescor imbatível, gotículas de orvalho, corte marmorizado, abundância de feira, economia real",
-    environmentAtmosphere:
-      "Caixotes de madeira limpos de hortifrúti fresco ou bancada de açougue premium higienizada, fundo comercial iluminado em bokeh suave.",
-    sampleMicroCopy: "SELECIONADO • QUALIDADE MÁXIMA • ECONOMIA GARANTIDA",
-  },
-  fashion: {
-    heroDescription:
-      "Peça de vestuário de alta costura ou look de boutique contemporânea, evidenciando caimento impecável, trama rica do tecido (linho puro, algodão egípcio, couro legítimo ou seda), costuras reforçadas nítidas e textura tátil realista.",
-    sensoryKeywords:
-      "caimento impecável, textura nobre de tecido, sofisticação moderna, acabamento premium",
-    environmentAtmosphere:
-      "Cenário clean de boutique contemporânea, piso de cimento queimado ou madeira clara com luz suave difusa de janela de estúdio fotográfico de moda.",
-    sampleMicroCopy: "COLEÇÃO EXCLUSIVA • DESIGN MODERNO • CAIMENTO IMPECÁVEL",
-  },
-  "beauty-salon": {
-    heroDescription:
-      "Resultado de transformação estética de alto padrão (cabelo sedoso e luminoso com movimento natural e mechas perfeitamente integradas, ou barba impecavelmente alinhada e desenhada com toalha quente e lâmina de precisão).",
-    sensoryKeywords:
-      "luminosidade, sedosidade, alinhamento milimétrico, transformação sofisticada, autocuidado",
-    environmentAtmosphere:
-      "Espelho com iluminação suave difusa de camarim profissional, bancada elegante com produtos de alta performance e fundo em bokeh refinado.",
-    sampleMicroCopy:
-      "TRANSFORMAÇÃO • CUIDADO PROFISSIONAL • AUTOESTIMA RENOVADA",
-  },
-  "local-retail": {
-    heroDescription:
-      "Produto comercial em destaque hero com iluminação atraente e acabamento impecável, destacando atributos físicos, qualidade construtiva e apelo de compra imediato.",
-    sensoryKeywords:
-      "oportunidade imperdível, acabamento durável, qualidade de confiança, proximidade",
-    environmentAtmosphere:
-      "Balcão comercial acolhedor de loja de bairro moderna, iluminação focada agradável e fundo com atmosfera comercial autêntica em bokeh suave.",
-    sampleMicroCopy: "OFERTA ESPECIAL • QUALIDADE GARANTIDA • PRONTA ENTREGA",
-  },
-} as const;
-
 function appendPlannerImageParts(
   parts: Array<string | InlineDataPart>,
   input: PromptEngineInput,
@@ -370,14 +303,9 @@ ESTILO VISUAL SELECIONADO: "${preset.label}"
 export function buildMasterPromptAuthorContents(
   input: PromptEngineInput,
 ): Array<string | InlineDataPart> {
-  const segmentKey =
-    input.businessSegment in SEGMENT_AUTHOR_PROFILES
-      ? input.businessSegment
-      : "supermarket";
   const segmentConfig =
-    SEGMENT_ART_DIRECTIVES[segmentKey] ?? SEGMENT_ART_DIRECTIVES.supermarket;
-  const profile =
-    SEGMENT_AUTHOR_PROFILES[segmentKey] ?? SEGMENT_AUTHOR_PROFILES.supermarket;
+    SEGMENT_ART_DIRECTIVES[input.businessSegment] ??
+    SEGMENT_ART_DIRECTIVES.supermarket;
 
   const isStory = input.targetAspectRatio === "story";
   const formatStr = isStory
@@ -422,20 +350,20 @@ DIRETRIZES FUNDAMENTAIS DE COMPOSIÇÃO VISUAL (AUTORIA DIRETA DO PROMPT):
 - Componha o card como uma única cena contínua, tridimensional e imersiva de ponta a ponta (full-bleed).
 - Superfície contínua de apoio (madeira rústica, mármore nobre, ardósia, aço escovado ou toalha de linho).
 - Elementos de apoio em primeiro plano criando profundidade de campo óptica Z natural e sombras de contato realistas.
-- Cenário de fundo autêntico do segmento (${profile.environmentAtmosphere}) em elegante desfoque óptico (bokeh suave), garantindo atmosfera rica e profissional.
+- Cenário de fundo autêntico e ambientado para o segmento ${segmentConfig.segmentTitle} em elegante desfoque óptico (bokeh suave), garantindo atmosfera rica e profissional.
 - Área de penumbra orgânica ou leve gradiente natural de luz para acomodar perfeitamente os textos sem interferências visuais.
 - PROIBIÇÃO EXPRESSA: É TERMINANTEMENTE PROIBIDO criar divisão 50/50 chapada por linha reta artificial, paredes ou blocos lisos de cor sólida dividindo o anúncio ao meio. A cena deve ser visualmente integrada e tridimensional.
 
 2. DETALHAMENTO SENSORIAL E PRODUCT/FOOD STYLING HIPER-REALISTA:
-- Sujeito Hero imponente anunciado (${profile.heroDescription}).
-- Detalhe minuciosamente os atributos táteis específicos do produto "${input.offerTitle}": ${profile.sensoryKeywords}.
+- Sujeito Hero imponente anunciado: Descreva o produto ou serviço "${input.offerTitle}" com proporções harmônicas, acabamento comercial de alto padrão e apelo visual irresistível.
+- Detalhe minuciosamente os atributos táteis específicos do produto "${input.offerTitle}" (texturas físicas reais, frescor, apetite, suculência, vapor sutil ou acabamento de alto nível condizente com a oferta).
 - Simule captura fotográfica comercial profissional com lente 85mm f/2.0, profundidade de campo ótica natural e iluminação de recorte dourada (rim light) destacando contornos e texturas.
 - PROIBIÇÃO DE CÓDIGOS HEX: Não despeje códigos HEX de UI como fundo chapado. Descreva a iluminação e as cores naturais da cena.
 
 3. TIPOGRAFIA PUBLICITÁRIA EXPRESSIVA MULTI-ESTILO (ZERO OCLUSÃO EM 1º PLANO):
 - Assinatura da Loja no Topo: Apresente "${input.businessName}" no topo como um emblema/insígnia artesanal elegante com pequeno ícone temático desenhado à mão (ou preserve fielmente o logotipo fornecido caso esteja anexo).
 - Título da Oferta ("${input.offerTitle}"): Quebrado em múltiplos níveis com contraste tipográfico impactante — combinar fonte display condensada robusta e imponente com leve textura tátil + lettering brush script / caligráfico dinâmico inclinado nas palavras-chave de sabor ou apelo principal em cor de destaque vibrante + pequenos conectores pintados à mão.
-- Micro-copy de Atributos Sensoriais: Imediatamente abaixo do título, inclua uma linha curta com exatamente 3 atributos sensoriais em caixa alta separados por "•" (exemplo: "${profile.sampleMicroCopy}" adaptado ao produto anunciado).
+- Micro-copy de Atributos Sensoriais: Imediatamente abaixo do título, inclua uma linha curta com exatamente 3 atributos sensoriais em caixa alta separados por "•" adaptados ao produto anunciado.
 - Selo de Chamada / CTA: Faixa com acabamento de pincelada rústica (grunge brush stroke), carimbo artesanal ou fita gráfica rica.
 - REGRA INEGOCIÁVEL DE ZERO OCLUSÃO: Todos os textos, títulos, valores e selos DEVEM estar 100% em primeiro plano absoluto (foreground), nunca posicionados atrás do produto, personagem ou modelo.
 
@@ -515,43 +443,10 @@ export async function planDynamicCompositionBrief(
   }
 }
 
-function buildPlannerEditPromptContents(
+function appendEditPlannerImageParts(
+  parts: Array<string | InlineDataPart>,
   input: PromptEngineInput,
-): Array<string | InlineDataPart> {
-  const segmentConfig =
-    SEGMENT_ART_DIRECTIVES[input.businessSegment] ??
-    SEGMENT_ART_DIRECTIVES.supermarket;
-
-  const instructions = `
-Você é um Diretor de Arte Sênior e Especialista em Design Gráfico Publicitário.
-Sua missão é atuar como Planejador de Edição Criativa (Etapa 1) para interpretar uma solicitação de ajuste feita pelo cliente sobre um card publicitário já existente.
-
-DADOS DO CARD ATUAL:
-- Segmento: ${segmentConfig.segmentTitle}
-- Estabelecimento: "${input.businessName}"
-- Título da Oferta: "${input.offerTitle}"
-- Preço Atual: "${input.promoPrice || "Institucional sem preço"}"
-
-AJUSTE SOLICITADO PELO CLIENTE:
-"${input.customStyleInstructions?.trim() || "Ajuste padrão"}"
-
-INSTRUÇÕES CRÍTICAS DE CLASSIFICAÇÃO:
-Classifique a intenção da edição em exatamente um dos dois modos:
-1. "RECOMPOSE": Escolha este modo se o cliente deseja alterar layout, reorganizar ou mover elementos, centralizar o produto, dar destaque ou foco na foto/produto, aumentar tamanho do produto, trocar cenário ou plano de fundo, alterar cores/estilo, reposicionar textos ou desobstruir elementos. No modo RECOMPOSE a IA tem autorização para reposicionar elementos e quebrar o layout anterior.
-2. "SURGICAL": Escolha este modo SOMENTE se for uma alteração pontual e estritamente localizada de conteúdo textual (ex.: mudar telefone, corrigir digitação no título, mudar o valor do preço), mantendo 100% de todo o layout e posições inalterados.
-
-Se o modo for "RECOMPOSE", você pode opcionalmente sugerir um "compositionArchetype" adequado:
-("split-editorial" | "hero-bottom-staged" | "diagonal-dynamic" | "overhead-flatlay" | "center-showcase" | "minimal-negative-space").
-
-Retorne EXCLUSIVAMENTE um objeto JSON no formato:
-{
-  "mode": "RECOMPOSE" | "SURGICAL",
-  "reason": "breve justificativa da decisão",
-  "compositionArchetype": "center-showcase" | "split-editorial" | "hero-bottom-staged" | "diagonal-dynamic" | "overhead-flatlay" | "minimal-negative-space" | null
-}
-`.trim();
-
-  const parts: Array<string | InlineDataPart> = [instructions];
+): void {
   if (input.baseCardImageDataUrl) {
     const parsed = parseDataUrl(input.baseCardImageDataUrl);
     if (parsed) {
@@ -567,8 +462,127 @@ Retorne EXCLUSIVAMENTE um objeto JSON no formato:
     }
   }
 
+  if (input.productImageDataUrl) {
+    const parsed = parseDataUrl(input.productImageDataUrl);
+    if (parsed) {
+      parts.push({
+        inlineData: {
+          mimeType: parsed.mimeType,
+          data: parsed.data,
+        },
+      });
+      parts.push(
+        "FOTO DO PRODUTO REAL FORNECIDA: Analise este produto para garantir fidelidade visual.",
+      );
+    }
+  }
+
+  if (input.referenceImageDataUrl) {
+    const parsed = parseDataUrl(input.referenceImageDataUrl);
+    if (parsed) {
+      parts.push({
+        inlineData: {
+          mimeType: parsed.mimeType,
+          data: parsed.data,
+        },
+      });
+      parts.push(
+        "IMAGEM DE REFERÊNCIA: Extraia atmosfera, iluminação e cores.",
+      );
+    }
+  }
+
+  if (input.logoImageDataUrl) {
+    const parsed = parseDataUrl(input.logoImageDataUrl);
+    if (parsed) {
+      parts.push({
+        inlineData: {
+          mimeType: parsed.mimeType,
+          data: parsed.data,
+        },
+      });
+      parts.push(
+        "LOGOTIPO DA LOJA FORNECIDO: Mantenha fidelidade à identidade visual.",
+      );
+    }
+  }
+}
+
+function buildEditAuthorInstructions(input: PromptEngineInput): string {
+  const segmentConfig =
+    SEGMENT_ART_DIRECTIVES[input.businessSegment] ??
+    SEGMENT_ART_DIRECTIVES.supermarket;
+
+  const isStory = input.targetAspectRatio === "story";
+  const formatStr = isStory
+    ? "Story / Status 9:16 vertical (1080x1920) com SAFE ZONE OBRIGATÓRIA (15% superior e 15% inferior livres de textos)"
+    : "Feed 4:5 vertical (1080x1350)";
+
+  const pricingDirective = buildAuthorPricingDirective(input);
+  const styleContextDirective = buildAuthorStyleDirective(input, segmentConfig);
+
+  const customInstructions =
+    input.customStyleInstructions?.trim() ||
+    "Ajuste padrão solicitado pelo cliente";
+
+  const ctaDirective = input.callToAction?.trim()
+    ? `\n- Chamada para Ação (CTA): "${input.callToAction.trim()}"`
+    : "";
+
+  const whatsappDirective = input.whatsapp?.trim()
+    ? `\n- Contato / WhatsApp: "${input.whatsapp.trim()}"`
+    : "";
+
+  return `
+Você é um Diretor de Arte Sênior e Especialista em Design Gráfico Publicitário.
+Sua missão é atuar como Diretor de Arte e Redator de Edição Criativa (Etapa 1) para interpretar uma solicitação de ajuste feita pelo cliente sobre um card publicitário já existente e redigir o novo Master Prompt em português para o gerador de imagem.
+
+DADOS DO CARD ATUAL:
+- Segmento: ${segmentConfig.segmentTitle}
+- Estabelecimento: "${input.businessName}"
+- Título da Oferta: "${input.offerTitle}"
+- Formato do Anúncio: ${formatStr}
+${pricingDirective}${ctaDirective}${whatsappDirective}
+
+${styleContextDirective}
+
+AJUSTE SOLICITADO PELO CLIENTE:
+"${customInstructions}"
+
+INSTRUÇÕES CRÍTICAS DE CLASSIFICAÇÃO:
+Classifique a intenção da edição em exatamente um dos dois modos:
+1. "RECOMPOSE": Escolha este modo se o cliente deseja alterar layout, reorganizar ou mover elementos, centralizar o produto, dar destaque ou foco na foto/produto, aumentar tamanho do produto, trocar cenário ou plano de fundo, alterar cores/estilo, reposicionar textos ou desobstruir elementos. No modo RECOMPOSE a IA tem autorização para reposicionar elementos e quebrar o layout anterior.
+2. "SURGICAL": Escolha este modo SOMENTE se for uma alteração pontual e estritamente localizada de conteúdo textual (ex.: mudar telefone, corrigir digitação no título, mudar o valor do preço), mantendo 100% de todo o layout e posições inalterados.
+
+DIRETRIZ DE AUTORIA DO MASTER PROMPT:
+- Se modo for "RECOMPOSE": Redija no campo "authoredMasterPrompt" um NOVO Master Prompt completo (3 a 5 parágrafos densos e coesos em português) para o gerador de imagem, reestruturando a cena de forma contínua, tridimensional e imersiva (full-bleed, sem divisões 50/50 chapadas), destacando o produto anunciado "${input.offerTitle}" com riqueza sensorial e posicionando a tipografia expressiva em 1º plano absoluto (zero oclusão).
+- Se modo for "SURGICAL": Redija no campo "authoredMasterPrompt" uma diretriz concisa de edição cirúrgica instruindo a manter 100% da imagem base inalterada e modificar exclusivamente o texto/preço solicitado.
+
+Se o modo for "RECOMPOSE", você pode opcionalmente sugerir um "compositionArchetype" adequado:
+("split-editorial" | "hero-bottom-staged" | "diagonal-dynamic" | "overhead-flatlay" | "center-showcase" | "minimal-negative-space").
+
+Retorne EXCLUSIVAMENTE um objeto JSON no formato:
+{
+  "mode": "RECOMPOSE" | "SURGICAL",
+  "reason": "breve justificativa da decisão",
+  "compositionArchetype": "center-showcase" | "split-editorial" | "hero-bottom-staged" | "diagonal-dynamic" | "overhead-flatlay" | "minimal-negative-space" | null,
+  "authoredMasterPrompt": "Texto completo do prompt em português..."
+}
+`.trim();
+}
+
+export function buildMasterEditPromptAuthorContents(
+  input: PromptEngineInput,
+): Array<string | InlineDataPart> {
+  const parts: Array<string | InlineDataPart> = [
+    buildEditAuthorInstructions(input),
+  ];
+  appendEditPlannerImageParts(parts, input);
   return parts;
 }
+
+export const buildPlannerEditPromptContents =
+  buildMasterEditPromptAuthorContents;
 
 function parseOrExtractEditPlan(
   rawText: string,
@@ -584,6 +598,7 @@ function parseOrExtractEditPlan(
       mode?: string;
       reason?: string;
       compositionArchetype?: string;
+      authoredMasterPrompt?: string;
     };
 
     const mode =
@@ -606,9 +621,16 @@ function parseOrExtractEditPlan(
       ? (parsed.compositionArchetype as CompositionArchetype)
       : undefined;
 
+    const authoredMasterPrompt =
+      typeof parsed.authoredMasterPrompt === "string" &&
+      parsed.authoredMasterPrompt.trim().length > 0
+        ? parsed.authoredMasterPrompt.trim()
+        : undefined;
+
     return {
       mode,
       compositionArchetype: archetype,
+      authoredMasterPrompt,
       reason: parsed.reason,
       source: "ai-dynamic",
     };
@@ -625,7 +647,8 @@ function parseOrExtractEditPlan(
 
 /**
  * Planejador Dinâmico de Edição: Interpreta o pedido de ajuste pós-compra via Gemini 3.8 Flash,
- * determinando se a alteração requer RECOMPOSE (reposicionamento/estilo) ou SURGICAL (texto/preço pontual).
+ * determinando se a alteração requer RECOMPOSE (reposicionamento/estilo) ou SURGICAL (texto/preço pontual)
+ * e gerando o authoredMasterPrompt autoral.
  */
 export async function planDynamicEditIntent(
   input: PromptEngineInput,
@@ -660,7 +683,7 @@ export async function planDynamicEditIntent(
   const timeoutMs = options?.timeoutMs ?? DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS;
 
   try {
-    const contents = buildPlannerEditPromptContents(input);
+    const contents = buildMasterEditPromptAuthorContents(input);
 
     const response = await callWithTimeout(
       client.models.generateContent({
@@ -668,8 +691,8 @@ export async function planDynamicEditIntent(
         contents,
         config: {
           responseModalities: ["text"],
-          maxOutputTokens: 400,
-          temperature: 0.1,
+          maxOutputTokens: 2048,
+          temperature: 0.3,
           thinkingConfig: {
             thinkingLevel: "low",
           },

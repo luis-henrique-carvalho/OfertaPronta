@@ -6,6 +6,7 @@ import {
   buildAdaptiveEditPromptText,
   buildDeterministicCompositionBrief,
   buildMasterPromptAuthorContents,
+  buildMasterEditPromptAuthorContents,
   buildMultimodalPromptParts,
   buildMultimodalPromptPartsAsync,
   buildPromptText,
@@ -16,6 +17,7 @@ import {
   detectEditIntentMode,
   isReferenceDrivenMode,
   planDynamicCompositionBrief,
+  planDynamicEditIntent,
   resolveArtDirectionDirective,
   resolveRegenerationStyleInstructions,
   assembleAuthoredMasterPrompt,
@@ -1261,6 +1263,151 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
               ),
           ),
         ).toBe(true);
+      });
+    });
+
+    describe("Autoria do Master Prompt na Edição Adaptativa pelo Gemini 3.8 Flash (Ticket 01)", () => {
+      it("buildMasterEditPromptAuthorContents deve gerar instruções de autoria, classificação e anexar imagem base", () => {
+        const input = createSampleInput({
+          baseCardImageDataUrl: SAMPLE_BASE64_PNG,
+          productImageDataUrl: SAMPLE_BASE64_PNG,
+          customStyleInstructions: "Centralizar o hambúrguer no meio da imagem",
+        });
+
+        const parts = buildMasterEditPromptAuthorContents(input);
+        const textPart = parts.find((p) => typeof p === "string") as string;
+
+        expect(textPart).toContain(
+          "Você é um Diretor de Arte Sênior e Especialista em Design Gráfico Publicitário",
+        );
+        expect(textPart).toContain("DADOS DO CARD ATUAL");
+        expect(textPart).toContain("AJUSTE SOLICITADO PELO CLIENTE");
+        expect(textPart).toContain(
+          "Centralizar o hambúrguer no meio da imagem",
+        );
+        expect(textPart).toContain("INSTRUÇÕES CRÍTICAS DE CLASSIFICAÇÃO");
+        expect(textPart).toContain('"RECOMPOSE"');
+        expect(textPart).toContain('"SURGICAL"');
+        expect(textPart).toContain("DIRETRIZ DE AUTORIA DO MASTER PROMPT");
+        expect(textPart).toContain("authoredMasterPrompt");
+
+        // Deve conter imagem base e produto como inlineData
+        const inlineParts = parts.filter(
+          (p) => typeof p === "object" && p !== null && "inlineData" in p,
+        );
+        expect(inlineParts.length).toBe(2);
+      });
+
+      it("planDynamicEditIntent deve extrair authoredMasterPrompt retornado pelo Gemini 3.8 Flash", async () => {
+        const authoredPrompt =
+          "Fotografia publicitária renovada com o produto posicionado exatamente no centro do card sobre bancada rústica iluminada, atmosfera envolvente e tipografia de alto impacto em primeiro plano absoluto.";
+
+        const fakeClient: PromptPlannerClient = {
+          models: {
+            generateContent: vi.fn().mockResolvedValue({
+              text: JSON.stringify({
+                mode: "RECOMPOSE",
+                reason: "Reestruturação do layout com foco no centro.",
+                compositionArchetype: "center-showcase",
+                authoredMasterPrompt: authoredPrompt,
+              }),
+            }),
+          },
+        };
+
+        const input = createSampleInput({
+          baseCardImageDataUrl: SAMPLE_BASE64_PNG,
+          customStyleInstructions: "Centralizar o produto e recompor",
+        });
+
+        const result = await planDynamicEditIntent(input, {
+          client: fakeClient,
+        });
+
+        expect(result.mode).toBe("RECOMPOSE");
+        expect(result.source).toBe("ai-dynamic");
+        expect(result.compositionArchetype).toBe("center-showcase");
+        expect(result.authoredMasterPrompt).toBe(authoredPrompt);
+      });
+
+      it("compileDynamicCardPrompt deve utilizar authoredMasterPrompt diretamente via assembleAuthoredMasterPrompt na edição", async () => {
+        const authoredPrompt =
+          "Master prompt de edição autoral redigido pelo Gemini 3.8 Flash para recompor a cena comercial.";
+
+        const fakeClient: PromptPlannerClient = {
+          models: {
+            generateContent: vi.fn().mockResolvedValue({
+              text: JSON.stringify({
+                mode: "RECOMPOSE",
+                reason: "Mudança estrutural requerida.",
+                authoredMasterPrompt: authoredPrompt,
+              }),
+            }),
+          },
+        };
+
+        const input = createSampleInput({
+          baseCardImageDataUrl: SAMPLE_BASE64_PNG,
+          customStyleInstructions: "Reorganizar elementos e dar mais respiro",
+          targetAspectRatio: "story",
+        });
+
+        const prompt = await compileDynamicCardPrompt(input, {
+          client: fakeClient,
+        });
+
+        expect(prompt).toContain(authoredPrompt);
+        expect(prompt).toContain("SAFE ZONE OBRIGATÓRIA");
+        expect(prompt).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
+        // Não deve usar o template estático genérico quando houver autoria
+        expect(prompt).not.toContain(
+          "--- DIRETRIZ FUNDAMENTAL: DESTRAVAMENTO ESPACIAL E REESTRUTURAÇÃO DE LAYOUT ---",
+        );
+      });
+
+      it("buildMultimodalPromptPartsAsync deve usar authoredMasterPrompt e omitir baseCardImageDataUrl em modo RECOMPOSE", async () => {
+        const authoredPrompt =
+          "Master prompt com recomposição total dos elementos para destravar pixels.";
+
+        const fakeClient: PromptPlannerClient = {
+          models: {
+            generateContent: vi.fn().mockResolvedValue({
+              text: JSON.stringify({
+                mode: "RECOMPOSE",
+                reason: "Destravar pixels anteriores.",
+                authoredMasterPrompt: authoredPrompt,
+              }),
+            }),
+          },
+        };
+
+        const input = createSampleInput({
+          baseCardImageDataUrl: SAMPLE_BASE64_PNG,
+          productImageDataUrl: SAMPLE_BASE64_PNG,
+          logoImageDataUrl: SAMPLE_BASE64_PNG,
+          customStyleInstructions: "Mudar totalmente o layout para o centro",
+        });
+
+        const parts = await buildMultimodalPromptPartsAsync(input, {
+          client: fakeClient,
+        });
+
+        // Primeiro elemento é o prompt montado com authoredMasterPrompt
+        expect(parts[0]).toContain(authoredPrompt);
+        expect(parts[0]).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
+
+        // Deve conter produto e logotipo, mas NUNCA a imagem base anterior
+        const inlineImages = parts.filter(
+          (p) => typeof p === "object" && p !== null && "inlineData" in p,
+        );
+        expect(inlineImages.length).toBe(2);
+        expect(
+          parts.some(
+            (p) =>
+              typeof p === "string" &&
+              p.includes("IMAGEM BASE DO CARD PUBLICITÁRIO"),
+          ),
+        ).toBe(false);
       });
     });
   });

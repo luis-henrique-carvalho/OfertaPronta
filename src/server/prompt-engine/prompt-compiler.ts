@@ -339,6 +339,16 @@ export async function compileDynamicCardPrompt(
   if (input.baseCardImageDataUrl) {
     if (options?.client && input.customStyleInstructions?.trim()) {
       const editPlan = await planDynamicEditIntent(input, options);
+      if (editPlan.authoredMasterPrompt) {
+        const isStory = input.targetAspectRatio === "story";
+        const { proportionDirectives } = buildProportionDirectives(isStory);
+        return assembleAuthoredMasterPrompt({
+          authoredMasterPrompt: editPlan.authoredMasterPrompt,
+          input,
+          isStory,
+          proportionDirectives,
+        });
+      }
       return buildAdaptiveEditPromptText(input, {
         mode: editPlan.mode,
       });
@@ -460,11 +470,26 @@ export function assembleAuthoredMasterPrompt(params: {
 function buildBaseCardMultimodalParts(
   input: PromptEngineInput,
   forcedMode?: EditIntentMode,
+  authoredMasterPrompt?: string,
 ): Array<string | InlineDataPart> {
   const parts: Array<string | InlineDataPart> = [];
   const mode = forcedMode ?? detectEditIntentMode(input);
   const isRecompose = mode === "RECOMPOSE";
-  parts.push(buildAdaptiveEditPromptText(input, { mode }));
+
+  if (authoredMasterPrompt) {
+    const isStory = input.targetAspectRatio === "story";
+    const { proportionDirectives } = buildProportionDirectives(isStory);
+    parts.push(
+      assembleAuthoredMasterPrompt({
+        authoredMasterPrompt,
+        input,
+        isStory,
+        proportionDirectives,
+      }),
+    );
+  } else {
+    parts.push(buildAdaptiveEditPromptText(input, { mode }));
+  }
 
   // Em modo RECOMPOSE, NÃO anexamos baseCardImageDataUrl como inlineData para destravar os pixels
   // e evitar que o gerador de imagem fique ancorado na divisão espacial ou enquadramento lateral anterior.
@@ -554,11 +579,17 @@ export async function buildMultimodalPromptPartsAsync(
 ): Promise<Array<string | InlineDataPart>> {
   if (input.baseCardImageDataUrl) {
     let plannedMode: EditIntentMode | undefined;
+    let authoredMasterPrompt: string | undefined;
     if (options?.client && input.customStyleInstructions?.trim()) {
       const editPlan = await planDynamicEditIntent(input, options);
       plannedMode = editPlan.mode;
+      authoredMasterPrompt = editPlan.authoredMasterPrompt;
     }
-    return buildBaseCardMultimodalParts(input, plannedMode);
+    return buildBaseCardMultimodalParts(
+      input,
+      plannedMode,
+      authoredMasterPrompt,
+    );
   }
 
   const parts: Array<string | InlineDataPart> = [];

@@ -104,6 +104,7 @@ export interface ResolveRegenerationInstructionsOptions {
 export interface DynamicEditPlanResult {
   mode: EditIntentMode;
   compositionArchetype?: CompositionArchetype;
+  authoredMasterPrompt?: string;
   reason?: string;
   source: "ai-dynamic" | "deterministic-fallback";
 }
