@@ -135,6 +135,15 @@ describe("PromptEngine v2 Deep Module", () => {
         STYLIZED_3D_FEW_SHOT_MASTER_PROMPT,
       );
       expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
+        "CONCEITO PUBLICITÁRIO E ÂNGULO VISUAL PRIMEIRO",
+      );
+      expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
+        "POSICIONAMENTO FLEXÍVEL DE LOGOTIPO E INSUMOS",
+      );
+      expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
+        "BLINDAGEM RIGOROSA CONTRA ALUCINAÇÕES FACTUAIS",
+      );
+      expect(UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION).toContain(
         "preservando 15% no topo e 15% na base totalmente livres de textos",
       );
     });
@@ -180,6 +189,7 @@ describe("PromptEngine v2 Deep Module", () => {
 
       let capturedModel = "";
       let capturedSystemInstruction = "";
+      let capturedTemperature: number | undefined = undefined;
       let capturedContents: unknown[] = [];
 
       const mockClient: PromptPlannerClient = {
@@ -188,6 +198,7 @@ describe("PromptEngine v2 Deep Module", () => {
             capturedModel = params.model;
             capturedSystemInstruction =
               (params.config?.systemInstruction as string) || "";
+            capturedTemperature = params.config?.temperature;
             capturedContents = params.contents;
 
             return {
@@ -201,6 +212,7 @@ describe("PromptEngine v2 Deep Module", () => {
 
       expect(result.source).toBe("ai-art-director");
       expect(capturedModel).toBe("gemini-3.8-flash");
+      expect(capturedTemperature).toBe(1.0);
       expect(capturedSystemInstruction).toBe(
         UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION,
       );
@@ -379,7 +391,7 @@ describe("PromptEngine v2 Deep Module", () => {
       });
 
       const prompt = buildFallbackMasterPrompt(input);
-      expect(prompt).toContain("peça institucional");
+      expect(prompt).toContain("dispensa badges de preço numéricos");
       expect(prompt).not.toContain("R$ 0,00");
       expect(prompt).not.toContain("R$ 0.00");
       expect(prompt).not.toContain("preço promocional");
@@ -425,6 +437,66 @@ describe("PromptEngine v2 Deep Module", () => {
       expect(result.editStrategy).toBe("IN_PLACE_EDIT");
       expect(result.parts).toContain(
         "[IMAGEM BASE DO CARD: Preservar estrutura e aplicar os ajustes solicitados]",
+      );
+    });
+
+    it("deve atribuir RECOMPOSE_LAYOUT no fallback caso o pedido de ajuste solicite alteração de layout", async () => {
+      const input = createSampleInput({
+        baseCardImageDataUrl: SAMPLE_BASE64_PNG,
+        regenerationPrompt:
+          "Quero mudar o layout para horizontal com produto embaixo",
+      });
+      const mockClient: PromptPlannerClient = {
+        models: {
+          generateContent: vi.fn().mockRejectedValue(new Error("Timeout")),
+        },
+      };
+
+      const result = await compileAdCardPrompt(input, { client: mockClient });
+
+      expect(result.source).toBe("deterministic-fallback");
+      expect(result.editStrategy).toBe("RECOMPOSE_LAYOUT");
+      expect(result.masterPrompt).toContain(
+        "Ajuste prioritário solicitado pelo cliente",
+      );
+      // Desbloqueio de pixels: NÃO deve conter baseCardImageDataUrl nas parts!
+      const partsAsStrings = result.parts.filter(
+        (p): p is string => typeof p === "string",
+      );
+      expect(
+        partsAsStrings.some((s) => s.includes("IMAGEM BASE DO CARD")),
+      ).toBe(false);
+    });
+
+    it("deve incluir tanto regenerationPrompt quanto customStyleInstructions no briefing de edição quando ambos existirem", async () => {
+      const input = createSampleInput({
+        baseCardImageDataUrl: SAMPLE_BASE64_PNG,
+        regenerationPrompt: "Mudar a cor do fundo para verde escuro",
+        customStyleInstructions: "Estilo minimalista com tipografia serifada",
+      });
+
+      let capturedBriefing = "";
+      const mockClient: PromptPlannerClient = {
+        models: {
+          generateContent: vi.fn().mockImplementation(async (params) => {
+            capturedBriefing = params.contents[0] as string;
+            return {
+              text: JSON.stringify({
+                editStrategy: "IN_PLACE_EDIT",
+                masterPrompt: "Novo prompt de edição",
+              }),
+            };
+          }),
+        },
+      };
+
+      await compileAdCardPrompt(input, { client: mockClient });
+
+      expect(capturedBriefing).toContain(
+        '- Pedido de Ajuste do Usuário ("regenerationPrompt"): "Mudar a cor do fundo para verde escuro"',
+      );
+      expect(capturedBriefing).toContain(
+        '- Instruções Adicionais de Estilo: "Estilo minimalista com tipografia serifada"',
       );
     });
   });

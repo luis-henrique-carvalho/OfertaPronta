@@ -164,40 +164,55 @@ const FALLBACK_SEGMENT_TERMS: Record<
     lighting: "Luz suave e difusa de janela de estúdio fotográfico",
   },
   supermarket: {
-    ambiance: "hortifrúti e empório gourmet de alto padrão",
-    surfaces: "bancada rústica de madeira nobre e caixotes de feira artesanal",
+    ambiance:
+      "hortifrúti e empório contemporâneo com produtos frescos selecionados",
+    surfaces:
+      "bancada moderna de empório com respiro visual e acabamento impecável",
     sensoryLine: "SELECIONADO • FRESCO • QUALIDADE",
+    lighting:
+      "A iluminação comercial nítida, brilhante e convidativa destaca o frescor vibrante dos produtos com cores vivas e alto contraste.",
   },
   "beauty-salon": {
     ambiance: "estúdio de beleza contemporâneo e spa editorial minimalista",
     surfaces: "bancada de mármore claro acetinado com reflexos sutis de vidro",
-    sensoryLine: "EXCLUSIVO • BRILHO • ELEGÂNCIA",
+    sensoryLine: "CUIDADO • BRILHO • ELEGÂNCIA",
+    lighting:
+      "Luz suave e difusa de janela ampla (high-key daylight) com sombras delicadas e acabamento límpido de revista de luxo.",
   },
   beauty: {
     ambiance: "estúdio de beleza contemporâneo e spa editorial minimalista",
     surfaces: "bancada de mármore claro acetinado com reflexos sutis de vidro",
-    sensoryLine: "EXCLUSIVO • BRILHO • ELEGÂNCIA",
+    sensoryLine: "CUIDADO • BRILHO • ELEGÂNCIA",
+    lighting:
+      "Luz suave e difusa de janela ampla (high-key daylight) com sombras delicadas e acabamento límpido de revista de luxo.",
   },
   pizzeria: {
-    ambiance: "pizzaria artesanal napolitana com forno a lenha rústico",
+    ambiance: "pizzaria artesanal contemporânea e acolhedora",
     surfaces:
-      "pá de madeira enfarinhada, pedra refratária e folhas de manjericão fresco",
-    sensoryLine: "FORNO A LENHA • CROCANTE • ARTESANAL",
+      "pá de madeira nobre, pedra refratária e folhas de manjericão fresco",
+    sensoryLine: "SABOROSO • CROCANTE • ARTESANAL",
+    lighting:
+      "A iluminação quente e dourada valoriza a textura do queijo borbulhante e o ponto perfeito da borda com alto apelo de apetite.",
   },
   "burger-shop": {
-    ambiance: "steakhouse artesanal e hamburgueria rústica premium",
+    ambiance: "steakhouse artesanal e hamburgueria moderna de alto padrão",
     surfaces:
       "pesada tábua de madeira maciça escura com grãos de pimenta e sal grosso",
     sensoryLine: "ARTESANAL • SUCULENTO • CROCANTE",
+    lighting:
+      "A iluminação de padrão editorial em lente 85mm f/2.0 esculpe as texturas táteis da carne e a cremosidade do queijo com uma luz lateral quente e elegante rim light dourada.",
   },
   burger: {
-    ambiance: "steakhouse artesanal e hamburgueria rústica premium",
+    ambiance: "steakhouse artesanal e hamburgueria moderna de alto padrão",
     surfaces:
       "pesada tábua de madeira maciça escura com grãos de pimenta e sal grosso",
     sensoryLine: "ARTESANAL • SUCULENTO • CROCANTE",
+    lighting:
+      "A iluminação de padrão editorial em lente 85mm f/2.0 esculpe as texturas táteis da carne e a cremosidade do queijo com uma luz lateral quente e elegante rim light dourada.",
   },
   restaurant: {
-    ambiance: "bistrô contemporâneo de alta gastronomia com luz intimista",
+    ambiance:
+      "bistrô contemporâneo de alta gastronomia com atmosfera acolhedora",
     surfaces: "mesa de madeira escura polida com louças de cerâmica artesanal",
     sensoryLine: "SABOROSO • REFINADO • GOURMET",
   },
@@ -250,7 +265,7 @@ function buildFallbackPriceClause(input: PromptEngineInput): string {
     return `Destaca-se um badge promocional de preço de altíssimo impacto visual exibindo em números nítidos e gigantes o valor promocional de "${promoPriceTrimmed}"${originalPriceMention}, acompanhado por uma faixa de destaque contendo a chamada para ação "${input.callToAction?.trim() || "Aproveite agora!"}"`;
   }
 
-  return `Tratando-se de uma peça institucional de prestígio, a composição dispensa badges de preço monetários (sem valores numéricos de preço), valorizando um elegante selo editorial de chamada para ação com o texto "${input.callToAction?.trim() || "Consulte opções e saiba mais"}"`;
+  return `Tratando-se de uma peça institucional ou sem indicação de preço, a composição dispensa badges de preço numéricos e valores monetários, valorizando um elegante selo editorial de chamada para ação com o texto "${input.callToAction?.trim() || "Consulte opções e saiba mais"}"`;
 }
 
 /**
@@ -277,20 +292,23 @@ export function buildFallbackMasterPrompt(input: PromptEngineInput): string {
     : "";
   const paragraph1 = `Fotografia publicitária comercial de alto padrão para social media em ${aspectRatioDescription}, sem divisão estanque de tela, apresentando uma cena única tridimensional contínua e imersiva de ${segmentConfig.ambiance}${intentClause}. A base da composição é composta por ${segmentConfig.surfaces}, estendendo-se harmoniosamente pela largura inferior da imagem com texturas autênticas e ricas em microdetalhes. No centro-direito e avançando com presença visual marcante e monumental, posiciona-se o Hero Subject comemorativo: ${input.offerTitle}, evidenciando formas impecáveis, acabamento perfeito, materiais vívidos e frescor sensorial absoluto.${productPreservation}`;
 
-  // Parágrafo 2: Iluminação de estúdio (85mm f/2.0), rim light, bokeh e safe zone
+  // Parágrafo 2: Iluminação de estúdio adequada ao segmento, safe zone e ajustes
   const storySafeZone = isStory
     ? " Como o formato é vertical 9:16 para Story, a composição preserva rigorosamente 15% no topo e 15% na base totalmente livres de textos e elementos cruciais para não sofrer oclusão pela interface de aplicativos."
     : "";
   const lighting =
     segmentConfig.lighting ??
-    "A iluminação de padrão editorial cinematográfico em lente de estúdio 85mm f/2.0 cria um contraste espetacular: uma luz lateral direcional quente esculpe as texturas táteis do produto, enquanto uma elegante rim light dourada desenha sua silhueta com extrema precisão, separando-o do fundo em suave bokeh desfocado.";
+    "A iluminação comercial nítida e vibrante de estúdio destaca formas e texturas com brilhos especulares elegantes e excelente separação tridimensional do fundo em suave bokeh.";
   const customNote = input.customStyleInstructions?.trim()
     ? ` Especificação visual customizada: ${input.customStyleInstructions.trim()}.`
+    : "";
+  const editAdjustment = input.regenerationPrompt?.trim()
+    ? ` Ajuste prioritário solicitado pelo cliente: "${input.regenerationPrompt.trim()}", reorganizando a cena e os elementos visuais para cumprir fielmente esta solicitação.`
     : "";
   const refNote = input.referenceImageDataUrl
     ? " A atmosfera e paleta de iluminação absorvem a referência estética anexa."
     : "";
-  const paragraph2 = `${lighting} O quadrante superior esquerdo mergulha em uma penumbra tonal suave de baixa frequência visual e alto contraste, reservada deliberadamente como zona limpa exclusiva para o layout tipográfico em primeiro plano absoluto, garantindo zero colisão e legibilidade cristalina.${customNote}${refNote}${storySafeZone}`;
+  const paragraph2 = `${lighting}${editAdjustment} O quadrante superior esquerdo mergulha em uma penumbra tonal suave de baixa frequência visual e alto contraste, reservada deliberadamente como zona limpa exclusiva para o layout tipográfico em primeiro plano absoluto, garantindo zero colisão e legibilidade cristalina.${customNote}${refNote}${storySafeZone}`;
 
   // Parágrafo 3: Assinatura e título da oferta em tipografia mista
   const brandName = input.businessName?.trim() || "Estabelecimento";
@@ -375,6 +393,14 @@ export async function compileAdCardPrompt(
     Boolean(options?.client) && options?.enableDynamicPlanner !== false;
 
   if (shouldExecuteAiPlanner && options?.client) {
+    const startedAt = Date.now();
+    log.info(`Chamando Estágio 1 (${model}) como Diretor de Arte de IA...`, {
+      segment: input.businessSegment,
+      offerTitle: input.offerTitle,
+      isEditMode,
+      model,
+    });
+
     try {
       const aiResult = await Promise.race([
         executeAiArtDirector(input, options.client, model, isEditMode),
@@ -390,6 +416,13 @@ export async function compileAdCardPrompt(
           ),
         ),
       ]);
+
+      const durationMs = Date.now() - startedAt;
+      log.info(`Estágio 1 (${model}) concluiu com sucesso em ${durationMs}ms`, {
+        model,
+        durationMs,
+        editStrategy: aiResult.editStrategy,
+      });
 
       return assembleCompileResult(
         input,
@@ -408,7 +441,12 @@ export async function compileAdCardPrompt(
   // Fallback determinístico
   const fallbackPrompt = buildFallbackMasterPrompt(input);
   const fallbackEditStrategy: EditStrategy | undefined = isEditMode
-    ? "IN_PLACE_EDIT"
+    ? input.regenerationPrompt &&
+      /layout|horizontal|mudar|trocar|posiç|estrutura|recompor|3d|infogr|arranj/i.test(
+        input.regenerationPrompt,
+      )
+      ? "RECOMPOSE_LAYOUT"
+      : "IN_PLACE_EDIT"
     : undefined;
 
   return assembleCompileResult(
@@ -463,7 +501,7 @@ async function executeCreationArtDirector(
     contents,
     config: {
       systemInstruction: UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION,
-      temperature: 0.7,
+      temperature: 1.0,
       thinkingConfig: {
         thinkingLevel: "LOW" as unknown as undefined,
       },
@@ -656,7 +694,7 @@ function buildCreationBriefingText(input: PromptEngineInput): string {
     }
   } else {
     lines.push(
-      `- Preço: NÃO INFORMADO. Criar peça publicitária institucional elegante SEM badge de preço e SEM "R$ 0,00".`,
+      `- Preço: NÃO INFORMADO. Criar composição publicitária atraente sem badges numéricos de preço e sem inventar valores monetários (NÃO exibir "R$ 0,00").`,
     );
   }
 
@@ -687,14 +725,27 @@ function buildCreationBriefingText(input: PromptEngineInput): string {
 
 function buildEditBriefingText(input: PromptEngineInput): string {
   const isStory = input.targetAspectRatio === "story";
-  const userRequest =
-    input.regenerationPrompt?.trim() ||
-    input.customStyleInstructions?.trim() ||
-    "Ajuste e refinamento da arte";
+  const userRequests: string[] = [];
+
+  if (input.regenerationPrompt?.trim()) {
+    userRequests.push(
+      `- Pedido de Ajuste do Usuário ("regenerationPrompt"): "${input.regenerationPrompt.trim()}"`,
+    );
+  }
+
+  if (input.customStyleInstructions?.trim()) {
+    userRequests.push(
+      `- Instruções Adicionais de Estilo: "${input.customStyleInstructions.trim()}"`,
+    );
+  }
+
+  if (userRequests.length === 0) {
+    userRequests.push(`- Pedido do Usuário: "Ajuste e refinamento da arte"`);
+  }
 
   const lines: string[] = [
     `BRIEFING DE EDIÇÃO E REGENERAÇÃO DO CARD PUBLICITÁRIO:`,
-    `- Pedido do Usuário ("regenerationPrompt"): "${userRequest}"`,
+    ...userRequests,
     `- Proporção Fixa do Canvas: ${isStory ? "9:16 (Story/Reels)" : "4:5 (Feed vertical)"}`,
     `- Segmento: ${input.businessSegment}`,
     `- Nome da Marca: "${input.businessName}"`,
@@ -716,7 +767,9 @@ function buildEditBriefingText(input: PromptEngineInput): string {
       lines.push(`- Preço Original: "${input.originalPrice.trim()}"`);
     }
   } else {
-    lines.push(`- Preço: NÃO INFORMADO (Institucional - sem badge de preço)`);
+    lines.push(
+      `- Preço: NÃO INFORMADO (Sem badge monetário e sem inventar valores)`,
+    );
   }
 
   if (input.callToAction?.trim()) {
