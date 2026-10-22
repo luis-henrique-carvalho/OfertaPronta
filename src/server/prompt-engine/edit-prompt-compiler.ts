@@ -161,10 +161,11 @@ Você está criando uma nova composição tridimensional reestruturada a partir 
 
 --- DIRETRIZ FUNDAMENTAL: DESTRAVAMENTO ESPACIAL E REESTRUTURAÇÃO DE LAYOUT ---
 1. DESTRAVAMENTO ESPACIAL E DE ESTILO: Você está AUTORIZADO E OBRIGADO a alterar posições, reorganizar o grid/layout, afastar elementos, corrigir textos encobertos e aplicar o novo estilo visual solicitado pelo cliente. É TERMINANTEMENTE PROIBIDO replicar a divisão espacial em colunas ou enquadramento da imagem anterior.
-2. REPOSICIONAMENTO DE ELEMENTOS: Reposicione livremente o sujeito, o título, o preço e os selos para garantir harmonia visual e leitura perfeita sem qualquer elemento encoberto.
-3. CENA ÚNICA TRIDIMENSIONAL CONTÍNUA (FULL-BLEED): Crie uma única cena contínua e tridimensional. É TERMINANTEMENTE PROIBIDO dividir o card em duas metades 50/50 por linhas retas, paredes ou divisões chapadas em colunas.
-4. TIPOGRAFIA PUBLICITÁRIA EXPRESSIVA: Combine contraste entre fonte display condensada robusta + lettering brush script / caligráfico dinâmico inclinado nas palavras-chave em cor de destaque vibrante + conectores à mão.
-5. AJUSTE DE RECOMPOSIÇÃO PRIORITÁRIO SOLICITADO PELO CLIENTE (MÁXIMA PRIORIDADE):
+2. PRESERVAÇÃO RIGOROSA DO PRODUTO/SUJEITO HERO: A IMAGEM BASE anexa contém o produto real aprovado pelo cliente. Mantenha rigorosamente a mesma identidade visual, aparência e características do produto e modelo exibidos na IMAGEM BASE, aplicando o novo layout e reposicionamento em torno do MESMO sujeito.
+3. REPOSICIONAMENTO DE ELEMENTOS: Reposicione livremente o sujeito, o título, o preço e os selos para garantir harmonia visual e leitura perfeita sem qualquer elemento encoberto.
+4. CENA ÚNICA TRIDIMENSIONAL CONTÍNUA (FULL-BLEED): Crie uma única cena contínua e tridimensional. É TERMINANTEMENTE PROIBIDO dividir o card em duas metades 50/50 por linhas retas, paredes ou divisões chapadas em colunas.
+5. TIPOGRAFIA PUBLICITÁRIA EXPRESSIVA: Combine contraste entre fonte display condensada robusta + lettering brush script / caligráfico dinâmico inclinado nas palavras-chave em cor de destaque vibrante + conectores à mão.
+6. AJUSTE DE RECOMPOSIÇÃO PRIORITÁRIO SOLICITADO PELO CLIENTE (MÁXIMA PRIORIDADE):
 "${parts.requestedAdjustment}"
 ${spatialRepositionDirective}${artDirectiveSection}
 6. DADOS DA OFERTA COMERCIAL A MANTER E REORGANIZAR:

@@ -281,15 +281,16 @@ function buildBaseCardMultimodalParts(
     parts.push(buildAdaptiveEditPromptText(input, { mode }));
   }
 
-  // Em modo RECOMPOSE, NÃO anexamos baseCardImageDataUrl como inlineData para destravar os pixels
-  // e evitar que o gerador de imagem fique ancorado na divisão espacial ou enquadramento lateral anterior.
-  // Em modo SURGICAL, anexamos a imagem base como inlineData para garantir preservação estrita de pixels.
-  if (!isRecompose && input.baseCardImageDataUrl) {
-    appendInlineInputPart(
-      parts,
-      input.baseCardImageDataUrl,
-      "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA): Use esta imagem como base gráfica principal. Mantenha rigorosamente todos os elementos visuais idênticos, aplicando EXCLUSIVAMENTE a alteração solicitada.",
-    );
+  // A imagem base do card aprovado DEVE ser sempre fornecida como insumo multimodal de referência visual
+  // tanto em ajustes cirúrgicos pontuais quanto em reposicionamento de layout (RECOMPOSE).
+  // Em modo RECOMPOSE, ela serve como guia absoluto de fidelidade do produto/sujeito, estilo e iluminação,
+  // enquanto o modelo aplica o novo layout e reposicionamento solicitado.
+  if (input.baseCardImageDataUrl) {
+    const instruction = isRecompose
+      ? "IMAGEM BASE DO CARD PUBLICITÁRIO (REFERÊNCIA DE PRODUTO E IDENTIDADE VISUAL): Use esta imagem como referência visual absoluta do produto anunciado, pessoa/modelo, estilo e iluminação. Aplique a recomposição espacial e os novos ajustes solicitados mantendo rigorosamente a mesma identidade e produto desta imagem."
+      : "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA): Use esta imagem como base gráfica principal. Mantenha rigorosamente todos os elementos visuais idênticos, aplicando EXCLUSIVAMENTE a alteração solicitada.";
+
+    appendInlineInputPart(parts, input.baseCardImageDataUrl, instruction);
   }
 
   if (input.logoImageDataUrl) {

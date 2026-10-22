@@ -51,7 +51,7 @@ describe("PromptEngine Deep Module", () => {
   describe("Superfície Pública e Constantes", () => {
     it("deve exportar as constantes canônicas de modelo e timeout", () => {
       expect(DEFAULT_GEMINI_PROMPT_MODEL).toBe("gemini-3.8-flash");
-      expect(DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS).toBe(8000);
+      expect(DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS).toBe(25000);
       expect(ZERO_TEXT_OCCLUSION_DIRECTIVE).toContain(
         "ZERO OCLUSÃO TIPOGRÁFICA / 100% FOREGROUND TEXT PRIORITY",
       );
@@ -523,7 +523,10 @@ describe("PromptEngine Deep Module", () => {
           "1. DESTRAVAMENTO ESPACIAL E DE ESTILO: Você está AUTORIZADO E OBRIGADO a alterar posições",
         );
         expect(prompt).toContain(
-          "2. REPOSICIONAMENTO DE ELEMENTOS: Reposicione livremente o sujeito, o título, o preço e os selos",
+          "2. PRESERVAÇÃO RIGOROSA DO PRODUTO/SUJEITO HERO: A IMAGEM BASE anexa contém o produto real aprovado pelo cliente.",
+        );
+        expect(prompt).toContain(
+          "3. REPOSICIONAMENTO DE ELEMENTOS: Reposicione livremente o sujeito, o título, o preço e os selos",
         );
 
         // Trava estrita NÃO deve existir no modo RECOMPOSE
@@ -679,7 +682,7 @@ describe("PromptEngine Deep Module", () => {
   describe("Autoria Integral do Prompt Final pelo Gemini 3.8 Flash (Ticket 01)", () => {
     it("deve exportar DEFAULT_MASTER_PROMPT_TIMEOUT_MS com valor canônico de 25000ms", () => {
       expect(DEFAULT_MASTER_PROMPT_TIMEOUT_MS).toBe(25000);
-      expect(DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS).toBe(8000);
+      expect(DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS).toBe(25000);
     });
 
     describe("buildMasterPromptAuthorContents", () => {
@@ -895,8 +898,8 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
       });
     });
 
-    describe("Destravamento Real de Pixels no Modo RECOMPOSE", () => {
-      it("não deve anexar baseCardImageDataUrl como inlineData em modo RECOMPOSE síncrono ou assíncrono", async () => {
+    describe("Preservação do Sujeito e Identidade Visual no Modo RECOMPOSE", () => {
+      it("deve sempre anexar baseCardImageDataUrl como inlineData em modo RECOMPOSE com diretriz de consistência", async () => {
         const input = createSampleInput({
           baseCardImageDataUrl: SAMPLE_BASE64_PNG,
           productImageDataUrl: SAMPLE_BASE64_PNG,
@@ -910,17 +913,17 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
         const syncInlineImages = syncParts.filter(
           (p) => typeof p === "object" && p !== null && "inlineData" in p,
         );
-        // Deve conter produto e logo, mas NÃO a imagem base anterior
-        expect(syncInlineImages.length).toBe(2);
+        // Deve conter BaseCard + Produto + Logo = 3 imagens inline
+        expect(syncInlineImages.length).toBe(3);
         expect(
           syncParts.some(
             (p) =>
               typeof p === "string" &&
               p.includes(
-                "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA)",
+                "IMAGEM BASE DO CARD PUBLICITÁRIO (REFERÊNCIA DE PRODUTO E IDENTIDADE VISUAL)",
               ),
           ),
-        ).toBe(false);
+        ).toBe(true);
 
         // 2. Modo assíncrono com mock de planejamento
         const fakeClient: PromptPlannerClient = {
@@ -940,16 +943,17 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
         const asyncInlineImages = asyncParts.filter(
           (p) => typeof p === "object" && p !== null && "inlineData" in p,
         );
-        expect(asyncInlineImages.length).toBe(2);
+        // Deve conter BaseCard + Produto + Logo = 3 imagens inline
+        expect(asyncInlineImages.length).toBe(3);
         expect(
           asyncParts.some(
             (p) =>
               typeof p === "string" &&
               p.includes(
-                "IMAGEM BASE DO CARD PUBLICITÁRIO (ARTE MESTRE APROVADA)",
+                "IMAGEM BASE DO CARD PUBLICITÁRIO (REFERÊNCIA DE PRODUTO E IDENTIDADE VISUAL)",
               ),
           ),
-        ).toBe(false);
+        ).toBe(true);
       });
 
       it("deve continuar anexando baseCardImageDataUrl como inlineData em modo SURGICAL para preservação estrita", () => {
@@ -1076,7 +1080,7 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
         );
       });
 
-      it("buildMultimodalPromptPartsAsync deve usar authoredMasterPrompt e omitir baseCardImageDataUrl em modo RECOMPOSE", async () => {
+      it("buildMultimodalPromptPartsAsync deve usar authoredMasterPrompt e anexar baseCardImageDataUrl em modo RECOMPOSE", async () => {
         const authoredPrompt =
           "Master prompt com recomposição total dos elementos para destravar pixels.";
 
@@ -1085,7 +1089,7 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
             generateContent: vi.fn().mockResolvedValue({
               text: JSON.stringify({
                 mode: "RECOMPOSE",
-                reason: "Destravar pixels anteriores.",
+                reason: "Centralizar o produto mantendo a identidade visual.",
                 authoredMasterPrompt: authoredPrompt,
               }),
             }),
@@ -1107,18 +1111,20 @@ Badge de alto impacto gráfico exibindo "De R$ 5,99 Por R$ 3,99" no canto inferi
         expect(parts[0]).toContain(authoredPrompt);
         expect(parts[0]).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
 
-        // Deve conter produto e logotipo, mas NUNCA a imagem base anterior
+        // Deve conter BaseCard + Produto + Logotipo = 3 imagens inline
         const inlineImages = parts.filter(
           (p) => typeof p === "object" && p !== null && "inlineData" in p,
         );
-        expect(inlineImages.length).toBe(2);
+        expect(inlineImages.length).toBe(3);
         expect(
           parts.some(
             (p) =>
               typeof p === "string" &&
-              p.includes("IMAGEM BASE DO CARD PUBLICITÁRIO"),
+              p.includes(
+                "IMAGEM BASE DO CARD PUBLICITÁRIO (REFERÊNCIA DE PRODUTO E IDENTIDADE VISUAL)",
+              ),
           ),
-        ).toBe(false);
+        ).toBe(true);
       });
     });
   });

@@ -555,7 +555,7 @@ Classifique a intenção da edição em exatamente um dos dois modos:
 2. "SURGICAL": Escolha este modo SOMENTE se for uma alteração pontual e estritamente localizada de conteúdo textual (ex.: mudar telefone, corrigir digitação no título, mudar o valor do preço), mantendo 100% de todo o layout e posições inalterados.
 
 DIRETRIZ DE AUTORIA DO MASTER PROMPT:
-- Se modo for "RECOMPOSE": Redija no campo "authoredMasterPrompt" um NOVO Master Prompt completo (3 a 5 parágrafos densos e coesos em português) para o gerador de imagem, reestruturando a cena de forma contínua, tridimensional e imersiva (full-bleed, sem divisões 50/50 chapadas), destacando o produto anunciado "${input.offerTitle}" com riqueza sensorial e posicionando a tipografia expressiva em 1º plano absoluto (zero oclusão).
+- Se modo for "RECOMPOSE": Redija no campo "authoredMasterPrompt" um NOVO Master Prompt completo (3 a 5 parágrafos densos e coesos em português) para o gerador de imagem. PRESERVE RIGOROSAMENTE A IDENTIDADE VISUAL DO PRODUTO/MODELO DA IMAGEM BASE ANEXA: a imagem base contém o produto real já aprovado pelo cliente. A sua missão é reorganizar o layout, o enquadramento (ex: posicionar no centro), a tipografia e o cenário em torno do MESMO produto/sujeito visual, garantindo cena contínua tridimensional (full-bleed, sem divisões 50/50 chapadas) e tipografia expressiva em 1º plano absoluto (zero oclusão).
 - Se modo for "SURGICAL": Redija no campo "authoredMasterPrompt" uma diretriz concisa de edição cirúrgica instruindo a manter 100% da imagem base inalterada e modificar exclusivamente o texto/preço solicitado.
 
 Se o modo for "RECOMPOSE", você pode opcionalmente sugerir um "compositionArchetype" adequado:
