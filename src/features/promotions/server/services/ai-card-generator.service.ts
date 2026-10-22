@@ -4,38 +4,32 @@ import type { CardAspectRatio } from "../../data/offer-brief.schema";
 import { createServerLogger } from "@/server/logger";
 import {
   buildPromptText,
-  buildSurgicalEditPromptText,
-  buildAdaptiveEditPromptText,
   buildMultimodalPromptParts,
   buildMultimodalPromptPartsAsync,
+  compileAdCardPrompt,
   isReferenceDrivenMode,
-  buildReferenceDrivenArtDirective,
-  ZERO_TEXT_OCCLUSION_DIRECTIVE,
-  SEGMENT_ART_DIRECTIVES,
   REFERENCE_STYLE_PRESET_ID,
   type PromptPlannerClient,
   type PromptEngineInput,
+  type PromptEngineCompileResult,
   type InlineDataPart,
 } from "@/server/prompt-engine";
 
 export {
   REFERENCE_STYLE_PRESET_ID,
   buildPromptText,
-  buildSurgicalEditPromptText,
-  buildAdaptiveEditPromptText,
   buildMultimodalPromptParts,
   buildMultimodalPromptPartsAsync,
+  compileAdCardPrompt,
   isReferenceDrivenMode,
-  buildReferenceDrivenArtDirective,
-  ZERO_TEXT_OCCLUSION_DIRECTIVE,
-  SEGMENT_ART_DIRECTIVES,
   type PromptPlannerClient,
+  type PromptEngineCompileResult,
   type InlineDataPart,
 };
 
 const log = createServerLogger("promotions.ai-card-generator");
 
-export const GEMINI_IMAGE_MODEL = "gemini-nano-banana-2.1";
+export const GEMINI_IMAGE_MODEL = serverEnv.GEMINI_IMAGE_MODEL;
 
 export type GenerateAdCardInput = PromptEngineInput;
 

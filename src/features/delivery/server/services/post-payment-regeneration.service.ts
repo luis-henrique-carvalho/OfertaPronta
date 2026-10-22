@@ -258,6 +258,7 @@ export class PostPaymentRegenerationService {
       baseCardImageDataUrl: merged.baseCardImageDataUrl,
       stylePresetId: merged.mergedStylePresetId || undefined,
       customStyleInstructions: merged.combinedCustomInstructions || undefined,
+      regenerationPrompt: validated.customAdjustmentPrompt?.trim() || undefined,
     };
 
     return {

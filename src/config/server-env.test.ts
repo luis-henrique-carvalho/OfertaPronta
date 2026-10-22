@@ -10,7 +10,23 @@ describe("serverEnv", () => {
     );
     expect(env.NODE_ENV).toBe("development");
     expect(env.PORT).toBe(3000);
+    expect(env.GEMINI_PROMPT_MODEL).toBe("gemini-3.8-flash");
+    expect(env.GEMINI_IMAGE_MODEL).toBe("gemini-nano-banana-2.1");
     expect(env.GEMINI_DYNAMIC_PLANNER_ENABLED).toBe(true);
+  });
+
+  it("should parse Gemini model configurations and overrides", () => {
+    const custom = {
+      GEMINI_PROMPT_MODEL: "gemini-3.8-pro",
+      GEMINI_IMAGE_MODEL: "gemini-3-pro-image",
+    };
+
+    const env = parseServerEnv(custom);
+    expect(env.GEMINI_PROMPT_MODEL).toBe("gemini-3.8-pro");
+    expect(env.GEMINI_IMAGE_MODEL).toBe("gemini-3-pro-image");
+
+    expect(() => parseServerEnv({ GEMINI_PROMPT_MODEL: "" })).toThrow();
+    expect(() => parseServerEnv({ GEMINI_IMAGE_MODEL: "" })).toThrow();
   });
 
   it("should override defaults with custom values", () => {

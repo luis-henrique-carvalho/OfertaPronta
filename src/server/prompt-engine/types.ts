@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type {
   BusinessSegment,
   CardAspectRatio,
@@ -5,10 +6,20 @@ import type {
 } from "@/features/promotions/data/offer-brief.schema";
 
 export const DEFAULT_GEMINI_PROMPT_MODEL = "gemini-3.8-flash";
-export const DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS = 25000;
-export const DEFAULT_MASTER_PROMPT_TIMEOUT_MS = 25000;
+export const DEFAULT_GEMINI_IMAGE_MODEL = "gemini-nano-banana-2.1";
+export const DEFAULT_PROMPT_ENGINE_TIMEOUT_MS = 25000;
+export const REFERENCE_STYLE_PRESET_ID = "reference-image";
 
-export type EditIntentMode = "SURGICAL" | "RECOMPOSE";
+export const editStrategySchema = z.enum(["IN_PLACE_EDIT", "RECOMPOSE_LAYOUT"]);
+
+export type EditStrategy = z.infer<typeof editStrategySchema>;
+
+export const editPlanSchema = z.object({
+  editStrategy: editStrategySchema,
+  masterPrompt: z.string().min(20),
+});
+
+export type EditPlan = z.infer<typeof editPlanSchema>;
 
 export interface InlineDataPart {
   inlineData: {
@@ -31,6 +42,7 @@ export interface PromptEngineInput {
   baseCardImageDataUrl?: string | null;
   stylePresetId?: string | null;
   customStyleInstructions?: string | null;
+  regenerationPrompt?: string | null;
   logoImageDataUrl?: string | null;
   cardIntent?: CardIntent | null;
   customIntentText?: string | null;
@@ -64,47 +76,22 @@ export interface PromptPlannerClient {
   };
 }
 
-export type CompositionArchetype =
-  | "split-editorial"
-  | "hero-bottom-staged"
-  | "diagonal-dynamic"
-  | "overhead-flatlay"
-  | "center-showcase"
-  | "minimal-negative-space";
-
-export interface DynamicCompositionBrief {
-  subjectAnatomy: string;
-  safeTypographyZone: string;
-  antiOcclusionStrategy: string;
-  layoutAdaptation: string;
-  compositionArchetype?: CompositionArchetype;
-  authoredMasterPrompt?: string;
-  source: "ai-dynamic" | "deterministic-fallback";
-}
-
-export interface DynamicPromptCompileOptions {
+export interface PromptEngineOptions {
   client?: PromptPlannerClient;
   model?: string;
   timeoutMs?: number;
   enableDynamicPlanner?: boolean;
 }
 
-export interface DetectEditIntentInput {
-  customStyleInstructions?: string | null;
-  presetChanged?: boolean;
-  hasReferenceOverride?: boolean;
+export interface PromptEngineCompileResult {
+  masterPrompt: string;
+  editStrategy?: EditStrategy;
+  parts: Array<string | InlineDataPart>;
+  source: "ai-art-director" | "deterministic-fallback";
 }
 
 export interface ResolveRegenerationInstructionsOptions {
   presetChanged?: boolean;
   newStylePresetId?: string | null;
   colorPalette?: string | null;
-}
-
-export interface DynamicEditPlanResult {
-  mode: EditIntentMode;
-  compositionArchetype?: CompositionArchetype;
-  authoredMasterPrompt?: string;
-  reason?: string;
-  source: "ai-dynamic" | "deterministic-fallback";
 }

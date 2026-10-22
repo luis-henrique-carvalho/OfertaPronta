@@ -5,11 +5,11 @@ import {
   isReferenceDrivenMode,
   buildPromptText,
   REFERENCE_STYLE_PRESET_ID,
-  ZERO_TEXT_OCCLUSION_DIRECTIVE,
   type GenerateAdCardInput,
   type GoogleGenAIClient,
   type PromptPlannerClient,
 } from "./ai-card-generator.service";
+import { serverEnv } from "@/config/server-env";
 import {
   BUSINESS_SEGMENTS,
   CARD_INTENTS,
@@ -135,8 +135,9 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
     ) as string;
     expect(promptText).toContain("Supermercado Compre Bem");
     expect(promptText).toContain("9:16");
-    expect(promptText).toContain("SAFE ZONE OBRIGATÓRIA");
-    expect(promptText).toContain("15% da altura no topo e 15% na base");
+    expect(promptText).toContain(
+      "preserva rigorosamente 15% no topo e 15% na base totalmente livres de textos",
+    );
   });
 
   it("deve suportar geração para todos os 6 segmentos comerciais", async () => {
@@ -272,15 +273,11 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
       (c: unknown) => typeof c === "string",
     ) as string;
 
-    expect(promptText).toContain(
-      '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Feira & Hortifrúti Natural" ---',
-    );
-    expect(promptText).toContain("Verde esmeralda");
-    expect(promptText).toContain("Luz natural difusa matinal suave");
+    expect(promptText).toContain("Supermercado Compre Bem");
     expect(promptText).toContain("Usar iluminação solar suave de manhã cedo.");
   });
 
-  it("deve injetar a seção estruturada de Direção de Arte de market-discount com amarelo e vermelho, selos de impacto e iluminação de varejo", async () => {
+  it("deve gerar card com sucesso quando stylePresetId for market-discount", async () => {
     const fakeClient = createFakeGeminiClient();
     const inputWithMarketDiscount: GenerateAdCardInput = {
       ...baseInput,
@@ -288,20 +285,19 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
       stylePresetId: "market-discount",
     };
 
-    await generateAdCardImage(inputWithMarketDiscount, fakeClient);
+    const result = await generateAdCardImage(
+      inputWithMarketDiscount,
+      fakeClient,
+    );
+    expect(result.rawImageBuffer).toBeInstanceOf(Buffer);
 
     const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
     const promptText = callArgs.contents.find(
       (c: unknown) => typeof c === "string",
     ) as string;
 
-    expect(promptText).toContain(
-      '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Super Encarte Amarelo & Vermelho" ---',
-    );
-    expect(promptText).toContain("Vermelho primário vibrante");
-    expect(promptText).toContain("Amarelo ouro");
-    expect(promptText).toContain("selos explosivos");
-    expect(promptText).toContain("Iluminação de estúdio comercial");
+    expect(promptText).toContain("Supermercado Compre Bem");
+    expect(promptText).toContain("Picanha Bovina Fatiada 1kg");
   });
 
   it("deve utilizar o fallback de direção de arte do segmento quando presetId for inválido ou inexistente sem lançar erro", async () => {
@@ -323,14 +319,8 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
       (c: unknown) => typeof c === "string",
     ) as string;
 
-    // Deve aplicar o fallback do primeiro preset de pizzaria: "Forno a Lenha Rústico"
-    expect(promptText).toContain(
-      '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Forno a Lenha Rústico" ---',
-    );
-    expect(promptText).toContain("Madeira escura queimada");
-    expect(promptText).toContain(
-      "Luz lateral dourada e quente proveniente do fogo do forno",
-    );
+    expect(promptText).toContain("pizzaria artesanal");
+    expect(promptText).toContain("Picanha Bovina Fatiada 1kg");
   });
 
   it("deve encapsular erro 429 como RATE_LIMIT com mensagem amigável", async () => {
@@ -374,7 +364,7 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
     }
   });
 
-  it("deve incluir baseCardImageDataUrl e ativar modo SURGICAL quando imagem base for fornecida sem instruções customizadas", async () => {
+  it("deve incluir baseCardImageDataUrl e [IMAGEM BASE DO CARD] quando imagem base for fornecida sem instruções customizadas", async () => {
     const fakeClient = createFakeGeminiClient();
     const inputWithBaseCard: GenerateAdCardInput = {
       ...baseInput,
@@ -384,9 +374,6 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
     await generateAdCardImage(inputWithBaseCard, fakeClient);
 
     const callArgs = fakeClient.generateContentSpy.mock.calls[0][0];
-
-    // Verifica se usou o modelo Nano Banana 2.1
-    expect(callArgs.model).toBe("gemini-nano-banana-2.1");
 
     // Verifica se a imagem base foi enviada como inlineData prioritário
     const baseCardPart = callArgs.contents.find(
@@ -399,16 +386,8 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
     );
     expect(baseCardPart).toBeDefined();
 
-    // Verifica diretrizes de preservação estrita no prompt
-    const promptText = callArgs.contents.find(
-      (c: unknown) => typeof c === "string",
-    ) as string;
-
-    expect(promptText).toContain(
-      "--- EDIÇÃO DE CARD EXISTENTE (MODO CIRÚRGICO) ---",
-    );
-    expect(promptText).toContain(
-      "preservando estritamente toda a composição, cenário, iluminação e identidade do produto",
+    expect(callArgs.contents).toContain(
+      "[IMAGEM BASE DO CARD: Preservar estrutura e aplicar os ajustes solicitados]",
     );
   });
 
@@ -434,10 +413,13 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
 
       expect(logoPart).toBeDefined();
 
-      const promptText = callArgs.contents.find(
-        (c: unknown) => typeof c === "string",
-      ) as string;
-      expect(promptText).toContain("[LOGOTIPO OFICIAL]");
+      const stringsInContents = callArgs.contents.filter(
+        (c: unknown): c is string => typeof c === "string",
+      );
+
+      expect(
+        stringsInContents.some((s: string) => s.includes("LOGOTIPO OFICIAL")),
+      ).toBe(true);
     });
 
     it("deve injetar diretriz textual de objetivo específica para cada um dos 6 cardIntent", async () => {
@@ -489,14 +471,9 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
         (c: unknown) => typeof c === "string",
       ) as string;
 
-      expect(promptText).toContain(
-        "ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica. É expressamente proibido inserir 'R$ 0,00' ou valores inventados.",
-      );
-      expect(promptText).not.toContain("PREÇO PROMOCIONAL (");
-      expect(promptText).not.toContain('Exibir ""');
-      expect(promptText).not.toContain('Exibir "null"');
-      expect(promptText).not.toContain('Exibir "undefined"');
-      expect(promptText).not.toContain('Exibir "R$ 0,00"');
+      expect(promptText).toContain("peça institucional");
+      expect(promptText).not.toContain("R$ 0,00");
+      expect(promptText).not.toContain("preço promocional");
     });
 
     it("deve suportar geração com promoPrice undefined ou null", async () => {
@@ -514,9 +491,8 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
         (c: unknown) => typeof c === "string",
       ) as string;
 
-      expect(promptText).toContain(
-        "ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica. É expressamente proibido inserir 'R$ 0,00' ou valores inventados.",
-      );
+      expect(promptText).toContain("peça institucional");
+      expect(promptText).not.toContain("R$ 0,00");
     });
 
     it("deve aplicar diretrizes de boutique e iluminação suave para o segmento fashion", async () => {
@@ -534,8 +510,9 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
         (c: unknown) => typeof c === "string",
       ) as string;
 
-      expect(promptText).toContain("Moda & Roupas");
-      expect(promptText).toContain("Boutique contemporânea de moda feminina");
+      expect(promptText.toLowerCase()).toContain(
+        "boutique contemporânea de moda feminina",
+      );
       expect(promptText).toContain(
         "Luz suave e difusa de janela de estúdio fotográfico",
       );
@@ -686,92 +663,56 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
         stylePresetId: REFERENCE_STYLE_PRESET_ID,
       };
 
-      it("deve injetar a diretriz autoritativa de replicação estética da imagem de referência", () => {
+      it("deve compilar prompt de 4 parágrafos incorporando a referência anexa", () => {
         const promptText = buildPromptText(referenceDrivenInput);
 
+        const paragraphs = promptText.split("\n\n");
+        expect(paragraphs.length).toBe(4);
+        expect(promptText).toContain("Burger Artesanal da Vila");
+        expect(promptText).toContain("Smash Burger Duplo com Fritas");
+        expect(promptText).toContain("R$ 32,90");
         expect(promptText).toContain(
-          "--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---",
-        );
-        expect(promptText).toContain(
-          "Papel do Modelo: Atue como diretor de arte e designer gráfico sênior encarregado de reproduzir com maestria a identidade visual do print de referência anexo.",
-        );
-        expect(promptText).toContain(
-          "Estilo, Composição e Grid: Analise detalhadamente a IMAGEM DE REFERÊNCIA anexa e reproduza sua distribuição espacial, enquadramento, proporções relativas, alinhamentos, formas geométricas e padrão de respiro/bordas.",
-        );
-        expect(promptText).toContain(
-          "Paleta Cromática Dominante: Extraia com fidelidade as cores de fundo, contrastes, gradientes e tons de acento presentes na IMAGEM DE REFERÊNCIA, aplicando-os à composição do anúncio sem recorrer a paletas externas genéricas.",
-        );
-        expect(promptText).toContain(
-          "Tipografia e Hierarquia: Emule o estilo visual, peso das fontes (bold, condensed, elegante, etc.) e disposição de títulos e chamadas observados na IMAGEM DE REFERÊNCIA.",
-        );
-        expect(promptText).toContain(
-          "Iluminação e Atmosfera: Replique o clima luminoso (luz suave, iluminação comercial, contraste dramático, estética clean ou vibrante) e as texturas da IMAGEM DE REFERÊNCIA.",
-        );
-        expect(promptText).toContain(
-          "Adaptação ao Conteúdo: Combine toda essa estética do print com os dados da oferta comercial anunciada",
+          "A atmosfera e paleta de iluminação absorvem a referência estética anexa",
         );
       });
 
-      it("deve eliminar estritamente o attention bleeding: ZERO nomes de presets, ZERO códigos HEX e ZERO blueprints de catálogo", () => {
+      it("deve eliminar estritamente o attention bleeding: ZERO códigos HEX e ZERO diretrizes legadas", () => {
         const promptText = buildPromptText(referenceDrivenInput);
 
-        // 1. Zero nomes de presets de catálogo de qualquer segmento
-        expect(promptText).not.toContain("Dark Burger & Fumaça");
-        expect(promptText).not.toContain("Smash Burger Fire & Cheddar");
-        expect(promptText).not.toContain("Classic Diner & Neon Americano");
-        expect(promptText).not.toContain("Artesanal Madeira & Tabua Rústica");
-        expect(promptText).not.toContain("Boutique Minimalista");
-        expect(promptText).not.toContain("Super Encarte Amarelo & Vermelho");
-        expect(promptText).not.toContain("Forno a Lenha Rústico");
+        // Zero códigos HEX
+        expect(promptText).not.toMatch(/#[0-9A-Fa-f]{3,6}\b/);
         expect(promptText).not.toContain(
           "DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL:",
         );
-
-        // 2. Zero códigos HEX (#111111, #DC2626, #E11D48, etc.)
-        expect(promptText).not.toMatch(/#[0-9A-Fa-f]{3,6}\b/);
-        expect(promptText).not.toContain("#111111");
-        expect(promptText).not.toContain("#DC2626");
-        expect(promptText).not.toContain("#E11D48");
-        expect(promptText).not.toContain("#000000");
-
-        // 3. Zero blueprints ou LayoutVariants concorrentes
-        expect(promptText).not.toContain("retail-burst");
-        expect(promptText).not.toContain("dark-luxury");
-        expect(promptText).not.toContain("50mm f/4");
-        expect(promptText).not.toContain("Macro gastronômica");
-        expect(promptText).not.toContain("Sans-serif geométrica condensada");
-        expect(promptText).not.toContain("Didone editorial clássica");
-        expect(promptText).not.toContain(
-          "Selo estrelado ou circular de alto impacto",
-        );
+        expect(promptText).not.toContain("ZERO OCLUSÃO TIPOGRÁFICA");
+        expect(promptText).not.toContain("--- REGRA");
       });
 
-      it("deve operar em modo REFERENCE_DRIVEN também quando stylePresetId for undefined ou null com referenceImageDataUrl", () => {
+      it("deve operar com referência quando stylePresetId for undefined ou null com referenceImageDataUrl", () => {
         const inputUndefined: GenerateAdCardInput = {
           ...referenceDrivenInput,
           stylePresetId: undefined,
         };
         const promptText = buildPromptText(inputUndefined);
 
-        expect(promptText).toContain(
-          "--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---",
-        );
-        expect(promptText).not.toContain("Dark Burger & Fumaça");
+        expect(promptText).toContain("Smash Burger Duplo com Fritas");
         expect(promptText).not.toMatch(/#[0-9A-Fa-f]{3,6}\b/);
       });
 
-      it("deve aplicar safe zone de 15% na Camada 3 no modo REFERENCE_DRIVEN quando targetAspectRatio for story", () => {
+      it("deve aplicar safe zone de 15% no topo e base quando targetAspectRatio for story", () => {
         const inputStory: GenerateAdCardInput = {
           ...referenceDrivenInput,
           targetAspectRatio: "story",
         };
         const promptText = buildPromptText(inputStory);
 
-        expect(promptText).toContain("SAFE ZONE OBRIGATÓRIA");
-        expect(promptText).toContain("15% da altura no topo e 15% na base");
+        expect(promptText).toContain("9:16");
+        expect(promptText).toContain(
+          "preserva rigorosamente 15% no topo e 15% na base totalmente livres de textos",
+        );
       });
 
-      it("deve gerar card com sucesso via generateAdCardImage no modo REFERENCE_DRIVEN", async () => {
+      it("deve gerar card com sucesso via generateAdCardImage no modo com referência", async () => {
         const fakeClient = createFakeGeminiClient();
         const result = await generateAdCardImage(
           referenceDrivenInput,
@@ -784,16 +725,13 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
           (c: unknown) => typeof c === "string",
         ) as string;
 
-        expect(promptText).toContain(
-          "--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---",
-        );
-        expect(promptText).not.toContain("Dark Burger & Fumaça");
+        expect(promptText).toContain("Smash Burger Duplo com Fritas");
         expect(promptText).not.toMatch(/#[0-9A-Fa-f]{3,6}\b/);
       });
     });
 
-    describe("Modo Híbrido: Referência + Preset de Catálogo Explícito", () => {
-      it("deve adotar estratégia híbrida quando o usuário escolher conscientemente um preset de catálogo tendo uma referência", () => {
+    describe("Modo Híbrido e Catálogo", () => {
+      it("deve compilar prompt de 4 parágrafos preservando oferta e marca", () => {
         const hybridInput: GenerateAdCardInput = {
           businessSegment: "burger-shop",
           businessName: "Burger Artesanal da Vila",
@@ -803,27 +741,14 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
           stylePresetId: "burger-dark-bold",
         };
 
-        expect(isReferenceDrivenMode(hybridInput)).toBe(false);
-
         const promptText = buildPromptText(hybridInput);
-
-        // Contém a diretriz de direção de arte do preset selecionado
-        expect(promptText).toContain(
-          '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Dark Burger & Fumaça" ---',
-        );
-        // Contém adaptação cromática priorizando a referência
-        expect(promptText).toContain(
-          "adaptar a paleta cromática priorizando os tons extraídos da Imagem de Referência",
-        );
-        // Não contém a diretriz de pura replicação estética de referência
-        expect(promptText).not.toContain(
-          "--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---",
-        );
+        const paragraphs = promptText.split("\n\n");
+        expect(paragraphs.length).toBe(4);
+        expect(promptText).toContain("Smash Burger Duplo");
+        expect(promptText).toContain("Burger Artesanal da Vila");
       });
-    });
 
-    describe("Modo Catálogo Padrão (Sem Referência)", () => {
-      it("deve manter comportamento canônico 100% inalterado quando não houver referenceImageDataUrl", () => {
+      it("deve compilar prompt limpo sem códigos HEX quando não houver referenceImageDataUrl", () => {
         const catalogInput: GenerateAdCardInput = {
           businessSegment: "burger-shop",
           businessName: "Burger Artesanal da Vila",
@@ -832,28 +757,18 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
           stylePresetId: "burger-dark-bold",
         };
 
-        expect(isReferenceDrivenMode(catalogInput)).toBe(false);
-
         const promptText = buildPromptText(catalogInput);
-
-        expect(promptText).toContain(
-          '--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Dark Burger & Fumaça" ---',
-        );
-        expect(promptText).toContain("Especificação Cromática HEX:");
-        expect(promptText).toContain("#111827");
-        expect(promptText).toContain("#DC2626");
-        expect(promptText).not.toContain(
-          "--- DIRETRIZ DE DIREÇÃO DE ARTE: REPLICAÇÃO ESTÉTICA DA IMAGEM DE REFERÊNCIA ---",
-        );
+        expect(promptText).toContain("Smash Burger Duplo");
+        expect(promptText).not.toMatch(/#[0-9A-Fa-f]{3,6}\b/);
       });
     });
   });
 
-  describe("Ticket 02: Integração com PromptEngine, DynamicPlanner e Edição Adaptativa", () => {
+  describe("Ticket 01: Integração com PromptEngine v2 e Edição Conversacional Inteligente", () => {
     it("deve executar o pipeline híbrido em 2 etapas com sucesso quando enableDynamicPlanner for true", async () => {
       const fakeImageClient = createFakeGeminiClient();
       const mockPlannerGenerateContent = vi.fn().mockResolvedValue({
-        text: "Composição dinâmica autoral criada por Gemini 3.8: sujeito hero com iluminação natural em primeiro plano",
+        text: "Fotografia publicitária comercial em proporção 4:5 apresentando burger monumental.\n\nIluminação cinematográfica 85mm com rim light e zona limpa.\n\nTipografia com Monster Smash Burger e Duplo Cheddar.\n\nMicro-copy sensorial e badge de preço chamativo.",
       });
       const mockPlannerClient: PromptPlannerClient = {
         models: {
@@ -873,16 +788,16 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
 
       expect(fakeImageClient.generateContentSpy).toHaveBeenCalledTimes(1);
       const imageCallArgs = fakeImageClient.generateContentSpy.mock.calls[0][0];
-      expect(imageCallArgs.model).toBe("gemini-nano-banana-2.1");
+      expect(imageCallArgs.model).toBe(serverEnv.GEMINI_IMAGE_MODEL);
 
       const promptText = imageCallArgs.contents.find(
         (c: unknown) => typeof c === "string",
       ) as string;
 
       expect(promptText).toContain(
-        "Composição dinâmica autoral criada por Gemini 3.8: sujeito hero com iluminação natural em primeiro plano",
+        "Fotografia publicitária comercial em proporção 4:5 apresentando burger monumental.",
       );
-      expect(promptText).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
+      expect(promptText).not.toContain("ZERO OCLUSÃO TIPOGRÁFICA");
     });
 
     it("deve realizar fallback gracioso quando o planner falhar na Etapa 1 sem abortar a geração de imagem", async () => {
@@ -910,56 +825,52 @@ describe("AdCardGenerator Deep Module (ai-card-generator.service)", () => {
         (c: unknown) => typeof c === "string",
       ) as string;
 
-      expect(promptText).toContain(
-        "--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL:",
-      );
-      expect(promptText).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
+      expect(promptText).toContain("Fotografia publicitária comercial");
+      expect(promptText).toContain("Supermercado Compre Bem");
     });
 
-    it("deve sempre incluir ZERO_TEXT_OCCLUSION_DIRECTIVE nas diretrizes enviadas ao modelo de imagem", async () => {
+    it("deve desbloquear pixels em RECOMPOSE_LAYOUT omitindo [IMAGEM BASE DO CARD]", async () => {
       const fakeImageClient = createFakeGeminiClient();
-      await generateAdCardImage(baseInput, fakeImageClient);
+      const mockPlannerClient: PromptPlannerClient = {
+        models: {
+          generateContent: vi.fn().mockResolvedValue({
+            text: JSON.stringify({
+              editStrategy: "RECOMPOSE_LAYOUT",
+              masterPrompt:
+                "Fotografia comercial com novo arranjo.\n\nIluminação lateral.\n\nTítulo no topo.\n\nSelo de preço.",
+            }),
+          }),
+        },
+      };
 
-      const callArgs = fakeImageClient.generateContentSpy.mock.calls[0][0];
-      const promptText = callArgs.contents.find(
-        (c: unknown) => typeof c === "string",
-      ) as string;
-
-      expect(promptText).toContain(
-        "ZERO OCLUSÃO TIPOGRÁFICA / 100% FOREGROUND TEXT PRIORITY",
-      );
-      expect(promptText).toContain(
-        "PROIBIÇÃO DE TEXTO ATRÁS DO PERSONAGEM OU PRODUTO (NO TEXT BEHIND SUBJECT)",
-      );
-    });
-
-    it("deve ativar o modo RECOMPOSE na edição adaptativa quando customStyleInstructions contiver termos espaciais ou de personagem", async () => {
-      const fakeImageClient = createFakeGeminiClient();
       const inputSpatialEdit: GenerateAdCardInput = {
         ...baseInput,
         baseCardImageDataUrl: `data:image/png;base64,${fakeBase64Png}`,
         customStyleInstructions:
-          "não botar o texto atrás do personagem, mover o título para o topo",
+          "quero dividir o layout na horizontal com o produto embaixo e o texto em cima",
       };
 
-      await generateAdCardImage(inputSpatialEdit, fakeImageClient);
+      await generateAdCardImage(inputSpatialEdit, fakeImageClient, {
+        enableDynamicPlanner: true,
+        plannerClient: mockPlannerClient,
+      });
 
       const callArgs = fakeImageClient.generateContentSpy.mock.calls[0][0];
-      const promptText = callArgs.contents.find(
+      const contents = callArgs.contents;
+
+      // DESBLOQUEIO DE PIXELS:
+      // A [IMAGEM BASE DO CARD] NÃO DEVE estar nas contents enviadas ao modelo de imagem
+      expect(
+        contents.some(
+          (c: unknown) =>
+            typeof c === "string" && c.includes("IMAGEM BASE DO CARD"),
+        ),
+      ).toBe(false);
+
+      const promptText = contents.find(
         (c: unknown) => typeof c === "string",
       ) as string;
-
-      expect(promptText).toContain(
-        "--- RECOMPOSIÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE) ---",
-      );
-      expect(promptText).toContain(
-        "Reposicione os elementos e reestruture o layout",
-      );
-      expect(promptText).toContain("não botar o texto atrás do personagem");
-      expect(promptText).not.toContain(
-        "preservando estritamente toda a composição",
-      );
-      expect(promptText).toContain(ZERO_TEXT_OCCLUSION_DIRECTIVE);
+      expect(promptText).toContain("Fotografia comercial com novo arranjo.");
     });
   });
 });
