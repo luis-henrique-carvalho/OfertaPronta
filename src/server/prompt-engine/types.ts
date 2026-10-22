@@ -7,7 +7,7 @@ import type {
 
 export const DEFAULT_GEMINI_PROMPT_MODEL = "gemini-3.8-flash";
 export const DEFAULT_GEMINI_IMAGE_MODEL = "gemini-nano-banana-2.1";
-export const DEFAULT_PROMPT_ENGINE_TIMEOUT_MS = 25000;
+export const DEFAULT_PROMPT_ENGINE_TIMEOUT_MS = 45000;
 export const REFERENCE_STYLE_PRESET_ID = "reference-image";
 
 export const editStrategySchema = z.enum(["IN_PLACE_EDIT", "RECOMPOSE_LAYOUT"]);

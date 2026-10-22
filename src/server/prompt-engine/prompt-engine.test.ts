@@ -48,7 +48,7 @@ describe("PromptEngine v2 Deep Module", () => {
     it("deve exportar as constantes de modelo padrão e timeout", () => {
       expect(DEFAULT_GEMINI_PROMPT_MODEL).toBe("gemini-3.8-flash");
       expect(DEFAULT_GEMINI_IMAGE_MODEL).toBe("gemini-nano-banana-2.1");
-      expect(DEFAULT_PROMPT_ENGINE_TIMEOUT_MS).toBe(25000);
+      expect(DEFAULT_PROMPT_ENGINE_TIMEOUT_MS).toBe(45000);
       expect(REFERENCE_STYLE_PRESET_ID).toBe("reference-image");
     });
 

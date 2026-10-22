@@ -464,6 +464,9 @@ async function executeCreationArtDirector(
     config: {
       systemInstruction: UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION,
       temperature: 0.7,
+      thinkingConfig: {
+        thinkingLevel: "LOW" as unknown as undefined,
+      },
     },
   });
 
@@ -499,6 +502,9 @@ async function executeConversationalEdit(
       systemInstruction: CONVERSATIONAL_EDIT_SYSTEM_INSTRUCTION,
       responseMimeType: "application/json",
       temperature: 0.4,
+      thinkingConfig: {
+        thinkingLevel: "LOW" as unknown as undefined,
+      },
     },
   });
 
