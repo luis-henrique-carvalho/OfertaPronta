@@ -86,14 +86,16 @@ describe("FreePreviewQuota Deep Domain Service", () => {
 
   describe("IP Quota (limit 6 per 24 hours)", () => {
     it("allows 6 reservations from different visitors on same IP and blocks the 7th with reason 'ip'", async () => {
-      const ipHash = "ip-hash-multi-visitor";
+      const runId = crypto.randomUUID();
+      const ipHash = `ip-hash-multi-${runId}`;
 
       // 6 visitantes diferentes no mesmo IP
       for (let i = 1; i <= 6; i++) {
         const res = await reservePreview({
-          visitorId: `visitor-ip-${i}`,
+          visitorId: `visitor-${runId}-${i}`,
           ipHash,
-          draftId: `draft-ip-${i}`,
+          draftId: `draft-${runId}-${i}`,
+          dailyBudget: 1000,
         });
         expect(res.ok).toBe(true);
         if (res.ok) {
@@ -103,9 +105,10 @@ describe("FreePreviewQuota Deep Domain Service", () => {
 
       // 7º visitante no mesmo IP deve ser bloqueado por IP
       const seventh = await reservePreview({
-        visitorId: "visitor-ip-7",
+        visitorId: `visitor-${runId}-7`,
         ipHash,
-        draftId: "draft-ip-7",
+        draftId: `draft-${runId}-7`,
+        dailyBudget: 1000,
       });
       expect(seventh).toEqual({
         ok: false,
@@ -117,19 +120,19 @@ describe("FreePreviewQuota Deep Domain Service", () => {
   describe("Global Daily Budget Ceiling", () => {
     it("blocks with reason 'global' when global daily budget is reached", async () => {
       const customBudget = 3;
-      const now = new Date();
+      const testDay = new Date("2026-05-10T12:00:00Z");
 
       for (let i = 1; i <= customBudget; i++) {
         const res = await reservePreview({
           visitorId: `visitor-global-${i}`,
           ipHash: `ip-global-${i}`,
           draftId: `draft-global-${i}`,
-          now,
+          now: testDay,
           dailyBudget: customBudget,
         });
         expect(res.ok).toBe(true);
         if (res.ok) {
-          await settlePreview(res.reservationId, "CONSUMED", now);
+          await settlePreview(res.reservationId, "CONSUMED", testDay);
         }
       }
 
@@ -138,7 +141,7 @@ describe("FreePreviewQuota Deep Domain Service", () => {
         visitorId: "visitor-global-overflow",
         ipHash: "ip-global-overflow",
         draftId: "draft-global-overflow",
-        now,
+        now: testDay,
         dailyBudget: customBudget,
       });
       expect(overflow).toEqual({
@@ -149,18 +152,18 @@ describe("FreePreviewQuota Deep Domain Service", () => {
 
     it("prefers global block reason before ip or visitor block", async () => {
       const customBudget = 1;
-      const now = new Date();
+      const testDay = new Date("2026-05-11T12:00:00Z");
 
       const first = await reservePreview({
         visitorId: "shared-visitor",
         ipHash: "shared-ip",
         draftId: "draft-1",
-        now,
+        now: testDay,
         dailyBudget: customBudget,
       });
       expect(first.ok).toBe(true);
       if (first.ok) {
-        await settlePreview(first.reservationId, "CONSUMED", now);
+        await settlePreview(first.reservationId, "CONSUMED", testDay);
       }
 
       // Tenta novamente com o mesmo visitante e IP: global estoura primeiro
@@ -168,7 +171,7 @@ describe("FreePreviewQuota Deep Domain Service", () => {
         visitorId: "shared-visitor",
         ipHash: "shared-ip",
         draftId: "draft-2",
-        now,
+        now: testDay,
         dailyBudget: customBudget,
       });
       expect(blocked).toEqual({

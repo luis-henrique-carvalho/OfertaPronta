@@ -23,7 +23,6 @@ import {
 } from "@/server/storage";
 import { db } from "@/server/db";
 import { drafts } from "@/server/db/schema/promotions";
-import { freePreviewLedger } from "@/server/db/schema/free-preview";
 import { eq } from "drizzle-orm";
 
 describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
@@ -34,7 +33,6 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       publicUrlBase: "https://pub-test.r2.dev",
     });
     setStorageServiceForTesting(memoryStorage);
-    await db.delete(freePreviewLedger);
   });
 
   afterEach(() => {
