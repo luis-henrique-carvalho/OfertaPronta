@@ -4,6 +4,9 @@ import type {
   CardAspectRatio,
   CardIntent,
   SaveOfferDraftInput,
+  DraftClientDto,
+  BlockedReason,
+  GeneratePreviewOutput,
 } from "../data/offer-brief.schema";
 import {
   SEGMENT_CATALOG,
@@ -20,6 +23,7 @@ import {
 } from "../server/functions/generator.functions";
 import { initiateCheckoutFn as defaultInitiateCheckoutFn } from "../../checkout/server/functions/checkout.functions";
 import type { InitiateCheckoutInput } from "../../checkout/data/checkout.schemas";
+import { formatBlockedReasonMessage } from "./use-preview-quota";
 
 export type GenerationStage = "briefing" | "composing" | "watermarking";
 
@@ -30,11 +34,16 @@ export interface GenerationError {
 
 export type GenerateAiPreviewResult =
   | {
+      status: "OK";
+      draft: DraftClientDto;
       success: true;
       previewUrl: string;
-      aiGenerationCount: 1;
+      aiGenerationCount: number;
     }
   | {
+      status: "LIMIT_REACHED";
+      reason: BlockedReason;
+      lastDraft: DraftClientDto | null;
       success: false;
       code: "AI_QUOTA_EXCEEDED";
       message: string;
@@ -42,9 +51,10 @@ export type GenerateAiPreviewResult =
       aiGenerationCount?: number;
     }
   | {
-      success: false;
+      status: "ERROR";
       code: string;
       message: string;
+      success: false;
       aiGenerationCount?: number;
     };
 
@@ -66,14 +76,14 @@ export type SaveDraftFunction = (args: {
 
 export type GeneratePreviewFunction = (args: {
   data: { draftId: string };
-}) => Promise<GeneratePreviewResponse>;
+}) => Promise<GeneratePreviewOutput | GeneratePreviewResponse>;
 
 export type InitiateCheckoutFunction = (args: {
   data: InitiateCheckoutInput;
 }) => Promise<{ orderId: string }>;
 
 export interface UseOfferBriefDraftOptions {
-  initialDraft?: Partial<SaveOfferDraftInput> & {
+  initialDraft?: Partial<DraftClientDto> & {
     aiGenerationCount?: number;
     customStyleNote?: string;
   };
@@ -140,7 +150,6 @@ function buildDraftPayload(
   draftId: string | undefined,
   businessSegment: BusinessSegment,
   fields: FormFieldsState,
-  previewCardImageUrl?: string | null,
 ): SaveOfferDraftInput {
   return {
     id: draftId,
@@ -160,7 +169,6 @@ function buildDraftPayload(
     stylePresetId: fields.stylePresetId || null,
     customStyleInstructions:
       fields.customStyleNote || fields.customStyleInstructions || null,
-    previewCardImageUrl: previewCardImageUrl || null,
   };
 }
 
@@ -304,19 +312,13 @@ function useSaveDraft(
   businessSegment: BusinessSegment,
   fields: FormFieldsState,
   options: UseOfferBriefDraftOptions,
-  previewCardImageUrl: string | null,
 ) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, startSavingTransition] = useTransition();
 
   const saveDraft = useCallback(async (): Promise<string | null> => {
     setSaveError(null);
-    const payload = buildDraftPayload(
-      draftId,
-      businessSegment,
-      fields,
-      previewCardImageUrl,
-    );
+    const payload = buildDraftPayload(draftId, businessSegment, fields);
 
     return new Promise((resolve) => {
       startSavingTransition(async () => {
@@ -336,40 +338,137 @@ function useSaveDraft(
         }
       });
     });
-  }, [
-    draftId,
-    businessSegment,
-    fields,
-    options,
-    previewCardImageUrl,
-    setDraftId,
-  ]);
+  }, [draftId, businessSegment, fields, options, setDraftId]);
 
   return { saveError, isSaving, saveDraft };
 }
 
+function normalizePreviewResult(
+  raw: GeneratePreviewOutput | Record<string, unknown>,
+  fallbackDraftId?: string,
+): GeneratePreviewOutput {
+  if ("status" in raw && typeof raw.status === "string") {
+    return raw as GeneratePreviewOutput;
+  }
+  const legacy = raw as Record<string, unknown>;
+  // Suporte a retorno legado para compatibilidade com mocks anteriores
+  if (legacy.success) {
+    return {
+      status: "OK",
+      draft: {
+        id: fallbackDraftId ?? "draft-ok",
+        businessSegment: "supermarket",
+        targetAspectRatio: "feed",
+        businessName: "",
+        offerTitle: "",
+        promoPrice: "",
+        cardIntent: "promo",
+        previewCardImageUrl:
+          typeof legacy.previewUrl === "string" ? legacy.previewUrl : null,
+        aiGenerationCount:
+          typeof legacy.aiGenerationCount === "number"
+            ? legacy.aiGenerationCount
+            : 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    };
+  }
+  if (legacy.code === "AI_QUOTA_EXCEEDED") {
+    return {
+      status: "LIMIT_REACHED",
+      reason: "visitor",
+      lastDraft:
+        typeof legacy.previewUrl === "string"
+          ? {
+              id: fallbackDraftId ?? "draft-quota",
+              businessSegment: "supermarket",
+              targetAspectRatio: "feed",
+              businessName: "",
+              offerTitle: "",
+              promoPrice: "",
+              cardIntent: "promo",
+              previewCardImageUrl: legacy.previewUrl,
+              aiGenerationCount:
+                typeof legacy.aiGenerationCount === "number"
+                  ? legacy.aiGenerationCount
+                  : 1,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            }
+          : null,
+    };
+  }
+  return {
+    status: "ERROR",
+    code: typeof legacy.code === "string" ? legacy.code : "UNKNOWN_ERROR",
+    message:
+      typeof legacy.message === "string" ? legacy.message : "Erro desconhecido",
+  };
+}
+
 function applyPreviewResult(
-  res: GeneratePreviewResponse,
+  rawRes: GeneratePreviewOutput | GeneratePreviewResponse,
   setPreviewCardImageUrl: (url: string | null) => void,
   setAiGenerationCount: React.Dispatch<React.SetStateAction<number>>,
   setGenerationError: (err: GenerationError | null) => void,
-): GeneratePreviewResponse {
-  if (res.success) {
-    setPreviewCardImageUrl(res.previewUrl);
-    setAiGenerationCount(res.aiGenerationCount);
+  setIsLimitReached: (val: boolean) => void,
+  setLimitReason: (reason: BlockedReason | null) => void,
+  setLastDraft: (draft: DraftClientDto | null) => void,
+  fallbackDraftId?: string,
+): GenerateAiPreviewResult {
+  const norm = normalizePreviewResult(rawRes, fallbackDraftId);
+
+  if (norm.status === "OK") {
+    setPreviewCardImageUrl(norm.draft.previewCardImageUrl ?? null);
+    setAiGenerationCount(norm.draft.aiGenerationCount);
     setGenerationError(null);
-    return res;
+    setIsLimitReached(false);
+    setLimitReason(null);
+    setLastDraft(norm.draft);
+    return {
+      status: "OK",
+      draft: norm.draft,
+      success: true,
+      previewUrl: norm.draft.previewCardImageUrl ?? "",
+      aiGenerationCount: norm.draft.aiGenerationCount,
+    };
   }
 
-  if (res.code === "AI_QUOTA_EXCEEDED") {
-    if (res.previewUrl) setPreviewCardImageUrl(res.previewUrl);
-    if (res.aiGenerationCount !== undefined) {
-      setAiGenerationCount(res.aiGenerationCount);
+  if (norm.status === "LIMIT_REACHED") {
+    setIsLimitReached(true);
+    setLimitReason(norm.reason);
+    setLastDraft(norm.lastDraft);
+    setGenerationError(null); // CRÍTICO: Não deve ser tratado como erro genérico
+    if (norm.lastDraft?.previewCardImageUrl) {
+      setPreviewCardImageUrl(norm.lastDraft.previewCardImageUrl);
     }
+    if (norm.lastDraft) {
+      setAiGenerationCount(norm.lastDraft.aiGenerationCount);
+    }
+    return {
+      status: "LIMIT_REACHED",
+      reason: norm.reason,
+      lastDraft: norm.lastDraft,
+      success: false,
+      code: "AI_QUOTA_EXCEEDED",
+      message: formatBlockedReasonMessage(norm.reason),
+      previewUrl: norm.lastDraft?.previewCardImageUrl ?? null,
+      aiGenerationCount: norm.lastDraft?.aiGenerationCount ?? 1,
+    };
   }
 
-  setGenerationError({ code: res.code, message: res.message });
-  return res;
+  // norm.status === "ERROR"
+  const errObj: GenerationError = { code: norm.code, message: norm.message };
+  setGenerationError(errObj);
+  setIsLimitReached(false);
+  return {
+    status: "ERROR",
+    code: norm.code,
+    message: norm.message,
+    success: false,
+    aiGenerationCount: 0,
+  };
 }
 
 function startStageProgressTimers(
@@ -386,7 +485,7 @@ function startStageProgressTimers(
 async function callPreviewRpc(
   draftId: string,
   genFn: GeneratePreviewFunction,
-): Promise<GeneratePreviewResponse | GenerationError> {
+): Promise<GeneratePreviewOutput | GeneratePreviewResponse> {
   try {
     return await genFn({ data: { draftId } });
   } catch (err: unknown) {
@@ -394,7 +493,11 @@ async function callPreviewRpc(
       err instanceof Error
         ? err.message
         : "Instabilidade temporária na geração por IA. Por favor, tente novamente.";
-    return { code: "AI_GENERATION_FAILED", message: msg };
+    return {
+      status: "ERROR",
+      code: "AI_GENERATION_FAILED",
+      message: msg,
+    };
   }
 }
 
@@ -419,55 +522,13 @@ async function callCheckoutRpc(
   }
 }
 
-async function executeContinuousFlow(params: {
-  draftId: string;
-  options: UseOfferBriefDraftOptions;
-  setPreviewCardImageUrl: (url: string | null) => void;
-  setAiGenerationCount: React.Dispatch<React.SetStateAction<number>>;
-  setGenerationError: (err: GenerationError | null) => void;
-  setIsInitiatingCheckout: (val: boolean) => void;
-  customerWhatsapp?: string;
-}): Promise<GenerateCardAndCheckoutResult> {
-  const {
-    draftId,
-    options,
-    setPreviewCardImageUrl,
-    setAiGenerationCount,
-    setGenerationError,
-    setIsInitiatingCheckout,
-    customerWhatsapp,
-  } = params;
-
-  const genFn = options.generatePreviewFn ?? generatePreviewFn;
-  const previewRes = await callPreviewRpc(draftId, genFn);
-  if ("code" in previewRes && !("success" in previewRes)) {
-    setGenerationError(previewRes);
-    return {
-      success: false,
-      error: previewRes,
-      code: previewRes.code,
-      message: previewRes.message,
-    };
-  }
-
-  const res = previewRes as GeneratePreviewResponse;
-  applyPreviewResult(
-    res,
-    setPreviewCardImageUrl,
-    setAiGenerationCount,
-    setGenerationError,
-  );
-
-  if (!res.success && res.code !== "AI_QUOTA_EXCEEDED") {
-    const errObj: GenerationError = { code: res.code, message: res.message };
-    return {
-      success: false,
-      error: errObj,
-      code: errObj.code,
-      message: errObj.message,
-    };
-  }
-
+async function performCheckoutFlow(
+  draftId: string,
+  options: UseOfferBriefDraftOptions,
+  setGenerationError: (err: GenerationError | null) => void,
+  setIsInitiatingCheckout: (val: boolean) => void,
+  customerWhatsapp?: string,
+): Promise<GenerateCardAndCheckoutResult> {
   setIsInitiatingCheckout(true);
   try {
     const chkFn = options.initiateCheckoutFn ?? defaultInitiateCheckoutFn;
@@ -488,6 +549,74 @@ async function executeContinuousFlow(params: {
   }
 }
 
+function resolveContinuousCheckoutDraftId(
+  applied: ReturnType<typeof applyPreviewResult>,
+  draftId: string,
+): { targetDraftId?: string; error?: GenerationError } {
+  if (applied.status === "ERROR") {
+    return { error: { code: applied.code, message: applied.message } };
+  }
+  if (applied.status === "LIMIT_REACHED") {
+    if (!applied.lastDraft) {
+      return {
+        error: {
+          code: "LIMIT_REACHED",
+          message:
+            applied.message ||
+            "Limite de prévias atingido sem rascunho anterior.",
+        },
+      };
+    }
+    return { targetDraftId: applied.lastDraft.id };
+  }
+  return { targetDraftId: draftId ?? applied.draft.id };
+}
+
+async function executeContinuousFlow(params: {
+  draftId: string;
+  options: UseOfferBriefDraftOptions;
+  setPreviewCardImageUrl: (url: string | null) => void;
+  setAiGenerationCount: React.Dispatch<React.SetStateAction<number>>;
+  setGenerationError: (err: GenerationError | null) => void;
+  setIsLimitReached: (val: boolean) => void;
+  setLimitReason: (reason: BlockedReason | null) => void;
+  setLastDraft: (draft: DraftClientDto | null) => void;
+  setIsInitiatingCheckout: (val: boolean) => void;
+  customerWhatsapp?: string;
+}): Promise<GenerateCardAndCheckoutResult> {
+  const genFn = params.options.generatePreviewFn ?? generatePreviewFn;
+  const previewRes = await callPreviewRpc(params.draftId, genFn);
+
+  const applied = applyPreviewResult(
+    previewRes,
+    params.setPreviewCardImageUrl,
+    params.setAiGenerationCount,
+    params.setGenerationError,
+    params.setIsLimitReached,
+    params.setLimitReason,
+    params.setLastDraft,
+    params.draftId,
+  );
+
+  const resolved = resolveContinuousCheckoutDraftId(applied, params.draftId);
+  if (resolved.error) {
+    return {
+      success: false,
+      error: resolved.error,
+      code: resolved.error.code,
+      message: resolved.error.message,
+    };
+  }
+
+  return performCheckoutFlow(
+    resolved.targetDraftId!,
+    params.options,
+    params.setGenerationError,
+    params.setIsInitiatingCheckout,
+    params.customerWhatsapp,
+  );
+}
+
 interface ContinuousOrchestrationParams {
   saveDraft: () => Promise<string | null>;
   saveError: string | null;
@@ -498,93 +627,162 @@ interface ContinuousOrchestrationParams {
   setGenerationStage: React.Dispatch<React.SetStateAction<GenerationStage>>;
   setPreviewCardImageUrl: (url: string | null) => void;
   setAiGenerationCount: React.Dispatch<React.SetStateAction<number>>;
+  setIsLimitReached: (val: boolean) => void;
+  setLimitReason: (reason: BlockedReason | null) => void;
+  setLastDraft: (draft: DraftClientDto | null) => void;
+}
+
+async function runContinuousCheckoutOrchestration(
+  params: ContinuousOrchestrationParams,
+  setIsInitiatingCheckout: (val: boolean) => void,
+  overrideWhatsapp?: string,
+): Promise<GenerateCardAndCheckoutResult> {
+  params.setIsGenerating(true);
+  params.setGenerationError(null);
+  params.setGenerationStage("briefing");
+  const clearTimers = startStageProgressTimers(params.setGenerationStage);
+
+  try {
+    const currentDraftId = await params.saveDraft();
+    if (!currentDraftId) {
+      const err: GenerationError = {
+        code: "SAVE_FAILED",
+        message:
+          params.saveError ||
+          "Não foi possível salvar os dados do rascunho antes da geração.",
+      };
+      params.setGenerationError(err);
+      return {
+        success: false,
+        error: err,
+        code: err.code,
+        message: err.message,
+      };
+    }
+
+    const rawWhatsapp = overrideWhatsapp ?? params.defaultCustomerWhatsapp;
+    const customerWhatsapp =
+      rawWhatsapp && rawWhatsapp.trim().length > 0
+        ? rawWhatsapp.trim()
+        : undefined;
+
+    return await executeContinuousFlow({
+      draftId: currentDraftId,
+      options: params.options,
+      setPreviewCardImageUrl: params.setPreviewCardImageUrl,
+      setAiGenerationCount: params.setAiGenerationCount,
+      setGenerationError: params.setGenerationError,
+      setIsLimitReached: params.setIsLimitReached,
+      setLimitReason: params.setLimitReason,
+      setLastDraft: params.setLastDraft,
+      setIsInitiatingCheckout,
+      customerWhatsapp,
+    });
+  } finally {
+    clearTimers();
+    params.setIsGenerating(false);
+  }
 }
 
 function useContinuousCheckoutOrchestration(
   params: ContinuousOrchestrationParams,
 ) {
   const [isInitiatingCheckout, setIsInitiatingCheckout] = useState(false);
-  const {
-    saveDraft,
-    saveError,
-    options,
-    defaultCustomerWhatsapp,
-    setIsGenerating,
-    setGenerationError,
-    setGenerationStage,
-    setPreviewCardImageUrl,
-    setAiGenerationCount,
-  } = params;
 
   const generateCardAndInitiateCheckout = useCallback(
-    async (overrideParams?: {
-      customerWhatsapp?: string;
-    }): Promise<GenerateCardAndCheckoutResult> => {
-      setIsGenerating(true);
-      setGenerationError(null);
-      setGenerationStage("briefing");
-      const clearTimers = startStageProgressTimers(setGenerationStage);
-
-      try {
-        const currentDraftId = await saveDraft();
-        if (!currentDraftId) {
-          const err: GenerationError = {
-            code: "SAVE_FAILED",
-            message:
-              saveError ||
-              "Não foi possível salvar os dados do rascunho antes da geração.",
-          };
-          setGenerationError(err);
-          return {
-            success: false,
-            error: err,
-            code: err.code,
-            message: err.message,
-          };
-        }
-
-        const rawWhatsapp =
-          overrideParams?.customerWhatsapp ?? defaultCustomerWhatsapp;
-        const customerWhatsapp =
-          rawWhatsapp && rawWhatsapp.trim().length > 0
-            ? rawWhatsapp.trim()
-            : undefined;
-
-        return await executeContinuousFlow({
-          draftId: currentDraftId,
-          options,
-          setPreviewCardImageUrl,
-          setAiGenerationCount,
-          setGenerationError,
-          setIsInitiatingCheckout,
-          customerWhatsapp,
-        });
-      } finally {
-        clearTimers();
-        setIsGenerating(false);
-      }
+    (overrideParams?: { customerWhatsapp?: string }) => {
+      return runContinuousCheckoutOrchestration(
+        params,
+        setIsInitiatingCheckout,
+        overrideParams?.customerWhatsapp,
+      );
     },
-    [
-      saveDraft,
-      saveError,
-      options,
-      defaultCustomerWhatsapp,
-      setIsGenerating,
-      setGenerationError,
-      setGenerationStage,
-      setPreviewCardImageUrl,
-      setAiGenerationCount,
-    ],
+    [params],
   );
 
-  return { isInitiatingCheckout, generateCardAndInitiateCheckout };
+  return {
+    isInitiatingCheckout,
+    setIsInitiatingCheckout,
+    generateCardAndInitiateCheckout,
+  };
 }
 
-function useAiPreviewGeneration(
-  saveDraft: () => Promise<string | null>,
-  saveError: string | null,
+interface ExecutePreviewStepParams {
+  saveDraft: () => Promise<string | null>;
+  currentDraftId?: string;
+  saveError: string | null;
+  options: UseOfferBriefDraftOptions;
+  setPreviewCardImageUrl: (url: string | null) => void;
+  setAiGenerationCount: React.Dispatch<React.SetStateAction<number>>;
+  setGenerationError: (err: GenerationError | null) => void;
+  setIsLimitReached: (val: boolean) => void;
+  setLimitReason: (reason: BlockedReason | null) => void;
+  setLastDraft: (draft: DraftClientDto | null) => void;
+}
+
+async function executePreviewStep(
+  params: ExecutePreviewStepParams,
+): Promise<GenerateAiPreviewResult> {
+  const activeDraftId = (await params.saveDraft()) ?? params.currentDraftId;
+  if (!activeDraftId) {
+    const err: GenerationError = {
+      code: "SAVE_FAILED",
+      message:
+        params.saveError ||
+        "Não foi possível salvar os dados do rascunho antes da geração.",
+    };
+    params.setGenerationError(err);
+    return {
+      status: "ERROR",
+      code: err.code,
+      message: err.message,
+      success: false,
+      aiGenerationCount: 0,
+    };
+  }
+
+  const genFn = params.options.generatePreviewFn ?? generatePreviewFn;
+  const res = await callPreviewRpc(activeDraftId, genFn);
+
+  return applyPreviewResult(
+    res,
+    params.setPreviewCardImageUrl,
+    params.setAiGenerationCount,
+    params.setGenerationError,
+    params.setIsLimitReached,
+    params.setLimitReason,
+    params.setLastDraft,
+    activeDraftId,
+  );
+}
+
+async function executeLastDraftCheckout(
+  targetDraftId: string | undefined,
   options: UseOfferBriefDraftOptions,
-  defaultCustomerWhatsapp?: string,
+  setGenerationError: (err: GenerationError | null) => void,
+  setIsInitiatingCheckout: (val: boolean) => void,
+  customerWhatsapp?: string,
+): Promise<GenerateCardAndCheckoutResult> {
+  if (!targetDraftId) {
+    const err: GenerationError = {
+      code: "NO_DRAFT",
+      message: "Nenhum rascunho anterior disponível para checkout.",
+    };
+    setGenerationError(err);
+    return { success: false, error: err, code: err.code, message: err.message };
+  }
+  setGenerationError(null);
+  return performCheckoutFlow(
+    targetDraftId,
+    options,
+    setGenerationError,
+    setIsInitiatingCheckout,
+    customerWhatsapp,
+  );
+}
+
+function usePreviewState(
+  initialDraft?: UseOfferBriefDraftOptions["initialDraft"],
 ) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStage, setGenerationStage] =
@@ -592,77 +790,116 @@ function useAiPreviewGeneration(
   const [generationError, setGenerationError] =
     useState<GenerationError | null>(null);
   const [previewCardImageUrl, setPreviewCardImageUrl] = useState<string | null>(
-    options.initialDraft?.previewCardImageUrl ?? null,
+    initialDraft?.previewCardImageUrl ?? null,
   );
   const [aiGenerationCount, setAiGenerationCount] = useState<number>(
-    options.initialDraft?.aiGenerationCount ?? 0,
+    initialDraft?.aiGenerationCount ?? 0,
   );
+  const [isLimitReached, setIsLimitReached] = useState(false);
+  const [limitReason, setLimitReason] = useState<BlockedReason | null>(null);
+  const [lastDraft, setLastDraft] = useState<DraftClientDto | null>(null);
+
+  return {
+    isGenerating,
+    setIsGenerating,
+    generationStage,
+    setGenerationStage,
+    generationError,
+    setGenerationError,
+    previewCardImageUrl,
+    setPreviewCardImageUrl,
+    aiGenerationCount,
+    setAiGenerationCount,
+    isLimitReached,
+    setIsLimitReached,
+    limitReason,
+    setLimitReason,
+    lastDraft,
+    setLastDraft,
+  };
+}
+
+function useAiPreviewGeneration(
+  saveDraft: () => Promise<string | null>,
+  saveError: string | null,
+  options: UseOfferBriefDraftOptions,
+  defaultCustomerWhatsapp?: string,
+  currentDraftId?: string,
+) {
+  const state = usePreviewState(options.initialDraft);
 
   const generateAiPreview =
     useCallback(async (): Promise<GenerateAiPreviewResult> => {
-      setIsGenerating(true);
-      setGenerationError(null);
-      setGenerationStage("briefing");
-      const clearTimers = startStageProgressTimers(setGenerationStage);
-
+      state.setIsGenerating(true);
+      state.setGenerationError(null);
+      state.setGenerationStage("briefing");
+      const clearTimers = startStageProgressTimers(state.setGenerationStage);
       try {
-        const currentDraftId = await saveDraft();
-        if (!currentDraftId) {
-          const err: GenerationError = {
-            code: "SAVE_FAILED",
-            message:
-              saveError ||
-              "Não foi possível salvar os dados do rascunho antes da geração.",
-          };
-          setGenerationError(err);
-          return { success: false, ...err, aiGenerationCount: 0 };
-        }
-
-        const genFn = options.generatePreviewFn ?? generatePreviewFn;
-        const res = await callPreviewRpc(currentDraftId, genFn);
-        if ("code" in res && !("success" in res)) {
-          setGenerationError(res);
-          return { success: false, ...res, aiGenerationCount: 0 };
-        }
-
-        return applyPreviewResult(
-          res as GeneratePreviewResponse,
-          setPreviewCardImageUrl,
-          setAiGenerationCount,
-          setGenerationError,
-        );
+        return await executePreviewStep({
+          saveDraft,
+          currentDraftId,
+          saveError,
+          options,
+          setPreviewCardImageUrl: state.setPreviewCardImageUrl,
+          setAiGenerationCount: state.setAiGenerationCount,
+          setGenerationError: state.setGenerationError,
+          setIsLimitReached: state.setIsLimitReached,
+          setLimitReason: state.setLimitReason,
+          setLastDraft: state.setLastDraft,
+        });
       } finally {
         clearTimers();
-        setIsGenerating(false);
+        state.setIsGenerating(false);
       }
-    }, [saveDraft, options.generatePreviewFn, saveError]);
+    }, [saveDraft, currentDraftId, options, saveError, state]);
 
   const orchestration = useContinuousCheckoutOrchestration({
     saveDraft,
     saveError,
     options,
     defaultCustomerWhatsapp,
-    setIsGenerating,
-    setGenerationError,
-    setGenerationStage,
-    setPreviewCardImageUrl,
-    setAiGenerationCount,
+    ...state,
   });
 
   const clearGenerationError = useCallback(() => {
-    setGenerationError(null);
-  }, []);
+    state.setGenerationError(null);
+  }, [state]);
+
+  const initiateLastDraftCheckout = useCallback(
+    (overrideWhatsapp?: string) => {
+      const targetDraftId = state.lastDraft?.id ?? currentDraftId;
+      return executeLastDraftCheckout(
+        targetDraftId,
+        options,
+        state.setGenerationError,
+        orchestration.setIsInitiatingCheckout,
+        overrideWhatsapp ?? defaultCustomerWhatsapp,
+      );
+    },
+    [
+      state.lastDraft,
+      state.setGenerationError,
+      currentDraftId,
+      options,
+      orchestration.setIsInitiatingCheckout,
+      defaultCustomerWhatsapp,
+    ],
+  );
 
   return {
-    isGenerating,
+    isGenerating: state.isGenerating,
     ...orchestration,
-    generationStage,
-    generationError,
-    previewCardImageUrl,
-    aiGenerationCount,
+    generationStage: state.generationStage,
+    generationError: state.generationError,
+    previewCardImageUrl: state.previewCardImageUrl,
+    aiGenerationCount: state.aiGenerationCount,
+    isLimitReached: state.isLimitReached,
+    limitReason: state.limitReason,
+    lastDraft: state.lastDraft,
     generateAiPreview,
-    setPreviewCardImageUrl,
+    setPreviewCardImageUrl: state.setPreviewCardImageUrl,
     clearGenerationError,
+    initiateLastDraftCheckout,
   };
 }
 
@@ -745,7 +982,6 @@ export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
     businessSegment,
     fields,
     options,
-    options.initialDraft?.previewCardImageUrl ?? null,
   );
 
   const aiPreview = useAiPreviewGeneration(
@@ -753,6 +989,7 @@ export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
     saveError,
     options,
     fields.whatsapp,
+    draftId,
   );
 
   const handleSegmentChange = useCallback(

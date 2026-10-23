@@ -40,8 +40,9 @@ flowchart TD
 ### 2. Detalhamento dos Micro-Passos
 
 #### Passo 1 — Ramo do Comércio (`Step1Segment`)
+
 - O comerciante seleciona o ramo de atividade da sua loja entre **7 segmentos comerciais oficiais** (arquitetura extensível para novos ramos e exemplos futuros):
-  1. **Moda & Roupas** (`fashion`) — *Oficializado no sistema*.
+  1. **Moda & Roupas** (`fashion`) — _Oficializado no sistema_.
   2. **Supermercado & Feira** (`supermarket`).
   3. **Pizzaria** (`pizzeria`).
   4. **Hamburgueria** (`burger-shop`).
@@ -52,6 +53,7 @@ flowchart TD
 - Ao trocar de segmento, redefine automaticamente o estilo padrão para a primeira opção do catálogo daquele segmento.
 
 #### Passo 2 — O Anúncio & Objetivo (`Step2Offer`)
+
 - O comerciante escolhe o **Objetivo do Card (`cardIntent`)** entre 6 opções:
   1. **Promoção / Preço** (`promo`): destaque de produto com preço e desconto.
   2. **Novidade / Coleção** (`new-arrival`): chegada de mercadoria, coleção ou prato novo.
@@ -60,28 +62,31 @@ flowchart TD
   5. **Horário / Aviso** (`schedule`): horário de feriado, mudança de endereço ou comunicado.
   6. **Outro (Digitar)** (`custom`): campo aberto para o usuário digitar livremente o objetivo (`customIntentText`).
 - **Campos de Entrada**:
-  - **Nome da sua Loja**: texto obrigatório com placeholder personalizado pelo segmento (ex.: *"Boutique Bella Flor"*).
-  - **Mensagem Principal / Item**: texto obrigatório com placeholder dinâmico baseado no objetivo selecionado (ex.: *"Vestido Midi Canelado"* ou *"Neste feriado abriremos das 8h às 14h"*).
+  - **Nome da sua Loja**: texto obrigatório com placeholder personalizado pelo segmento (ex.: _"Boutique Bella Flor"_).
+  - **Mensagem Principal / Item**: texto obrigatório com placeholder dinâmico baseado no objetivo selecionado (ex.: _"Vestido Midi Canelado"_ ou _"Neste feriado abriremos das 8h às 14h"_).
   - **Preço da Promoção**:
     - **Obrigatório** apenas quando o objetivo for `promo`.
     - **Opcional com botão** `+ Adicionar preço neste card` apenas quando o objetivo for `custom` (Outro).
     - **Completamente oculto (sem botão de adição)** nos demais 4 objetivos (`new-arrival`, `special-date`, `announcement`, `schedule`), garantindo que cards de novidade, datas comemorativas, avisos e horários sejam 100% institucionais e limpos de preços.
 
 #### Passo 3 — Suas Imagens (`Step3VisualAssets`)
+
 - Três cartões de upload totalmente opcionais, com pré-visualização instantânea e botão de exclusão:
   1. **Foto do Produto ou Local** (`productImageDataUrl`): foto real da roupa, prato, bebida ou ambiente da loja.
   2. **Print de Card para Copiar Estilo** (`referenceImageDataUrl`): print de referência visual para a IA replicar formato, cores e estética.
   3. **Sua Logo** (`logoImageDataUrl`): arquivo de imagem da logomarca da loja com preview em modo `contain` para aplicar como assinatura da marca no card.
-- Botão rápido de rodapé: *"Não tenho imagens agora — Deixar a IA criar tudo"*, permitindo pular com 1 toque diretamente para o Passo 4.
+- Botão rápido de rodapé: _"Não tenho imagens agora — Deixar a IA criar tudo"_, permitindo pular com 1 toque diretamente para o Passo 4.
 
 #### Passo 4 — Visual do Card & Paleta (`Step4StyleAndPalette`)
-- **Aviso de Print Ativo**: se o usuário enviou um print de referência no Passo 3, exibe um alerta de confirmação: *"Print de Referência Ativo! A IA vai seguir o formato do print que você enviou"*.
+
+- **Aviso de Print Ativo**: se o usuário enviou um print de referência no Passo 3, exibe um alerta de confirmação: _"Print de Referência Ativo! A IA vai seguir o formato do print que você enviou"_.
 - **Grade 2x3 de Mini-Posts Interativos**: 6 estilos visuais curados para o segmento ativo, renderizados com layout realista e **interpolando os dados reais digitados pelo comerciante** (Nome da Loja, Mensagem e Preço real).
 - **Paleta de Cores da Marca (Opcional)**:
   - Chips de seleção rápida de cores com swatches visuais (`QUICK_BRAND_PALETTES`: Vermelho & Amarelo, Azul & Branco, Preto & Dourado, Verde & Creme, Rosa & Claro, Laranja & Escuro).
-  - Campo de texto para cor personalizada da loja (ex.: *"Azul royal e amarelo"*).
+  - Campo de texto para cor personalizada da loja (ex.: _"Azul royal e amarelo"_).
 
 #### Rodapé Fixo Mobile-First (`CreationFixedFooter`)
+
 - Barra fixada na base da viewport (`fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border p-3.5`).
 - Botão "Voltar" (largura 1/3) visível nos passos 2, 3 e 4.
 - Botão "Continuar" (largura 2/3 no passo 2 e 3, largura total no passo 1) com validação dinâmica:
@@ -89,9 +94,10 @@ flowchart TD
 - No Passo 4, o botão se transforma em **"Gerar Meu Card"** com ícone de varinha mágica.
 
 #### Geração de Card e Redirecionamento Direto para Checkout Pix
+
 - Ao clicar em "Gerar Meu Card", o sistema:
   1. Salva atomicamente o rascunho com todos os campos novos (`cardIntent`, `customIntentText`, `logoImageDataUrl`, `stylePresetId`, `customStyleInstructions`).
-  2. Abre o modal `ContextualAiLoader` com as 3 fases animadas (*"Lendo o briefing..."*, *"Compondo a arte visual com IA..."*, *"Aplicando marca d'água de proteção..."*).
+  2. Abre o modal `ContextualAiLoader` com as 3 fases animadas (_"Lendo o briefing..."_, _"Compondo a arte visual com IA..."_, _"Aplicando marca d'água de proteção..."_).
   3. O backend executa o `AdCardGenerator` com prompt multimodal enriquecido (incluindo logotipo, objetivo e preço condicional) e aplica marca d'água via Sharp (`ExportEngine`).
   4. Com a prévia pronta, chama `initiateCheckoutFn` para congelar o snapshot imutável (`frozenSnapshot`) e emitir a cobrança Pix na Pushin Pay.
   5. **Redireciona diretamente para a rota `/checkout/$orderId`**, onde a tela de checkout exibe em destaque o Card Publicitário gerado com marca d'água ao lado do QR Code Pix, código Copia e Cola e contador de expiração.
@@ -103,16 +109,16 @@ flowchart TD
 
 ### Happy Paths
 
-1. **Como comerciante de moda**, quero selecionar o ramo *"Moda & Roupas"* no Passo 1, para que a IA sugira vitrines, paletas e estilos apropriados para vestuário e coleções.
-2. **Como comerciante divulgando uma promoção relâmpago**, quero selecionar o objetivo *"Promoção / Preço"* no Passo 2 e preencher o preço do produto, para que o anúncio tenha destaque visual expressivo no preço promocional.
-3. **Como comerciante postando um aviso de feriado ou horário especial**, quero selecionar o objetivo *"Horário / Aviso"* sem campo de preço na tela, para que o card seja gerado de forma puramente informativa e sem valores monetários.
-4. **Como comerciante anunciando uma nova coleção**, quero selecionar *"Novidade / Coleção"* sem campo de preço visível, garantindo foco editorial na mensagem e nas fotos das roupas.
-5. **Como comerciante com uma necessidade específica**, quero escolher *"Outro (Digitar)"* e descrever meu próprio objetivo (ex.: *"Vaga de Atendente"*), podendo opcionalmente adicionar um preço se julgar necessário.
+1. **Como comerciante de moda**, quero selecionar o ramo _"Moda & Roupas"_ no Passo 1, para que a IA sugira vitrines, paletas e estilos apropriados para vestuário e coleções.
+2. **Como comerciante divulgando uma promoção relâmpago**, quero selecionar o objetivo _"Promoção / Preço"_ no Passo 2 e preencher o preço do produto, para que o anúncio tenha destaque visual expressivo no preço promocional.
+3. **Como comerciante postando um aviso de feriado ou horário especial**, quero selecionar o objetivo _"Horário / Aviso"_ sem campo de preço na tela, para que o card seja gerado de forma puramente informativa e sem valores monetários.
+4. **Como comerciante anunciando uma nova coleção**, quero selecionar _"Novidade / Coleção"_ sem campo de preço visível, garantindo foco editorial na mensagem e nas fotos das roupas.
+5. **Como comerciante com uma necessidade específica**, quero escolher _"Outro (Digitar)"_ e descrever meu próprio objetivo (ex.: _"Vaga de Atendente"_), podendo opcionalmente adicionar um preço se julgar necessário.
 6. **Como comerciante que possui a foto do produto e a logo da sua loja**, quero enviar ambos no Passo 3, para que a IA componha o produto na cena e posicione a logo como assinatura da marca.
-7. **Como comerciante que não tem nenhuma imagem salva no celular**, quero tocar em *"Não tenho imagens agora — Deixar a IA criar tudo"*, para avançar instantaneamente para o Passo 4 sem atrito.
+7. **Como comerciante que não tem nenhuma imagem salva no celular**, quero tocar em _"Não tenho imagens agora — Deixar a IA criar tudo"_, para avançar instantaneamente para o Passo 4 sem atrito.
 8. **Como comerciante no Passo 4**, quero ver 6 mini-cards com o nome da minha loja e meu produto já aplicados na arte, para ter certeza de qual estilo visual combina melhor com o meu negócio.
-9. **Como comerciante com identidade visual definida**, quero escolher uma paleta de cores rápida (ex.: *"Preto & Dourado"*) ou digitar a cor da minha loja, para que a IA harmonize o anúncio com as cores da minha marca.
-10. **Como comerciante gerando o card**, quero tocar em *"Gerar Meu Card"*, aguardar a síntese no loader e ser direcionado diretamente para a tela de pagamento Pix com o meu card gerado em destaque ao lado do QR Code.
+9. **Como comerciante com identidade visual definida**, quero escolher uma paleta de cores rápida (ex.: _"Preto & Dourado"_) ou digitar a cor da minha loja, para que a IA harmonize o anúncio com as cores da minha marca.
+10. **Como comerciante gerando o card**, quero tocar em _"Gerar Meu Card"_, aguardar a síntese no loader e ser direcionado diretamente para a tela de pagamento Pix com o meu card gerado em destaque ao lado do QR Code.
 
 ### Casos de Borda e Erros
 
@@ -130,7 +136,9 @@ flowchart TD
 ### 1. Evolução do Modelo de Dados e Schemas Zod
 
 #### 1.1 Oficialização do Segmento `fashion` em `BUSINESS_SEGMENTS`
+
 O array canônico de segmentos em `src/features/promotions/data/offer-brief.schema.ts` é expandido para 7 segmentos:
+
 ```typescript
 export const BUSINESS_SEGMENTS = [
   "fashion",
@@ -146,6 +154,7 @@ export type BusinessSegment = (typeof BUSINESS_SEGMENTS)[number];
 ```
 
 #### 1.2 Novos Tipos e Enums de Objetivos de Card (`cardIntent`)
+
 ```typescript
 export const CARD_INTENTS = [
   "promo",
@@ -160,7 +169,9 @@ export type CardIntent = (typeof CARD_INTENTS)[number];
 ```
 
 #### 1.3 Atualização dos Schemas Zod de Draft e Briefing
+
 No arquivo `src/features/promotions/data/offer-brief.schema.ts`:
+
 - Adicionar `cardIntent: z.enum(CARD_INTENTS).default("promo")`.
 - Adicionar `customIntentText: z.string().trim().optional()`.
 - Adicionar `logoImageDataUrl: imageDataUrlSchema.optional().nullable()`.
@@ -170,13 +181,17 @@ No arquivo `src/features/promotions/data/offer-brief.schema.ts`:
   - Para os outros 4 objetivos (`new-arrival`, `special-date`, `announcement`, `schedule`), `promoPrice` é opcional e não exibido na interface.
 
 #### 1.4 Atualização da Tabela Drizzle `drafts` (`src/server/db/schema/promotions.ts`)
+
 Adicionar as colunas:
+
 - `cardIntent: text("card_intent").notNull().default("promo")`
 - `customIntentText: text("custom_intent_text")`
 - `logoImageDataUrl: text("logo_image_data_url")`
 
 #### 1.5 Atualização do Snapshot Imutável (`orders.frozenSnapshot`)
+
 Em `src/features/checkout/server/services/pix-checkout.service.ts`:
+
 - O método `buildFrozenSnapshot` deve incluir:
   - `cardIntent: draft.cardIntent`
   - `customIntentText: draft.customIntentText`
@@ -194,20 +209,21 @@ A função `buildMultimodalPromptParts` e `buildPromptText` em `src/features/pro
      LOGOTIPO DA LOJA FORNECIDO: Incorpore fielmente este logotipo no anúncio (posicionado no topo, canto superior ou no rodapé do card). Preserve rigorosamente suas cores, formato e legibilidade sem distorções.
      ```
 2. **Diretriz de Objetivo do Anúncio (`cardIntent`)**:
-   - `promo`: *"Foco absoluto em promoção agressiva, economia e destaque chamativo para o preço promocional."*
-   - `new-arrival`: *"Foco em novidade, sofisticação e apresentação de novo produto ou coleção ('Chegou Novidade!', 'Nova Coleção')."*
-   - `special-date`: *"Foco em atmosfera temática e emotiva da data comemorativa anunciada."*
-   - `announcement`: *"Foco em clareza institucional, impacto visual de inauguração/evento e destaque para a chamada."*
-   - `schedule`: *"Foco em legibilidade máxima da mensagem informativa de horário/funcionamento."*
-   - `custom`: *"Foco na mensagem personalizada informada pelo cliente: [customIntentText]."*
+   - `promo`: _"Foco absoluto em promoção agressiva, economia e destaque chamativo para o preço promocional."_
+   - `new-arrival`: _"Foco em novidade, sofisticação e apresentação de novo produto ou coleção ('Chegou Novidade!', 'Nova Coleção')."_
+   - `special-date`: _"Foco em atmosfera temática e emotiva da data comemorativa anunciada."_
+   - `announcement`: _"Foco em clareza institucional, impacto visual de inauguração/evento e destaque para a chamada."_
+   - `schedule`: _"Foco em legibilidade máxima da mensagem informativa de horário/funcionamento."_
+   - `custom`: _"Foco na mensagem personalizada informada pelo cliente: [customIntentText]."_
 3. **Comportamento quando não houver Preço**:
-   - Se `promoPrice` estiver vazio ou não aplicável, a instrução de preço não gera "R$ 0,00" nem inventa valores; a IA é instruída expressamente: *"ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica."*
+   - Se `promoPrice` estiver vazio ou não aplicável, a instrução de preço não gera "R$ 0,00" nem inventa valores; a IA é instruída expressamente: _"ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica."_
 
 ---
 
 ### 3. Consolidação do Catálogo Isomórfico Extensível (`src/features/promotions/data/creation-catalog.ts`)
 
 O catálogo de segmentos, estilos visuais, mini-posts e paletas rápidas validado no protótipo é promovido para a camada oficial de dados:
+
 - Contém os 7 segmentos comerciais com metadados, ícones, placeholders e exemplos por objetivo.
 - Projetado com estrutura desacoplada para permitir que novos ramos e exemplos sejam adicionados futuramente com zero refatoração estrutural.
 - Cada segmento contém 6 estilos visuais completos com paletas de cores, badges e layout types (`bold-offer`, `clean-frame`, `dark-premium`, `vibrant-pop`).

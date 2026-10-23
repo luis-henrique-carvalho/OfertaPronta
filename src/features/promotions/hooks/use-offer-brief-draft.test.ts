@@ -30,14 +30,7 @@ function createMockDraft(overrides: Partial<OfferDraft> = {}): OfferDraft {
     productImageDataUrl: null,
     referenceImageDataUrl: null,
     stylePresetId: null,
-    customStyleInstructions: null,
-    cleanMasterImageDataUrl: null,
     previewCardImageUrl: null,
-    previewAssetKey: null,
-    cleanMasterAssetKey: null,
-    productAssetKey: null,
-    referenceAssetKey: null,
-    logoAssetKey: null,
     aiGenerationCount: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -83,13 +76,23 @@ describe("useOfferBriefDraft Hook - AI Preview Generation", () => {
   });
 
   it("deve executar generateAiPreview com sucesso e atualizar estados", async () => {
-    const mockPreview = vi
-      .fn()
-      .mockImplementation(async (): Promise<GeneratePreviewResponse> => ({
-        success: true,
-        previewUrl: "data:image/png;base64,newPreviewUrl",
-        aiGenerationCount: 1,
-      }));
+    const mockDraft = {
+      id: "draft-xyz",
+      businessSegment: "supermarket" as const,
+      targetAspectRatio: "feed" as const,
+      businessName: "Mercado Central",
+      offerTitle: "Oferta",
+      promoPrice: "R$ 10,00",
+      cardIntent: "promo" as const,
+      previewCardImageUrl: "data:image/png;base64,newPreviewUrl",
+      aiGenerationCount: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const mockPreview = vi.fn().mockImplementation(async () => ({
+      status: "OK" as const,
+      draft: mockDraft,
+    }));
 
     const { result } = renderHook(() =>
       useOfferBriefDraft({
@@ -103,8 +106,9 @@ describe("useOfferBriefDraft Hook - AI Preview Generation", () => {
       res = await result.current.generateAiPreview();
     });
 
-    expect(res).toEqual({
-      success: true,
+    expect(res).toMatchObject({
+      status: "OK",
+      draft: mockDraft,
       previewUrl: "data:image/png;base64,newPreviewUrl",
       aiGenerationCount: 1,
     });
@@ -114,19 +118,29 @@ describe("useOfferBriefDraft Hook - AI Preview Generation", () => {
       "data:image/png;base64,newPreviewUrl",
     );
     expect(result.current.aiGenerationCount).toBe(1);
+    expect(result.current.isLimitReached).toBe(false);
     expect(result.current.generationError).toBeNull();
   });
 
-  it("deve tratar cota esgotada AI_QUOTA_EXCEEDED preservando a prévia anterior", async () => {
-    const mockQuota = vi
-      .fn()
-      .mockImplementation(async (): Promise<GeneratePreviewResponse> => ({
-        success: false,
-        code: "AI_QUOTA_EXCEEDED",
-        message: "Limite de cota atingido",
-        previewUrl: "data:image/png;base64,existingCard",
-        aiGenerationCount: 1,
-      }));
+  it("deve tratar cota esgotada LIMIT_REACHED preservando a prévia anterior sem marcar erro genérico", async () => {
+    const mockLastDraft = {
+      id: "draft-xyz",
+      businessSegment: "supermarket" as const,
+      targetAspectRatio: "feed" as const,
+      businessName: "Mercado Central",
+      offerTitle: "Oferta",
+      promoPrice: "R$ 10,00",
+      cardIntent: "promo" as const,
+      previewCardImageUrl: "data:image/png;base64,existingCard",
+      aiGenerationCount: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const mockQuota = vi.fn().mockImplementation(async () => ({
+      status: "LIMIT_REACHED" as const,
+      reason: "visitor" as const,
+      lastDraft: mockLastDraft,
+    }));
 
     const { result } = renderHook(() =>
       useOfferBriefDraft({
@@ -141,17 +155,98 @@ describe("useOfferBriefDraft Hook - AI Preview Generation", () => {
     });
 
     expect(res).toMatchObject({
-      success: false,
-      code: "AI_QUOTA_EXCEEDED",
+      status: "LIMIT_REACHED",
+      reason: "visitor",
+      lastDraft: mockLastDraft,
     });
 
     expect(result.current.isGenerating).toBe(false);
+    expect(result.current.isLimitReached).toBe(true);
+    expect(result.current.limitReason).toBe("visitor");
+    expect(result.current.lastDraft).toEqual(mockLastDraft);
     expect(result.current.previewCardImageUrl).toBe(
       "data:image/png;base64,existingCard",
     );
-    expect(result.current.generationError).toEqual({
-      code: "AI_QUOTA_EXCEEDED",
-      message: "Limite de cota atingido",
+    // CRÍTICO: Não deve ter generationError no LIMIT_REACHED
+    expect(result.current.generationError).toBeNull();
+  });
+
+  it("deve tratar LIMIT_REACHED com reason 'ip' e lastDraft nulo", async () => {
+    const mockQuotaIp = vi.fn().mockImplementation(async () => ({
+      status: "LIMIT_REACHED" as const,
+      reason: "ip" as const,
+      lastDraft: null,
+    }));
+
+    const { result } = renderHook(() =>
+      useOfferBriefDraft({
+        saveDraftFn: mockSave,
+        generatePreviewFn: mockQuotaIp,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.generateAiPreview();
+    });
+
+    expect(result.current.isLimitReached).toBe(true);
+    expect(result.current.limitReason).toBe("ip");
+    expect(result.current.lastDraft).toBeNull();
+    expect(result.current.generationError).toBeNull();
+  });
+
+  it("deve tratar LIMIT_REACHED com reason 'global' e permitir checkout do lastDraft via initiateLastDraftCheckout", async () => {
+    const mockLastDraft = {
+      id: "draft-previous-id",
+      businessSegment: "supermarket" as const,
+      targetAspectRatio: "feed" as const,
+      businessName: "Mercado Central",
+      offerTitle: "Oferta",
+      promoPrice: "R$ 10,00",
+      cardIntent: "promo" as const,
+      previewCardImageUrl: "data:image/png;base64,globalPreview",
+      aiGenerationCount: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const mockQuotaGlobal = vi.fn().mockImplementation(async () => ({
+      status: "LIMIT_REACHED" as const,
+      reason: "global" as const,
+      lastDraft: mockLastDraft,
+    }));
+
+    const mockCheckout = vi.fn().mockImplementation(async () => ({
+      orderId: "order-from-last-draft",
+    }));
+
+    const { result } = renderHook(() =>
+      useOfferBriefDraft({
+        saveDraftFn: mockSave,
+        generatePreviewFn: mockQuotaGlobal,
+        initiateCheckoutFn: mockCheckout,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.generateAiPreview();
+    });
+
+    expect(result.current.isLimitReached).toBe(true);
+    expect(result.current.limitReason).toBe("global");
+
+    let checkoutResult: unknown;
+    await act(async () => {
+      checkoutResult = await result.current.initiateLastDraftCheckout();
+    });
+
+    expect(checkoutResult).toEqual({
+      success: true,
+      orderId: "order-from-last-draft",
+    });
+    expect(mockCheckout).toHaveBeenCalledWith({
+      data: {
+        draftId: "draft-previous-id",
+      },
     });
   });
 
@@ -159,10 +254,9 @@ describe("useOfferBriefDraft Hook - AI Preview Generation", () => {
     const mockFail = vi
       .fn()
       .mockImplementation(async (): Promise<GeneratePreviewResponse> => ({
-        success: false,
+        status: "ERROR",
         code: "AI_GENERATION_FAILED",
         message: "Instabilidade transitória na IA",
-        aiGenerationCount: 0,
       }));
 
     const { result } = renderHook(() =>

@@ -14,7 +14,7 @@ Após os primeiros testes de geração com o modelo `gemini-nano-banana-2.1`, id
 1. **Serialização Oculta no SDK `@google/genai` (v2.30.0):**
    O serviço passava parâmetros de imagem em `config.responseFormat = { image: { aspectRatio, imageSize: "2K" } }`. No entanto, o serializador interno `imageConfigToMldev` do SDK ignora `responseFormat` e busca exclusivamente `config.imageConfig`. Isso fazia a API ignorar o aspect ratio 4:5/9:16 e gerar por padrão 1:1 quadrado. O `ExportEngine` (Sharp) era forçado a fazer `cover`, decepando ~20% das laterais dos cards (cortando preços, títulos e logotipos).
 2. **Engenharia de Prompt Rasa e Não-Espacial:**
-   O prompt compilava uma lista de bullets com adjetivos abstratos (*"moderna, nítida e legível"*), sem declarar física óptica comercial (lentes 85mm/50mm, iluminação 3-point softbox, sombras de contato reais) nem traduzir o `LayoutVariant` (`retail-burst`, `fresh-organic`, `dark-luxury`, etc.) em coordenadas espaciais e famílias tipográficas descritivas.
+   O prompt compilava uma lista de bullets com adjetivos abstratos (_"moderna, nítida e legível"_), sem declarar física óptica comercial (lentes 85mm/50mm, iluminação 3-point softbox, sombras de contato reais) nem traduzir o `LayoutVariant` (`retail-burst`, `fresh-organic`, `dark-luxury`, etc.) em coordenadas espaciais e famílias tipográficas descritivas.
 3. **Catálogos Duplicados e Desacoplados (Baixa Localidade):**
    Existiam dois catálogos paralelos e dessincronizados: `creation-catalog.ts` (Wizard de UI) e `style-presets-catalog.ts` (Backend). Adicionar um novo segmento ou estilo exigia editar múltiplos arquivos e componentes em pontos diferentes do repositório, correndo risco de deriva de IDs (ex.: `market-red` vs `supermarket-retail-red`).
 
@@ -36,7 +36,7 @@ Adotamos uma refatoração orientada a **Deep Modules** com as seguintes defini�
 3. **Arquitetura Modular `SegmentRegistry` (`src/features/promotions/data/segments/`):**
    - Criação de uma pasta modular com `types.ts`, `registry.ts`, `index.ts` e `definitions/<slug>.segment.ts` para cada um dos 7 segmentos de negócio (`supermarket`, `fashion`, `beauty-salon`, `pizzeria`, `burger-shop`, `restaurant`, `local-retail`).
    - Cada definição isola: metadados do segmento, opções de layout, presets de estilo com mockups e diretrizes de arte espacial.
-   - Para adicionar um novo segmento no futuro (ex.: *Pet Shop*, *Farmácia*), cria-se apenas **1 arquivo** em `definitions/` e registra-se no `SegmentRegistry`. Zero alterações em componentes visuais, wizards ou compiladores de prompt.
+   - Para adicionar um novo segmento no futuro (ex.: _Pet Shop_, _Farmácia_), cria-se apenas **1 arquivo** em `definitions/` e registra-se no `SegmentRegistry`. Zero alterações em componentes visuais, wizards ou compiladores de prompt.
    - `style-presets-catalog.ts`, `creation-catalog.ts` e `offer-brief.schema.ts` tornaram-se fachadas canônicas transparentes que derivam diretamente do registry, garantindo 100% de sincronia e zero breaking changes.
 
 4. **Compilador Narrativo em 4 Camadas no `AdCardGenerator`:**
@@ -51,10 +51,12 @@ Adotamos uma refatoração orientada a **Deep Modules** com as seguintes defini�
 ## Consequências
 
 ### Positivas
+
 - **Aumento Drástico na Qualidade do Design:** O modelo agora recebe instruções fotográficas físicas, hierarquia tipográfica clara e enquadramento nativo 4:5 e 9:16, gerando peças visuais de nível de agência sem custo extra.
 - **Fim do Recorte Acidental de Preços/Textos:** A imagem já nasce na proporção correta na API, preservando a área útil e os textos nas bordas sem decepamento pelo Sharp.
 - **Escalabilidade e Extensibilidade Máximas:** Adicionar novos nichos e estilos tornou-se uma operação O(1) isolada num único arquivo de definição, sem risco de regressão nos fluxos existentes.
 - **Zero Breaking Changes:** Todas as interfaces públicas de Server Functions, schemas Zod e testes existentes continuam passando com 100% de conformidade (467/467 testes verdes).
 
 ### Trade-offs
+
 - Aumentou ligeiramente o tamanho do prompt textual (cerca de 300-400 tokens adicionais de texto), o que tem impacto financeiro insignificante (< $0,0001 por chamada) comparado ao custo fixo de imagem (1120 tokens).

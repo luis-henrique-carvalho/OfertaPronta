@@ -6,6 +6,7 @@
 Evolução do hook `useOfferBriefDraft` (`src/features/promotions/hooks/use-offer-brief-draft.ts`) para gerenciar todos os estados do novo fluxo em micro-passos (`cardIntent`, `customIntentText`, `logoImageDataUrl`, `customStyleNote`, seleção de segmento e estilos). Implementação do método orquestrador de geração que salva o rascunho, invoca a Server Function `generatePreviewFn`, inicia o pedido via `initiateCheckoutFn` e retorna o `orderId` para redirecionamento direto para a tela de checkout Pix.
 
 **Blocked by:**
+
 - `01: Schemas de Banco, Zod e Snapshot Congelado com Preço Condicional`
 - `02: Prompting Multimodal Gemini com Logotipo, Objetivos e Preço Opcional`
 

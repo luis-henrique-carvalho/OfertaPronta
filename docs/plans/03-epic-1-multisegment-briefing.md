@@ -10,10 +10,11 @@
 ## 1. Descrição do Objetivo (Goal Description)
 
 Substituir o antigo protótipo restrito a "comida/delivery" na rota `/criar` pelo **fluxo oficial Mobile-First do Épico 1**, alinhado ao novo domínio do **OfertaPronta**:
-1. **Suporte a 6 Segmentos de Microempresários (`Business Segment`):** *Supermercado & Hortifrúti*, *Salão de Beleza & Barbearia*, *Pizzaria*, *Hamburgueria*, *Restaurante* e *Comércio & Serviços Locais*, com adaptação automática de exemplos, placeholders e estilos sugeridos.
+
+1. **Suporte a 6 Segmentos de Microempresários (`Business Segment`):** _Supermercado & Hortifrúti_, _Salão de Beleza & Barbearia_, _Pizzaria_, _Hamburgueria_, _Restaurante_ e _Comércio & Serviços Locais_, com adaptação automática de exemplos, placeholders e estilos sugeridos.
 2. **Insumos Visuais Combináveis para a IA (`Product Image` + `Reference Image` + `Style Preset`):** O usuário pode enviar opcionalmente a **Foto do Produto**, a **Imagem de Referência**, **ambas** ou **nenhuma** (escolhendo um Estilo Visual do seu segmento e/ou digitando instruções livres para a IA).
 3. **Processamento Base64/DataURL Validado (YAGNI):** As imagens enviadas são processadas e validadas (JPEG, PNG ou WebP até 4MB) como Data URLs, prontas para persistência no rascunho e envio direto ao motor Gemini Multimodal no Épico 2 sem necessidade de bucket S3 externo nesta etapa.
-4. **Módulo Profundo de Rascunhos (`DraftStore`) + Server Functions (`saveDraftFn`, `getDraftFn`):** Persistência tipada ponta a ponta com Drizzle ORM e Zod, testada via TDD com repositório in-memory (*replace-don't-layer*).
+4. **Módulo Profundo de Rascunhos (`DraftStore`) + Server Functions (`saveDraftFn`, `getDraftFn`):** Persistência tipada ponta a ponta com Drizzle ORM e Zod, testada via TDD com repositório in-memory (_replace-don't-layer_).
 
 ---
 

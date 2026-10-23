@@ -10,6 +10,7 @@
   - `src/features/promotions/server/services/ai-card-generator.service.test.ts`
 
 ## Critérios de Aceite
+
 1. `DEFAULT_DYNAMIC_PLANNER_TIMEOUT_MS` atualizado para 25.000ms.
 2. `buildBaseCardMultimodalParts` anexa obrigatoriamente `input.baseCardImageDataUrl` em todos os modos (inclusive `RECOMPOSE`), garantindo consistência visual do produto e modelo.
 3. `edit-prompt-compiler.ts` sem templates hardcoded de texto de mais de 100 linhas; fallback conciso e limpo.

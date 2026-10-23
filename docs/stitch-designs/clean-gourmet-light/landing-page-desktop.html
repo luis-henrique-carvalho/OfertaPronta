@@ -1,721 +1,1466 @@
-<!DOCTYPE html>
+<!doctype html>
 
-<html class="scroll-smooth" lang="pt-BR"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>OfertaPronta - Artes Promocionais Profissionais para Gastronomia</title>
-<!-- Fonts -->
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<!-- Tailwind CDN -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<!-- Tailwind Configuration -->
-<script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          "colors": {
-            "outline-variant": "#e4beba",
-            "surface-container": "#f4ede6",
-            "surface-container-lowest": "#ffffff",
-            "on-surface-variant": "#5b403d",
-            "outline": "#8f706c",
-            "surface-container-low": "#faf2ec",
-            "on-primary-container": "#ffe0dd",
-            "inverse-on-surface": "#f7efe9",
-            "on-tertiary-fixed-variant": "#673d00",
-            "on-tertiary-container": "#ffe2c6",
-            "secondary": "#39684f",
-            "error": "#ba1a1a",
-            "surface-dim": "#e0d9d2",
-            "on-tertiary-fixed": "#2b1700",
-            "primary-container": "#c62828",
-            "background": "#fff8f3",
-            "on-primary-fixed-variant": "#93000e",
-            "secondary-fixed": "#bbeecf",
-            "surface-variant": "#e8e1db",
-            "on-secondary-fixed-variant": "#204f38",
-            "on-primary": "#ffffff",
-            "inverse-surface": "#33302c",
-            "tertiary-fixed-dim": "#fcb96d",
-            "surface-container-high": "#eee7e0",
-            "surface-bright": "#fff8f3",
-            "on-secondary-container": "#3d6c53",
-            "surface": "#fff8f3",
-            "on-primary-fixed": "#410003",
-            "primary": "#a20513",
-            "on-tertiary": "#ffffff",
-            "on-background": "#1e1b17",
-            "error-container": "#ffdad6",
-            "on-surface": "#1e1b17",
-            "on-error": "#ffffff",
-            "surface-container-highest": "#e8e1db",
-            "secondary-fixed-dim": "#a0d2b3",
-            "tertiary-fixed": "#ffddba",
-            "tertiary-container": "#905c18",
-            "on-secondary": "#ffffff",
-            "on-secondary-fixed": "#002112",
-            "on-error-container": "#93000a",
-            "primary-fixed-dim": "#ffb4ac",
-            "surface-tint": "#b91d20",
-            "primary-fixed": "#ffdad6",
-            "inverse-primary": "#ffb4ac",
-            "tertiary": "#734500",
-            "secondary-container": "#b8ebcc"
+<html class="scroll-smooth" lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>
+      OfertaPronta - Artes Promocionais Profissionais para Gastronomia
+    </title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Tailwind Configuration -->
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "outline-variant": "#e4beba",
+              "surface-container": "#f4ede6",
+              "surface-container-lowest": "#ffffff",
+              "on-surface-variant": "#5b403d",
+              outline: "#8f706c",
+              "surface-container-low": "#faf2ec",
+              "on-primary-container": "#ffe0dd",
+              "inverse-on-surface": "#f7efe9",
+              "on-tertiary-fixed-variant": "#673d00",
+              "on-tertiary-container": "#ffe2c6",
+              secondary: "#39684f",
+              error: "#ba1a1a",
+              "surface-dim": "#e0d9d2",
+              "on-tertiary-fixed": "#2b1700",
+              "primary-container": "#c62828",
+              background: "#fff8f3",
+              "on-primary-fixed-variant": "#93000e",
+              "secondary-fixed": "#bbeecf",
+              "surface-variant": "#e8e1db",
+              "on-secondary-fixed-variant": "#204f38",
+              "on-primary": "#ffffff",
+              "inverse-surface": "#33302c",
+              "tertiary-fixed-dim": "#fcb96d",
+              "surface-container-high": "#eee7e0",
+              "surface-bright": "#fff8f3",
+              "on-secondary-container": "#3d6c53",
+              surface: "#fff8f3",
+              "on-primary-fixed": "#410003",
+              primary: "#a20513",
+              "on-tertiary": "#ffffff",
+              "on-background": "#1e1b17",
+              "error-container": "#ffdad6",
+              "on-surface": "#1e1b17",
+              "on-error": "#ffffff",
+              "surface-container-highest": "#e8e1db",
+              "secondary-fixed-dim": "#a0d2b3",
+              "tertiary-fixed": "#ffddba",
+              "tertiary-container": "#905c18",
+              "on-secondary": "#ffffff",
+              "on-secondary-fixed": "#002112",
+              "on-error-container": "#93000a",
+              "primary-fixed-dim": "#ffb4ac",
+              "surface-tint": "#b91d20",
+              "primary-fixed": "#ffdad6",
+              "inverse-primary": "#ffb4ac",
+              tertiary: "#734500",
+              "secondary-container": "#b8ebcc",
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              full: "9999px",
+            },
+            spacing: {
+              "margin-mobile": "1.25rem",
+              gutter: "1.5rem",
+              "space-md": "1rem",
+              "space-xs": "0.25rem",
+              "space-lg": "1.5rem",
+              "space-xl": "2.5rem",
+              "space-sm": "0.5rem",
+              margin: "3rem",
+              "gutter-mobile": "1rem",
+            },
+            fontFamily: {
+              "label-lg": ["Plus Jakarta Sans"],
+              "headline-sm": ["Plus Jakarta Sans"],
+              "display-lg": ["Plus Jakarta Sans"],
+              "body-md": ["Plus Jakarta Sans"],
+              "body-lg": ["Plus Jakarta Sans"],
+              "display-lg-mobile": ["Plus Jakarta Sans"],
+              "headline-xl-mobile": ["Plus Jakarta Sans"],
+              "headline-lg": ["Plus Jakarta Sans"],
+              "headline-xl": ["Plus Jakarta Sans"],
+              "label-md": ["Plus Jakarta Sans"],
+              "headline-md": ["Plus Jakarta Sans"],
+              "label-caps": ["Plus Jakarta Sans"],
+              "body-sm": ["Plus Jakarta Sans"],
+            },
+            fontSize: {
+              "label-lg": [
+                "14px",
+                {
+                  lineHeight: "20px",
+                  letterSpacing: "0.01em",
+                  fontWeight: "600",
+                },
+              ],
+              "headline-sm": [
+                "20px",
+                { lineHeight: "28px", fontWeight: "500" },
+              ],
+              "display-lg": [
+                "56px",
+                {
+                  lineHeight: "64px",
+                  letterSpacing: "-0.03em",
+                  fontWeight: "700",
+                },
+              ],
+              "body-md": ["15px", { lineHeight: "24px", fontWeight: "400" }],
+              "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+              "display-lg-mobile": [
+                "38px",
+                {
+                  lineHeight: "46px",
+                  letterSpacing: "-0.02em",
+                  fontWeight: "700",
+                },
+              ],
+              "headline-xl-mobile": [
+                "30px",
+                {
+                  lineHeight: "38px",
+                  letterSpacing: "-0.01em",
+                  fontWeight: "600",
+                },
+              ],
+              "headline-lg": [
+                "32px",
+                {
+                  lineHeight: "40px",
+                  letterSpacing: "-0.015em",
+                  fontWeight: "600",
+                },
+              ],
+              "headline-xl": [
+                "40px",
+                {
+                  lineHeight: "48px",
+                  letterSpacing: "-0.02em",
+                  fontWeight: "600",
+                },
+              ],
+              "label-md": [
+                "12px",
+                {
+                  lineHeight: "16px",
+                  letterSpacing: "0.02em",
+                  fontWeight: "500",
+                },
+              ],
+              "headline-md": [
+                "24px",
+                {
+                  lineHeight: "32px",
+                  letterSpacing: "-0.01em",
+                  fontWeight: "600",
+                },
+              ],
+              "label-caps": [
+                "11px",
+                {
+                  lineHeight: "16px",
+                  letterSpacing: "0.08em",
+                  fontWeight: "700",
+                },
+              ],
+              "body-sm": ["13px", { lineHeight: "20px", fontWeight: "400" }],
+            },
           },
-          "borderRadius": {
-            "DEFAULT": "0.25rem",
-            "lg": "0.5rem",
-            "xl": "0.75rem",
-            "full": "9999px"
-          },
-          "spacing": {
-            "margin-mobile": "1.25rem",
-            "gutter": "1.5rem",
-            "space-md": "1rem",
-            "space-xs": "0.25rem",
-            "space-lg": "1.5rem",
-            "space-xl": "2.5rem",
-            "space-sm": "0.5rem",
-            "margin": "3rem",
-            "gutter-mobile": "1rem"
-          },
-          "fontFamily": {
-            "label-lg": ["Plus Jakarta Sans"],
-            "headline-sm": ["Plus Jakarta Sans"],
-            "display-lg": ["Plus Jakarta Sans"],
-            "body-md": ["Plus Jakarta Sans"],
-            "body-lg": ["Plus Jakarta Sans"],
-            "display-lg-mobile": ["Plus Jakarta Sans"],
-            "headline-xl-mobile": ["Plus Jakarta Sans"],
-            "headline-lg": ["Plus Jakarta Sans"],
-            "headline-xl": ["Plus Jakarta Sans"],
-            "label-md": ["Plus Jakarta Sans"],
-            "headline-md": ["Plus Jakarta Sans"],
-            "label-caps": ["Plus Jakarta Sans"],
-            "body-sm": ["Plus Jakarta Sans"]
-          },
-          "fontSize": {
-            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
-            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "500" }],
-            "display-lg": ["56px", { "lineHeight": "64px", "letterSpacing": "-0.03em", "fontWeight": "700" }],
-            "body-md": ["15px", { "lineHeight": "24px", "fontWeight": "400" }],
-            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
-            "display-lg-mobile": ["38px", { "lineHeight": "46px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
-            "headline-xl-mobile": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
-            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
-            "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
-            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
-            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
-            "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.08em", "fontWeight": "700" }],
-            "body-sm": ["13px", { "lineHeight": "20px", "fontWeight": "400" }]
-          }
-        }
+        },
+      };
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+        display: inline-block;
+        vertical-align: middle;
+        line-height: 1;
       }
-    }
-  </script>
-<style>
-    .material-symbols-outlined {
-      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-      display: inline-block;
-      vertical-align: middle;
-      line-height: 1;
-    }
-    .shadow-warm-subtle {
-      box-shadow: 0 4px 20px -2px rgba(43, 40, 36, 0.05), 0 2px 6px -1px rgba(43, 40, 36, 0.02);
-    }
-    .shadow-warm-lift {
-      box-shadow: 0 16px 36px -8px rgba(43, 40, 36, 0.09), 0 4px 12px -2px rgba(43, 40, 36, 0.03);
-    }
-    .shadow-cherry-glow {
-      box-shadow: 0 10px 24px -4px rgba(198, 40, 40, 0.32);
-    }
-    .receipt-edge {
-      background-image: radial-gradient(circle at 10px -5px, transparent 12px, #ffffff 13px);
-      background-size: 20px 20px;
-    }
-  </style>
-</head>
-<body class="bg-background text-on-surface font-body-md antialiased selection:bg-primary-container selection:text-on-primary">
-<!-- TOP APP BAR (Shared Component Anchor) -->
-<header class="bg-surface/90 backdrop-blur-md border-b border-outline-variant/30 docked full-width top-0 z-50 shadow-sm sticky">
-<div class="max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between h-20 w-full">
-<!-- Brand & Pill Badge -->
-<div class="flex items-center gap-4">
-<a class="text-headline-md font-headline-md font-bold tracking-tight text-primary flex items-center gap-2" href="#">
-<span class="material-symbols-outlined text-primary text-28" data-icon="restaurant_menu">restaurant_menu</span>
-          OfertaPronta
-        </a>
-<span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-fixed/50 text-secondary text-label-md font-label-md border border-secondary/20">
-<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
-          ✦ Sem cadastro obrigatório
-        </span>
-</div>
-<!-- Desktop Nav Links -->
-<nav class="hidden md:flex items-center gap-8">
-<a class="text-on-surface-variant hover:text-on-surface text-label-lg font-label-lg transition-colors" href="#como-funciona">Como Funciona</a>
-<a class="text-on-surface-variant hover:text-on-surface text-label-lg font-label-lg transition-colors" href="#formatos">Modelos</a>
-<a class="text-primary font-semibold text-label-lg font-label-lg transition-colors" href="#preco">Preço</a>
-<a class="text-on-surface-variant hover:text-on-surface text-label-lg font-label-lg transition-colors" href="#depoimentos">Depoimentos</a>
-<a class="text-on-surface-variant hover:text-on-surface text-label-lg font-label-lg transition-colors" href="#faq">FAQ</a>
-</nav>
-<!-- Right Trailing Actions -->
-<div class="flex items-center gap-4">
-<a class="text-on-surface-variant hover:text-primary text-label-lg font-label-lg font-medium transition-colors hidden sm:block" href="#preco">Entrar</a>
-<a class="inline-flex items-center gap-2 bg-primary-container hover:bg-primary text-on-primary text-label-lg font-label-lg px-6 py-2.5 rounded-full shadow-cherry-glow transition-all duration-200 active:scale-[0.98]" href="#preco">
-<span>Criar Oferta Agora</span>
-<span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
-</a>
-</div>
-</div>
-</header>
-<main>
-<!-- HERO SECTION -->
-<section class="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-28">
-<div class="max-w-7xl mx-auto px-6 lg:px-12">
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-<!-- Left Column: Persuasion & CTA -->
-<div class="lg:col-span-6 flex flex-col items-start">
-<!-- Quick Pill -->
-<div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-on-primary-container/20 border border-primary-container/30 text-primary mb-6">
-<span class="material-symbols-outlined text-sm" data-icon="bolt">bolt</span>
-<span class="text-label-caps tracking-wider uppercase">Pronto em 90 segundos</span>
-</div>
-<h1 class="text-headline-xl lg:text-display-lg font-display-lg text-on-surface tracking-tight leading-none mb-6">
-              Sua promoção pronta para postar, <span class="text-primary font-bold underline decoration-outline-variant/60 underline-offset-8">sem precisar</span> saber design.
-            </h1>
-<p class="text-body-lg text-on-surface-variant mb-8 max-w-xl leading-relaxed">
-              Crie artes profissionais para Feed e Story do seu delivery em segundos. Basta colocar o nome do prato, o preço promocional e baixar na hora no seu celular ou computador.
-            </p>
-<!-- Primary Hero CTA -->
-<div class="w-full sm:w-auto flex flex-col gap-4">
-<a class="inline-flex items-center justify-center gap-3 bg-primary-container hover:bg-primary text-on-primary text-headline-sm font-label-lg px-8 py-4 rounded-full shadow-cherry-glow hover:shadow-warm-lift transition-all duration-200 active:scale-[0.98] group" href="#preco">
-<span>Criar promoção agora (R$ 9,90 via Pix)</span>
-<span class="material-symbols-outlined transition-transform duration-200 group-hover:translate-x-1" data-icon="east">east</span>
-</a>
-<!-- Micro benefits row -->
-<div class="flex flex-wrap items-center gap-y-2 gap-x-5 text-label-md text-on-surface-variant pt-2">
-<span class="flex items-center gap-1.5">
-<span class="material-symbols-outlined text-secondary text-base" data-icon="check_circle">check_circle</span>
-                  Sem mensalidade
-                </span>
-<span class="text-outline-variant">•</span>
-<span class="flex items-center gap-1.5">
-<span class="material-symbols-outlined text-secondary text-base" data-icon="check_circle">check_circle</span>
-                  Download em ultra PNG
-                </span>
-<span class="text-outline-variant">•</span>
-<span class="flex items-center gap-1.5">
-<span class="material-symbols-outlined text-secondary text-base" data-icon="check_circle">check_circle</span>
-                  Prévia grátis antes de pagar
-                </span>
-</div>
-</div>
-<!-- Social proof strip -->
-<div class="mt-10 pt-8 border-t border-outline-variant/40 flex items-center gap-4">
-<div class="flex -space-x-2">
-<div class="w-10 h-10 rounded-full border-2 border-surface bg-secondary-fixed flex items-center justify-center text-secondary font-bold text-label-md">MS</div>
-<div class="w-10 h-10 rounded-full border-2 border-surface bg-tertiary-fixed flex items-center justify-center text-tertiary font-bold text-label-md">RL</div>
-<div class="w-10 h-10 rounded-full border-2 border-surface bg-primary-fixed flex items-center justify-center text-primary font-bold text-label-md">TM</div>
-<div class="w-10 h-10 rounded-full border-2 border-surface bg-surface-container-high flex items-center justify-center text-on-surface font-semibold text-label-md">+1k</div>
-</div>
-<div class="text-body-sm text-on-surface-variant">
-<div class="flex items-center text-[#e6a100] gap-0.5">
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-</div>
-<span class="font-medium text-on-surface">Mais de 1.400 ofertas geradas</span> esta semana por deliveries parceiros.
-              </div>
-</div>
-</div>
-<!-- Right Column: Visual Showcase Mockup (Feed 4:5 + Story 9:16) -->
-<div class="lg:col-span-6 relative">
-<!-- Floating Label Top -->
-<div class="absolute -top-4 right-4 z-20 bg-inverse-surface text-inverse-on-surface text-label-caps tracking-widest px-4 py-1.5 rounded-full shadow-lg border border-outline-variant/20 uppercase">
-              1 Criação = Os 2 Formatos Essenciais
-            </div>
-<!-- Bento Preview Container -->
-<div class="relative bg-surface-container-low p-6 lg:p-8 rounded-3xl border border-outline-variant/30 shadow-warm-subtle">
-<div class="grid grid-cols-1 sm:grid-cols-12 gap-5 items-end">
-<!-- Mockup 1: Feed 4:5 -->
-<div class="sm:col-span-7 bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/40 shadow-warm-lift transition-transform hover:-translate-y-1 duration-300">
-<div class="p-3 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between">
-<span class="text-label-caps text-on-surface-variant font-bold uppercase tracking-wider flex items-center gap-1.5">
-<span class="material-symbols-outlined text-xs text-primary" data-icon="crop_portrait">crop_portrait</span>
-                      Feed (4:5)
-                    </span>
-<span class="text-label-md text-secondary font-medium">1080 × 1350 px</span>
-</div>
-<!-- Creative Graphic Render -->
-<div class="relative aspect-[4/5] bg-inverse-surface overflow-hidden group">
-<img alt="Hambúrguer artesanal suculento" class="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/AEtjO1WcbeV8RutexdsfCgfh8UAl1Wg07VsGGxd9-YdvHdU_jr-6oyJi-nDGuU9Po39leHrAEyuYlrJXgaEg0QoJnAb2QNnAkVR7f0rTV-n7-Yvk1828SkRmAj2BMHR4FigGZfkoF4NugCmGBAAa2yh4hhhM7VU-APxgb2332Qblv_B4MVvohYpS1rp9WqAaOM_lUDGI5K3UBEeNL2dijUWfKMfbUuRT-Mcievj7mWit_XcGxaJ46pfWpfEZSw"/>
-<!-- Overlay Ad Graphics -->
-<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent flex flex-col justify-between p-5">
-<div class="flex justify-between items-start">
-<span class="bg-primary text-on-primary text-label-caps font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
-                          Combo Artesanal do Dia
-                        </span>
-<div class="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-<span class="material-symbols-outlined text-sm" data-icon="local_fire_department">local_fire_department</span>
-</div>
-</div>
-<div class="space-y-1">
-<p class="text-tertiary-fixed text-label-caps tracking-widest uppercase font-bold">Hamburgueria Nobre</p>
-<h4 class="text-white text-headline-sm font-bold tracking-tight leading-tight">DUPLO SMASH + FRITAS CROCANTES</h4>
-<div class="flex items-baseline gap-2 pt-1">
-<span class="text-white/60 line-through text-body-sm">De R$ 49,90</span>
-<span class="text-tertiary-fixed text-headline-lg font-extrabold">R$ 34,90</span>
-</div>
-<div class="pt-2">
-<span class="inline-block bg-white text-on-surface text-label-md font-bold px-3 py-1 rounded-full">
-                            Perfeito para Feed &amp; Meta Ads
-                          </span>
-</div>
-</div>
-</div>
-</div>
-</div>
-<!-- Mockup 2: Story 9:16 (Narrow & Tall) -->
-<div class="sm:col-span-5 bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/40 shadow-warm-lift transition-transform hover:-translate-y-1 duration-300">
-<div class="p-3 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between">
-<span class="text-label-caps text-on-surface-variant font-bold uppercase tracking-wider flex items-center gap-1.5">
-<span class="material-symbols-outlined text-xs text-secondary" data-icon="smartphone">smartphone</span>
-                      Story (9:16)
-                    </span>
-<span class="text-label-md text-on-surface-variant">1080 × 1920</span>
-</div>
-<!-- Creative Graphic Render -->
-<div class="relative aspect-[9/16] bg-inverse-surface overflow-hidden group">
-<img alt="Pizza artesanal saindo do forno" class="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/AEtjO1VaQLVjk8GnEahg3S5SSpA4604ArsF0kqy16NTlwEaKHrzyWChS5h3ofEwGbRgC_LcGd9gGq3YbXPwi2PSqh-TxS--8wRwAueaAS23j8-K1IzYvYhvEDekMwFjm5EELyW7B2Im1WHXimv9EaWwQWQTV5S1pD-yuRFsU2-i7PfDeTATu2AX1uwyvoxUEpiSZCCiN4x5yad-SPkQL8luMC5qmVXvIWs7say_rIoQMtM_k1Q8JcUw6aVXlOg"/>
-<div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-black/40 flex flex-col justify-between p-4 text-center">
-<div class="pt-2">
-<span class="bg-secondary-fixed text-on-secondary-fixed text-label-caps font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                          Oferta Relâmpago Noturna
-                        </span>
-</div>
-<div class="space-y-2 pb-2">
-<span class="inline-block bg-primary-container text-white text-label-md font-bold px-2.5 py-0.5 rounded-full">
-                          Válido Hoje
-                        </span>
-<h4 class="text-white text-label-lg font-bold leading-tight">PIZZA EM DOBRO NO FORNO A LENHA</h4>
-<p class="text-tertiary-fixed-dim text-headline-md font-extrabold">R$ 59,90</p>
-<div class="pt-2">
-<span class="block w-full py-2 bg-secondary text-white rounded-full text-label-md font-bold shadow-md">
-                            Peça direto no WhatsApp
-                          </span>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<!-- Floating Micro-tag -->
-<div class="mt-4 flex items-center justify-between bg-surface-container-lowest px-4 py-3 rounded-xl border border-outline-variant/40">
-<div class="flex items-center gap-2 text-label-md text-on-surface">
-<span class="material-symbols-outlined text-secondary" data-icon="auto_awesome">auto_awesome</span>
-                  Tipografia e contrastes calibrados para alta conversão no iFood e Instagram.
-                </div>
-<span class="text-label-caps text-primary font-bold uppercase">PNG Sem Marcas</span>
-</div>
-</div>
-</div>
-</div>
-</div>
-</section>
-<!-- SECTION 2: COMO FUNCIONA (3 PASSOS) -->
-<section class="py-20 bg-surface-container-low border-y border-outline-variant/30" id="como-funciona">
-<div class="max-w-7xl mx-auto px-6 lg:px-12">
-<div class="text-center max-w-2xl mx-auto mb-16">
-<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container text-secondary text-label-caps uppercase font-bold tracking-wider mb-3">
-            Processo Descomplicado
-          </div>
-<h2 class="text-headline-lg lg:text-headline-xl font-headline-xl text-on-surface tracking-tight">
-            Como funciona em 3 passos simples
-          </h2>
-<p class="text-body-md text-on-surface-variant mt-3">
-            Esqueça softwares pesados e templates genéricos do Canva. Aqui o foco é colocar sua promoção no ar antes do almoço ou jantar.
-          </p>
-</div>
-<!-- 3 Bento Columns -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-<!-- Step 1 -->
-<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 shadow-warm-subtle hover:shadow-warm-lift transition-all duration-200 flex flex-col justify-between">
-<div>
-<div class="w-14 h-14 rounded-2xl bg-primary-fixed/40 flex items-center justify-center text-primary mb-6">
-<span class="material-symbols-outlined text-28" data-icon="edit_note">edit_note</span>
-</div>
-<span class="text-label-caps text-secondary font-bold tracking-widest uppercase">Passo 01</span>
-<h3 class="text-headline-sm font-headline-sm text-on-surface mt-1 mb-3">
-                1. Digite a sua oferta
-              </h3>
-<p class="text-body-md text-on-surface-variant leading-relaxed">
-                Insira o nome do prato, o desconto ou preço promocional e faça o upload da foto direto do seu celular ou acervo do restaurante.
-              </p>
-</div>
-<div class="mt-8 pt-4 border-t border-outline-variant/20 flex items-center text-label-md text-on-surface-variant">
-<span class="material-symbols-outlined text-secondary text-base mr-1.5" data-icon="timer">timer</span>
-              Leva menos de 30 segundos
-            </div>
-</div>
-<!-- Step 2 -->
-<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 shadow-warm-subtle hover:shadow-warm-lift transition-all duration-200 flex flex-col justify-between">
-<div>
-<div class="w-14 h-14 rounded-2xl bg-secondary-fixed/50 flex items-center justify-center text-secondary mb-6">
-<span class="material-symbols-outlined text-28" data-icon="palette">palette</span>
-</div>
-<span class="text-label-caps text-secondary font-bold tracking-widest uppercase">Passo 02</span>
-<h3 class="text-headline-sm font-headline-sm text-on-surface mt-1 mb-3">
-                2. Escolha o estilo visual
-              </h3>
-<p class="text-body-md text-on-surface-variant leading-relaxed">
-                Nossos modelos aplicam contrastes gastronômicos calibrados para dar água na boca. Você vê a prévia completa e instantânea na tela sem pagar nada antes.
-              </p>
-</div>
-<div class="mt-8 pt-4 border-t border-outline-variant/20 flex items-center text-label-md text-on-surface-variant">
-<span class="material-symbols-outlined text-secondary text-base mr-1.5" data-icon="visibility">visibility</span>
-              Prévia real sem compromisso
-            </div>
-</div>
-<!-- Step 3 -->
-<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 shadow-warm-subtle hover:shadow-warm-lift transition-all duration-200 flex flex-col justify-between">
-<div>
-<div class="w-14 h-14 rounded-2xl bg-tertiary-fixed/40 flex items-center justify-center text-tertiary mb-6">
-<span class="material-symbols-outlined text-28" data-icon="pix">qr_code_2</span>
-</div>
-<span class="text-label-caps text-secondary font-bold tracking-widest uppercase">Passo 03</span>
-<h3 class="text-headline-sm font-headline-sm text-on-surface mt-1 mb-3">
-                3. Pix de R$ 9,90 e baixe
-              </h3>
-<p class="text-body-md text-on-surface-variant leading-relaxed">
-                Ao aprovar a arte, pague via Pix instantâneo. Em 3 segundos as versões para Feed (4:5) e Story (9:16) são liberadas em ultra resolução sem marca d'água.
-              </p>
-</div>
-<div class="mt-8 pt-4 border-t border-outline-variant/20 flex items-center text-label-md text-on-surface-variant">
-<span class="material-symbols-outlined text-secondary text-base mr-1.5" data-icon="download_done">download_done</span>
-              Liberação automática no Pix
-            </div>
-</div>
-</div>
-</div>
-</section>
-<!-- SECTION 3: FORMATOS ESSENCIAIS (BENEFIT STRIP) -->
-<section class="py-20 bg-surface" id="formatos">
-<div class="max-w-7xl mx-auto px-6 lg:px-12">
-<div class="bg-surface-container-high rounded-3xl p-8 lg:p-12 border border-outline-variant/40 flex flex-col lg:flex-row items-center justify-between gap-8">
-<div class="space-y-3 max-w-xl">
-<span class="text-label-caps text-primary font-bold uppercase tracking-wider">Compatibilidade Garantida</span>
-<h3 class="text-headline-lg font-headline-lg text-on-surface">Arquivos nos padrões exatos das redes</h3>
-<p class="text-body-md text-on-surface-variant">
-              Nada de imagem cortada ou texto tapado pela barra de navegação do Instagram. Cada arte gerada respeita as margens de segurança para anúncios e postagens orgânicas.
-            </p>
-</div>
-<div class="flex flex-wrap items-center gap-4">
-<div class="bg-surface-container-lowest px-5 py-4 rounded-2xl border border-outline-variant/30 flex items-center gap-3">
-<span class="material-symbols-outlined text-primary text-28" data-icon="aspect_ratio">aspect_ratio</span>
-<div>
-<p class="text-label-lg font-label-lg text-on-surface">Feed Retrato (4:5)</p>
-<p class="text-label-md text-on-surface-variant">1080 x 1350 px</p>
-</div>
-</div>
-<div class="bg-surface-container-lowest px-5 py-4 rounded-2xl border border-outline-variant/30 flex items-center gap-3">
-<span class="material-symbols-outlined text-secondary text-28" data-icon="stay_current_portrait">stay_current_portrait</span>
-<div>
-<p class="text-label-lg font-label-lg text-on-surface">Stories / Status (9:16)</p>
-<p class="text-label-md text-on-surface-variant">1080 x 1920 px</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-</section>
-<!-- SECTION 4: PREÇO 'ZERO ENROLAÇÃO' (TICKET / RECEIPT STYLE) -->
-<section class="py-20 bg-surface-container-low border-y border-outline-variant/30 relative" id="preco">
-<div class="max-w-4xl mx-auto px-6">
-<div class="text-center max-w-xl mx-auto mb-12">
-<span class="text-label-caps text-secondary font-bold uppercase tracking-wider px-3 py-1 bg-surface-container rounded-full">
-            Transparência Absoluta
-          </span>
-<h2 class="text-headline-lg lg:text-headline-xl font-headline-xl text-on-surface mt-2 tracking-tight">
-            Cardápio de Preço Zero Enrolação
-          </h2>
-<p class="text-body-md text-on-surface-variant mt-2">
-            Sem contratos mensais de R$ 200, sem taxa de cancelamento. Você só paga R$ 9,90 quando tiver uma promoção para soltar.
-          </p>
-</div>
-<!-- Chic Order Ticket Card -->
-<div class="relative bg-surface-container-lowest rounded-3xl border border-outline-variant/40 shadow-warm-lift overflow-hidden">
-<!-- Top Receipt Perforation Graphic -->
-<div class="bg-surface-container-high px-8 py-5 border-b border-dashed border-outline-variant/60 flex flex-wrap justify-between items-center gap-4">
-<div>
-<p class="text-label-caps font-bold text-on-surface tracking-widest uppercase">Ticket de Pedido • OfertaPronta</p>
-<p class="text-headline-sm font-bold text-primary">Pacote Completo Feed + Story</p>
-</div>
-<div class="px-3 py-1 bg-secondary-fixed text-on-secondary-fixed text-label-md font-bold rounded-full">
-              Pague Apenas ao Baixar
-            </div>
-</div>
-<div class="p-8 sm:p-12">
-<!-- Price Display -->
-<div class="flex flex-col sm:flex-row items-baseline justify-between border-b border-outline-variant/30 pb-8 mb-8 gap-4">
-<div>
-<span class="text-body-sm text-on-surface-variant uppercase tracking-wider font-semibold">Valor Único por Criação</span>
-<div class="flex items-baseline gap-2 mt-1">
-<span class="text-display-lg font-bold text-on-surface tracking-tight">R$ 9,90</span>
-<span class="text-body-md text-on-surface-variant font-medium">/ por arte final (sem mensalidade)</span>
-</div>
-</div>
-<div class="text-right">
-<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container text-secondary font-semibold text-label-md">
-<span class="material-symbols-outlined text-sm" data-icon="bolt">bolt</span>
-                  Via Pix Instantâneo
-                </span>
-</div>
-</div>
-<!-- Receipt Checklist Items -->
-<div class="space-y-4 mb-10">
-<div class="flex items-start gap-3">
-<div class="w-6 h-6 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary shrink-0 mt-0.5">
-<span class="material-symbols-outlined text-sm" data-icon="check">check</span>
-</div>
-<div class="text-body-md text-on-surface">
-<strong class="font-semibold text-on-surface">Ambas as versões inclusas:</strong> Feed (1080x1350) e Story (1080x1920) prontas para postar.
-                </div>
-</div>
-<div class="flex items-start gap-3">
-<div class="w-6 h-6 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary shrink-0 mt-0.5">
-<span class="material-symbols-outlined text-sm" data-icon="check">check</span>
-</div>
-<div class="text-body-md text-on-surface">
-<strong class="font-semibold text-on-surface">Download em ultra resolução PNG</strong> 100% limpo, sem nenhuma marca d'água.
-                </div>
-</div>
-<div class="flex items-start gap-3">
-<div class="w-6 h-6 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary shrink-0 mt-0.5">
-<span class="material-symbols-outlined text-sm" data-icon="check">check</span>
-</div>
-<div class="text-body-md text-on-surface">
-<strong class="font-semibold text-on-surface">QR Code Pix gerado na hora:</strong> confirmação do banco e download liberado em 3 segundos.
-                </div>
-</div>
-<div class="flex items-start gap-3">
-<div class="w-6 h-6 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary shrink-0 mt-0.5">
-<span class="material-symbols-outlined text-sm" data-icon="check">check</span>
-</div>
-<div class="text-body-md text-on-surface">
-<strong class="font-semibold text-on-surface">Economia real de caixa:</strong> não gaste R$ 50 a R$ 100 com agência para promoções corriqueiras da semana.
-                </div>
-</div>
-<div class="flex items-start gap-3">
-<div class="w-6 h-6 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary shrink-0 mt-0.5">
-<span class="material-symbols-outlined text-sm" data-icon="check">check</span>
-</div>
-<div class="text-body-md text-on-surface">
-<strong class="font-semibold text-on-surface">Privacidade total:</strong> sem criar conta, sem inventar senha e sem cadastrar cartão de crédito.
-                </div>
-</div>
-</div>
-<!-- Direct Prominent CTA inside ticket -->
-<div class="bg-surface-container-low p-6 rounded-2xl border border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between gap-6">
-<div class="space-y-1 text-center sm:text-left">
-<p class="text-headline-sm font-bold text-on-surface">Pronto para criar sua arte?</p>
-<p class="text-body-sm text-on-surface-variant">Experimente agora. Você só realiza o Pix após aprovar a prévia.</p>
-</div>
-<button class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary-container hover:bg-primary text-on-primary text-label-lg font-label-lg px-8 py-3.5 rounded-full shadow-cherry-glow hover:shadow-warm-lift transition-all duration-200 active:scale-[0.98]">
-<span>Começar Agora por R$ 9,90</span>
-<span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
-</button>
-</div>
-</div>
-<!-- Bottom Decorative Receipt Notch -->
-<div class="h-3 bg-surface-container-high border-t border-dashed border-outline-variant/40"></div>
-</div>
-</div>
-</section>
-<!-- SECTION 5: GRID DE DEPOIMENTOS (DONOS DE DELIVERY) -->
-<section class="py-20 bg-surface" id="depoimentos">
-<div class="max-w-7xl mx-auto px-6 lg:px-12">
-<div class="text-center max-w-2xl mx-auto mb-16">
-<span class="text-label-caps text-secondary font-bold uppercase tracking-wider px-3 py-1 bg-surface-container rounded-full">
-            Quem Usa e Recomenda
-          </span>
-<h2 class="text-headline-lg lg:text-headline-xl font-headline-xl text-on-surface mt-2 tracking-tight">
-            Feito para quem vive a correria da cozinha
-          </h2>
-<p class="text-body-md text-on-surface-variant mt-3">
-            Veja o que hamburguerias, pizzarias e restaurantes delivery dizem sobre usar o OfertaPronta no dia a dia.
-          </p>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-<!-- Testimonial 1 -->
-<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 shadow-warm-subtle flex flex-col justify-between">
-<div>
-<div class="flex text-[#e6a100] gap-0.5 mb-4">
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-</div>
-<p class="text-body-md text-on-surface italic leading-relaxed">
-                "Na quinta-feira a chapa estava fria e inventei um combo duplo com batata. Em 2 minutos a arte estava pronta no Story e no status do WhatsApp. Vendi 38 combos na noite. Pagou os R$ 9,90 centenas de vezes."
-              </p>
-</div>
-<div class="mt-8 pt-6 border-t border-outline-variant/20 flex items-center gap-3">
-<div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold text-label-lg">
-                MS
-              </div>
-<div>
-<p class="text-label-lg font-bold text-on-surface">Marcos Silveira</p>
-<p class="text-label-md text-on-surface-variant">Burger House SP • São Paulo</p>
-</div>
-</div>
-</div>
-<!-- Testimonial 2 -->
-<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 shadow-warm-subtle flex flex-col justify-between">
-<div>
-<div class="flex text-[#e6a100] gap-0.5 mb-4">
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-</div>
-<p class="text-body-md text-on-surface italic leading-relaxed">
-                "Eu pagava R$ 600 por mês para uma freelancer fazer 8 posts. O OfertaPronta me deu independência total. A qualidade visual da tipografia e o destaque no preço do rodízio ficaram impecáveis."
-              </p>
-</div>
-<div class="mt-8 pt-6 border-t border-outline-variant/20 flex items-center gap-3">
-<div class="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary font-bold text-label-lg">
-                RL
-              </div>
-<div>
-<p class="text-label-lg font-bold text-on-surface">Renata L.</p>
-<p class="text-label-md text-on-surface-variant">Pizzaria Forno Nobre • Curitiba</p>
-</div>
-</div>
-</div>
-<!-- Testimonial 3 -->
-<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 shadow-warm-subtle flex flex-col justify-between">
-<div>
-<div class="flex text-[#e6a100] gap-0.5 mb-4">
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-<span class="material-symbols-outlined text-sm" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
-</div>
-<p class="text-body-md text-on-surface italic leading-relaxed">
-                "O fato de não precisar criar login nem colocar cartão de crédito foi o que me conquistou. Pago os R$ 9,90 no Pix da empresa e o download do PNG vem limpo, sem marca d'água nenhuma."
-              </p>
-</div>
-<div class="mt-8 pt-6 border-t border-outline-variant/20 flex items-center gap-3">
-<div class="w-12 h-12 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary font-bold text-label-lg">
-                TM
-              </div>
-<div>
-<p class="text-label-lg font-bold text-on-surface">Tiago Mendes</p>
-<p class="text-label-md text-on-surface-variant">Sushi Express • Rio de Janeiro</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-</section>
-<!-- SECTION 6: FAQ ACORDEOM -->
-<section class="py-20 bg-surface-container-low border-t border-outline-variant/30" id="faq">
-<div class="max-w-4xl mx-auto px-6">
-<div class="text-center max-w-xl mx-auto mb-16">
-<span class="text-label-caps text-secondary font-bold uppercase tracking-wider px-3 py-1 bg-surface-container rounded-full">
-            Dúvidas Frequentes
-          </span>
-<h2 class="text-headline-lg lg:text-headline-xl font-headline-xl text-on-surface mt-2 tracking-tight">
-            Tudo o que você precisa saber
-          </h2>
-<p class="text-body-md text-on-surface-variant mt-2">
-            Respostas diretas sobre o funcionamento e entrega das artes.
-          </p>
-</div>
-<!-- FAQ Items -->
-<div class="space-y-4">
-<details class="group bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 [&amp;_summary::-webkit-details-marker]:hidden" open="">
-<summary class="flex items-center justify-between cursor-pointer">
-<h3 class="text-headline-sm font-label-lg text-on-surface">Preciso ter conta ou senha para criar?</h3>
-<span class="material-symbols-outlined text-on-surface-variant transition duration-300 group-open:-rotate-180" data-icon="expand_more">expand_more</span>
-</summary>
-<p class="mt-4 text-body-md text-on-surface-variant leading-relaxed border-t border-outline-variant/20 pt-4">
-              Não. O OfertaPronta foi planejado para agilidade extrema. Você não precisa lembrar de senhas nem cadastrar dados bancários. Você monta sua arte, visualiza a prévia e paga R$ 9,90 via Pix somente no momento do download.
-            </p>
-</details>
-<details class="group bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 [&amp;_summary::-webkit-details-marker]:hidden">
-<summary class="flex items-center justify-between cursor-pointer">
-<h3 class="text-headline-sm font-label-lg text-on-surface">E se eu não tiver uma foto profissional do prato?</h3>
-<span class="material-symbols-outlined text-on-surface-variant transition duration-300 group-open:-rotate-180" data-icon="expand_more">expand_more</span>
-</summary>
-<p class="mt-4 text-body-md text-on-surface-variant leading-relaxed border-t border-outline-variant/20 pt-4">
-              Pode tirar a foto pelo próprio celular em um local bem iluminado. Nossa ferramenta faz o ajuste de enquadramento automático, aplica filtros de contraste gastronômico e adiciona vinhetas que realçam as cores do alimento. Além disso, disponibilizamos um banco gratuito com fotos de hambúrgueres, pizzas e sushis de alto padrão.
-            </p>
-</details>
-<details class="group bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 [&amp;_summary::-webkit-details-marker]:hidden">
-<summary class="flex items-center justify-between cursor-pointer">
-<h3 class="text-headline-sm font-label-lg text-on-surface">Como e quando recebo as artes?</h3>
-<span class="material-symbols-outlined text-on-surface-variant transition duration-300 group-open:-rotate-180" data-icon="expand_more">expand_more</span>
-</summary>
-<p class="mt-4 text-body-md text-on-surface-variant leading-relaxed border-t border-outline-variant/20 pt-4">
-              A liberação é instantânea na tela. Assim que o Pix é identificado pelo Banco Central (geralmente em 3 a 5 segundos), o botão de download dos arquivos em formato PNG de alta resolução é liberado imediatamente no seu navegador.
-            </p>
-</details>
-<details class="group bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 [&amp;_summary::-webkit-details-marker]:hidden">
-<summary class="flex items-center justify-between cursor-pointer">
-<h3 class="text-headline-sm font-label-lg text-on-surface">Posso usar para anúncios patrocinados (Meta Ads)?</h3>
-<span class="material-symbols-outlined text-on-surface-variant transition duration-300 group-open:-rotate-180" data-icon="expand_more">expand_more</span>
-</summary>
-<p class="mt-4 text-body-md text-on-surface-variant leading-relaxed border-t border-outline-variant/20 pt-4">
-              Sim! As dimensões geradas (Feed 1080x1350 e Story 1080x1920) são exatamente as recomendadas pelas diretrizes do Facebook e Instagram Ads para obter a melhor taxa de cliques e menor custo por visualização.
-            </p>
-</details>
-</div>
-<!-- Help Support Micro Box -->
-<div class="mt-12 text-center p-6 bg-surface-container rounded-2xl border border-outline-variant/40 flex flex-col sm:flex-row items-center justify-between gap-4">
-<div class="text-left">
-<p class="text-label-lg font-bold text-on-surface">Ainda tem dúvidas sobre sua promoção?</p>
-<p class="text-body-sm text-on-surface-variant">Fale com nosso time de atendimento gastronômico.</p>
-</div>
-<a class="inline-flex items-center gap-2 px-5 py-2.5 bg-secondary text-white rounded-full text-label-md font-bold hover:bg-secondary/90 transition-colors shadow-sm" href="https://wa.me/">
-<span class="material-symbols-outlined text-base" data-icon="chat">chat</span>
-            Suporte WhatsApp
+      .shadow-warm-subtle {
+        box-shadow:
+          0 4px 20px -2px rgba(43, 40, 36, 0.05),
+          0 2px 6px -1px rgba(43, 40, 36, 0.02);
+      }
+      .shadow-warm-lift {
+        box-shadow:
+          0 16px 36px -8px rgba(43, 40, 36, 0.09),
+          0 4px 12px -2px rgba(43, 40, 36, 0.03);
+      }
+      .shadow-cherry-glow {
+        box-shadow: 0 10px 24px -4px rgba(198, 40, 40, 0.32);
+      }
+      .receipt-edge {
+        background-image: radial-gradient(
+          circle at 10px -5px,
+          transparent 12px,
+          #ffffff 13px
+        );
+        background-size: 20px 20px;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-background text-on-surface font-body-md antialiased selection:bg-primary-container selection:text-on-primary"
+  >
+    <!-- TOP APP BAR (Shared Component Anchor) -->
+    <header
+      class="bg-surface/90 backdrop-blur-md border-b border-outline-variant/30 docked full-width top-0 z-50 shadow-sm sticky"
+    >
+      <div
+        class="max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between h-20 w-full"
+      >
+        <!-- Brand & Pill Badge -->
+        <div class="flex items-center gap-4">
+          <a
+            class="text-headline-md font-headline-md font-bold tracking-tight text-primary flex items-center gap-2"
+            href="#"
+          >
+            <span
+              class="material-symbols-outlined text-primary text-28"
+              data-icon="restaurant_menu"
+              >restaurant_menu</span
+            >
+            OfertaPronta
           </a>
-</div>
-</div>
-</section>
-</main>
-<!-- FOOTER (Shared Component Anchor) -->
-<footer class="bg-surface-container-low border-t border-outline-variant/30 docked full-width bottom-0">
-<div class="max-w-7xl mx-auto px-6 lg:px-12 py-16 flex flex-col md:flex-row justify-between items-center gap-8 w-full">
-<!-- Brand & Description -->
-<div class="flex flex-col items-center md:items-start gap-2">
-<a class="text-headline-md font-headline-md font-bold text-primary flex items-center gap-2" href="#">
-<span class="material-symbols-outlined text-primary text-28" data-icon="restaurant_menu">restaurant_menu</span>
-          OfertaPronta
-        </a>
-<p class="text-body-sm font-body-sm text-on-surface-variant text-center md:text-left max-w-sm">
-          © 2025 OfertaPronta. Todos os direitos reservados. Feito para impulsionar negócios gastronômicos.
-        </p>
-</div>
-<!-- Links -->
-<div class="flex flex-wrap items-center justify-center gap-6 text-label-caps font-label-caps">
-<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Termos de Uso</a>
-<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Privacidade</a>
-<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Suporte Pix</a>
-<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Contato</a>
-<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Instagram</a>
-</div>
-</div>
-</footer>
-</body></html>
+          <span
+            class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-fixed/50 text-secondary text-label-md font-label-md border border-secondary/20"
+          >
+            <span
+              class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"
+            ></span>
+            ✦ Sem cadastro obrigatório
+          </span>
+        </div>
+        <!-- Desktop Nav Links -->
+        <nav class="hidden md:flex items-center gap-8">
+          <a
+            class="text-on-surface-variant hover:text-on-surface text-label-lg font-label-lg transition-colors"
+            href="#como-funciona"
+            >Como Funciona</a
+          >
+          <a
+            class="text-on-surface-variant hover:text-on-surface text-label-lg font-label-lg transition-colors"
+            href="#formatos"
+            >Modelos</a
+          >
+          <a
+            class="text-primary font-semibold text-label-lg font-label-lg transition-colors"
+            href="#preco"
+            >Preço</a
+          >
+          <a
+            class="text-on-surface-variant hover:text-on-surface text-label-lg font-label-lg transition-colors"
+            href="#depoimentos"
+            >Depoimentos</a
+          >
+          <a
+            class="text-on-surface-variant hover:text-on-surface text-label-lg font-label-lg transition-colors"
+            href="#faq"
+            >FAQ</a
+          >
+        </nav>
+        <!-- Right Trailing Actions -->
+        <div class="flex items-center gap-4">
+          <a
+            class="text-on-surface-variant hover:text-primary text-label-lg font-label-lg font-medium transition-colors hidden sm:block"
+            href="#preco"
+            >Entrar</a
+          >
+          <a
+            class="inline-flex items-center gap-2 bg-primary-container hover:bg-primary text-on-primary text-label-lg font-label-lg px-6 py-2.5 rounded-full shadow-cherry-glow transition-all duration-200 active:scale-[0.98]"
+            href="#preco"
+          >
+            <span>Criar Oferta Agora</span>
+            <span
+              class="material-symbols-outlined text-sm"
+              data-icon="arrow_forward"
+              >arrow_forward</span
+            >
+          </a>
+        </div>
+      </div>
+    </header>
+    <main>
+      <!-- HERO SECTION -->
+      <section class="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-28">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12">
+          <div
+            class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center"
+          >
+            <!-- Left Column: Persuasion & CTA -->
+            <div class="lg:col-span-6 flex flex-col items-start">
+              <!-- Quick Pill -->
+              <div
+                class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-on-primary-container/20 border border-primary-container/30 text-primary mb-6"
+              >
+                <span class="material-symbols-outlined text-sm" data-icon="bolt"
+                  >bolt</span
+                >
+                <span class="text-label-caps tracking-wider uppercase"
+                  >Pronto em 90 segundos</span
+                >
+              </div>
+              <h1
+                class="text-headline-xl lg:text-display-lg font-display-lg text-on-surface tracking-tight leading-none mb-6"
+              >
+                Sua promoção pronta para postar,
+                <span
+                  class="text-primary font-bold underline decoration-outline-variant/60 underline-offset-8"
+                  >sem precisar</span
+                >
+                saber design.
+              </h1>
+              <p
+                class="text-body-lg text-on-surface-variant mb-8 max-w-xl leading-relaxed"
+              >
+                Crie artes profissionais para Feed e Story do seu delivery em
+                segundos. Basta colocar o nome do prato, o preço promocional e
+                baixar na hora no seu celular ou computador.
+              </p>
+              <!-- Primary Hero CTA -->
+              <div class="w-full sm:w-auto flex flex-col gap-4">
+                <a
+                  class="inline-flex items-center justify-center gap-3 bg-primary-container hover:bg-primary text-on-primary text-headline-sm font-label-lg px-8 py-4 rounded-full shadow-cherry-glow hover:shadow-warm-lift transition-all duration-200 active:scale-[0.98] group"
+                  href="#preco"
+                >
+                  <span>Criar promoção agora (R$ 9,90 via Pix)</span>
+                  <span
+                    class="material-symbols-outlined transition-transform duration-200 group-hover:translate-x-1"
+                    data-icon="east"
+                    >east</span
+                  >
+                </a>
+                <!-- Micro benefits row -->
+                <div
+                  class="flex flex-wrap items-center gap-y-2 gap-x-5 text-label-md text-on-surface-variant pt-2"
+                >
+                  <span class="flex items-center gap-1.5">
+                    <span
+                      class="material-symbols-outlined text-secondary text-base"
+                      data-icon="check_circle"
+                      >check_circle</span
+                    >
+                    Sem mensalidade
+                  </span>
+                  <span class="text-outline-variant">•</span>
+                  <span class="flex items-center gap-1.5">
+                    <span
+                      class="material-symbols-outlined text-secondary text-base"
+                      data-icon="check_circle"
+                      >check_circle</span
+                    >
+                    Download em ultra PNG
+                  </span>
+                  <span class="text-outline-variant">•</span>
+                  <span class="flex items-center gap-1.5">
+                    <span
+                      class="material-symbols-outlined text-secondary text-base"
+                      data-icon="check_circle"
+                      >check_circle</span
+                    >
+                    Prévia grátis antes de pagar
+                  </span>
+                </div>
+              </div>
+              <!-- Social proof strip -->
+              <div
+                class="mt-10 pt-8 border-t border-outline-variant/40 flex items-center gap-4"
+              >
+                <div class="flex -space-x-2">
+                  <div
+                    class="w-10 h-10 rounded-full border-2 border-surface bg-secondary-fixed flex items-center justify-center text-secondary font-bold text-label-md"
+                  >
+                    MS
+                  </div>
+                  <div
+                    class="w-10 h-10 rounded-full border-2 border-surface bg-tertiary-fixed flex items-center justify-center text-tertiary font-bold text-label-md"
+                  >
+                    RL
+                  </div>
+                  <div
+                    class="w-10 h-10 rounded-full border-2 border-surface bg-primary-fixed flex items-center justify-center text-primary font-bold text-label-md"
+                  >
+                    TM
+                  </div>
+                  <div
+                    class="w-10 h-10 rounded-full border-2 border-surface bg-surface-container-high flex items-center justify-center text-on-surface font-semibold text-label-md"
+                  >
+                    +1k
+                  </div>
+                </div>
+                <div class="text-body-sm text-on-surface-variant">
+                  <div class="flex items-center text-[#e6a100] gap-0.5">
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="star"
+                      style="font-variation-settings: &quot;FILL&quot; 1"
+                      >star</span
+                    >
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="star"
+                      style="font-variation-settings: &quot;FILL&quot; 1"
+                      >star</span
+                    >
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="star"
+                      style="font-variation-settings: &quot;FILL&quot; 1"
+                      >star</span
+                    >
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="star"
+                      style="font-variation-settings: &quot;FILL&quot; 1"
+                      >star</span
+                    >
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="star"
+                      style="font-variation-settings: &quot;FILL&quot; 1"
+                      >star</span
+                    >
+                  </div>
+                  <span class="font-medium text-on-surface"
+                    >Mais de 1.400 ofertas geradas</span
+                  >
+                  esta semana por deliveries parceiros.
+                </div>
+              </div>
+            </div>
+            <!-- Right Column: Visual Showcase Mockup (Feed 4:5 + Story 9:16) -->
+            <div class="lg:col-span-6 relative">
+              <!-- Floating Label Top -->
+              <div
+                class="absolute -top-4 right-4 z-20 bg-inverse-surface text-inverse-on-surface text-label-caps tracking-widest px-4 py-1.5 rounded-full shadow-lg border border-outline-variant/20 uppercase"
+              >
+                1 Criação = Os 2 Formatos Essenciais
+              </div>
+              <!-- Bento Preview Container -->
+              <div
+                class="relative bg-surface-container-low p-6 lg:p-8 rounded-3xl border border-outline-variant/30 shadow-warm-subtle"
+              >
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-5 items-end">
+                  <!-- Mockup 1: Feed 4:5 -->
+                  <div
+                    class="sm:col-span-7 bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/40 shadow-warm-lift transition-transform hover:-translate-y-1 duration-300"
+                  >
+                    <div
+                      class="p-3 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between"
+                    >
+                      <span
+                        class="text-label-caps text-on-surface-variant font-bold uppercase tracking-wider flex items-center gap-1.5"
+                      >
+                        <span
+                          class="material-symbols-outlined text-xs text-primary"
+                          data-icon="crop_portrait"
+                          >crop_portrait</span
+                        >
+                        Feed (4:5)
+                      </span>
+                      <span class="text-label-md text-secondary font-medium"
+                        >1080 × 1350 px</span
+                      >
+                    </div>
+                    <!-- Creative Graphic Render -->
+                    <div
+                      class="relative aspect-[4/5] bg-inverse-surface overflow-hidden group"
+                    >
+                      <img
+                        alt="Hambúrguer artesanal suculento"
+                        class="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+                        src="https://lh3.googleusercontent.com/aida/AEtjO1WcbeV8RutexdsfCgfh8UAl1Wg07VsGGxd9-YdvHdU_jr-6oyJi-nDGuU9Po39leHrAEyuYlrJXgaEg0QoJnAb2QNnAkVR7f0rTV-n7-Yvk1828SkRmAj2BMHR4FigGZfkoF4NugCmGBAAa2yh4hhhM7VU-APxgb2332Qblv_B4MVvohYpS1rp9WqAaOM_lUDGI5K3UBEeNL2dijUWfKMfbUuRT-Mcievj7mWit_XcGxaJ46pfWpfEZSw"
+                      />
+                      <!-- Overlay Ad Graphics -->
+                      <div
+                        class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent flex flex-col justify-between p-5"
+                      >
+                        <div class="flex justify-between items-start">
+                          <span
+                            class="bg-primary text-on-primary text-label-caps font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-md"
+                          >
+                            Combo Artesanal do Dia
+                          </span>
+                          <div
+                            class="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white"
+                          >
+                            <span
+                              class="material-symbols-outlined text-sm"
+                              data-icon="local_fire_department"
+                              >local_fire_department</span
+                            >
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <p
+                            class="text-tertiary-fixed text-label-caps tracking-widest uppercase font-bold"
+                          >
+                            Hamburgueria Nobre
+                          </p>
+                          <h4
+                            class="text-white text-headline-sm font-bold tracking-tight leading-tight"
+                          >
+                            DUPLO SMASH + FRITAS CROCANTES
+                          </h4>
+                          <div class="flex items-baseline gap-2 pt-1">
+                            <span
+                              class="text-white/60 line-through text-body-sm"
+                              >De R$ 49,90</span
+                            >
+                            <span
+                              class="text-tertiary-fixed text-headline-lg font-extrabold"
+                              >R$ 34,90</span
+                            >
+                          </div>
+                          <div class="pt-2">
+                            <span
+                              class="inline-block bg-white text-on-surface text-label-md font-bold px-3 py-1 rounded-full"
+                            >
+                              Perfeito para Feed &amp; Meta Ads
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Mockup 2: Story 9:16 (Narrow & Tall) -->
+                  <div
+                    class="sm:col-span-5 bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/40 shadow-warm-lift transition-transform hover:-translate-y-1 duration-300"
+                  >
+                    <div
+                      class="p-3 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between"
+                    >
+                      <span
+                        class="text-label-caps text-on-surface-variant font-bold uppercase tracking-wider flex items-center gap-1.5"
+                      >
+                        <span
+                          class="material-symbols-outlined text-xs text-secondary"
+                          data-icon="smartphone"
+                          >smartphone</span
+                        >
+                        Story (9:16)
+                      </span>
+                      <span class="text-label-md text-on-surface-variant"
+                        >1080 × 1920</span
+                      >
+                    </div>
+                    <!-- Creative Graphic Render -->
+                    <div
+                      class="relative aspect-[9/16] bg-inverse-surface overflow-hidden group"
+                    >
+                      <img
+                        alt="Pizza artesanal saindo do forno"
+                        class="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+                        src="https://lh3.googleusercontent.com/aida/AEtjO1VaQLVjk8GnEahg3S5SSpA4604ArsF0kqy16NTlwEaKHrzyWChS5h3ofEwGbRgC_LcGd9gGq3YbXPwi2PSqh-TxS--8wRwAueaAS23j8-K1IzYvYhvEDekMwFjm5EELyW7B2Im1WHXimv9EaWwQWQTV5S1pD-yuRFsU2-i7PfDeTATu2AX1uwyvoxUEpiSZCCiN4x5yad-SPkQL8luMC5qmVXvIWs7say_rIoQMtM_k1Q8JcUw6aVXlOg"
+                      />
+                      <div
+                        class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-black/40 flex flex-col justify-between p-4 text-center"
+                      >
+                        <div class="pt-2">
+                          <span
+                            class="bg-secondary-fixed text-on-secondary-fixed text-label-caps font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider"
+                          >
+                            Oferta Relâmpago Noturna
+                          </span>
+                        </div>
+                        <div class="space-y-2 pb-2">
+                          <span
+                            class="inline-block bg-primary-container text-white text-label-md font-bold px-2.5 py-0.5 rounded-full"
+                          >
+                            Válido Hoje
+                          </span>
+                          <h4
+                            class="text-white text-label-lg font-bold leading-tight"
+                          >
+                            PIZZA EM DOBRO NO FORNO A LENHA
+                          </h4>
+                          <p
+                            class="text-tertiary-fixed-dim text-headline-md font-extrabold"
+                          >
+                            R$ 59,90
+                          </p>
+                          <div class="pt-2">
+                            <span
+                              class="block w-full py-2 bg-secondary text-white rounded-full text-label-md font-bold shadow-md"
+                            >
+                              Peça direto no WhatsApp
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- Floating Micro-tag -->
+                <div
+                  class="mt-4 flex items-center justify-between bg-surface-container-lowest px-4 py-3 rounded-xl border border-outline-variant/40"
+                >
+                  <div
+                    class="flex items-center gap-2 text-label-md text-on-surface"
+                  >
+                    <span
+                      class="material-symbols-outlined text-secondary"
+                      data-icon="auto_awesome"
+                      >auto_awesome</span
+                    >
+                    Tipografia e contrastes calibrados para alta conversão no
+                    iFood e Instagram.
+                  </div>
+                  <span class="text-label-caps text-primary font-bold uppercase"
+                    >PNG Sem Marcas</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- SECTION 2: COMO FUNCIONA (3 PASSOS) -->
+      <section
+        class="py-20 bg-surface-container-low border-y border-outline-variant/30"
+        id="como-funciona"
+      >
+        <div class="max-w-7xl mx-auto px-6 lg:px-12">
+          <div class="text-center max-w-2xl mx-auto mb-16">
+            <div
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container text-secondary text-label-caps uppercase font-bold tracking-wider mb-3"
+            >
+              Processo Descomplicado
+            </div>
+            <h2
+              class="text-headline-lg lg:text-headline-xl font-headline-xl text-on-surface tracking-tight"
+            >
+              Como funciona em 3 passos simples
+            </h2>
+            <p class="text-body-md text-on-surface-variant mt-3">
+              Esqueça softwares pesados e templates genéricos do Canva. Aqui o
+              foco é colocar sua promoção no ar antes do almoço ou jantar.
+            </p>
+          </div>
+          <!-- 3 Bento Columns -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Step 1 -->
+            <div
+              class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 shadow-warm-subtle hover:shadow-warm-lift transition-all duration-200 flex flex-col justify-between"
+            >
+              <div>
+                <div
+                  class="w-14 h-14 rounded-2xl bg-primary-fixed/40 flex items-center justify-center text-primary mb-6"
+                >
+                  <span
+                    class="material-symbols-outlined text-28"
+                    data-icon="edit_note"
+                    >edit_note</span
+                  >
+                </div>
+                <span
+                  class="text-label-caps text-secondary font-bold tracking-widest uppercase"
+                  >Passo 01</span
+                >
+                <h3
+                  class="text-headline-sm font-headline-sm text-on-surface mt-1 mb-3"
+                >
+                  1. Digite a sua oferta
+                </h3>
+                <p class="text-body-md text-on-surface-variant leading-relaxed">
+                  Insira o nome do prato, o desconto ou preço promocional e faça
+                  o upload da foto direto do seu celular ou acervo do
+                  restaurante.
+                </p>
+              </div>
+              <div
+                class="mt-8 pt-4 border-t border-outline-variant/20 flex items-center text-label-md text-on-surface-variant"
+              >
+                <span
+                  class="material-symbols-outlined text-secondary text-base mr-1.5"
+                  data-icon="timer"
+                  >timer</span
+                >
+                Leva menos de 30 segundos
+              </div>
+            </div>
+            <!-- Step 2 -->
+            <div
+              class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 shadow-warm-subtle hover:shadow-warm-lift transition-all duration-200 flex flex-col justify-between"
+            >
+              <div>
+                <div
+                  class="w-14 h-14 rounded-2xl bg-secondary-fixed/50 flex items-center justify-center text-secondary mb-6"
+                >
+                  <span
+                    class="material-symbols-outlined text-28"
+                    data-icon="palette"
+                    >palette</span
+                  >
+                </div>
+                <span
+                  class="text-label-caps text-secondary font-bold tracking-widest uppercase"
+                  >Passo 02</span
+                >
+                <h3
+                  class="text-headline-sm font-headline-sm text-on-surface mt-1 mb-3"
+                >
+                  2. Escolha o estilo visual
+                </h3>
+                <p class="text-body-md text-on-surface-variant leading-relaxed">
+                  Nossos modelos aplicam contrastes gastronômicos calibrados
+                  para dar água na boca. Você vê a prévia completa e instantânea
+                  na tela sem pagar nada antes.
+                </p>
+              </div>
+              <div
+                class="mt-8 pt-4 border-t border-outline-variant/20 flex items-center text-label-md text-on-surface-variant"
+              >
+                <span
+                  class="material-symbols-outlined text-secondary text-base mr-1.5"
+                  data-icon="visibility"
+                  >visibility</span
+                >
+                Prévia real sem compromisso
+              </div>
+            </div>
+            <!-- Step 3 -->
+            <div
+              class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 shadow-warm-subtle hover:shadow-warm-lift transition-all duration-200 flex flex-col justify-between"
+            >
+              <div>
+                <div
+                  class="w-14 h-14 rounded-2xl bg-tertiary-fixed/40 flex items-center justify-center text-tertiary mb-6"
+                >
+                  <span
+                    class="material-symbols-outlined text-28"
+                    data-icon="pix"
+                    >qr_code_2</span
+                  >
+                </div>
+                <span
+                  class="text-label-caps text-secondary font-bold tracking-widest uppercase"
+                  >Passo 03</span
+                >
+                <h3
+                  class="text-headline-sm font-headline-sm text-on-surface mt-1 mb-3"
+                >
+                  3. Pix de R$ 9,90 e baixe
+                </h3>
+                <p class="text-body-md text-on-surface-variant leading-relaxed">
+                  Ao aprovar a arte, pague via Pix instantâneo. Em 3 segundos as
+                  versões para Feed (4:5) e Story (9:16) são liberadas em ultra
+                  resolução sem marca d'água.
+                </p>
+              </div>
+              <div
+                class="mt-8 pt-4 border-t border-outline-variant/20 flex items-center text-label-md text-on-surface-variant"
+              >
+                <span
+                  class="material-symbols-outlined text-secondary text-base mr-1.5"
+                  data-icon="download_done"
+                  >download_done</span
+                >
+                Liberação automática no Pix
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- SECTION 3: FORMATOS ESSENCIAIS (BENEFIT STRIP) -->
+      <section class="py-20 bg-surface" id="formatos">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12">
+          <div
+            class="bg-surface-container-high rounded-3xl p-8 lg:p-12 border border-outline-variant/40 flex flex-col lg:flex-row items-center justify-between gap-8"
+          >
+            <div class="space-y-3 max-w-xl">
+              <span
+                class="text-label-caps text-primary font-bold uppercase tracking-wider"
+                >Compatibilidade Garantida</span
+              >
+              <h3 class="text-headline-lg font-headline-lg text-on-surface">
+                Arquivos nos padrões exatos das redes
+              </h3>
+              <p class="text-body-md text-on-surface-variant">
+                Nada de imagem cortada ou texto tapado pela barra de navegação
+                do Instagram. Cada arte gerada respeita as margens de segurança
+                para anúncios e postagens orgânicas.
+              </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-4">
+              <div
+                class="bg-surface-container-lowest px-5 py-4 rounded-2xl border border-outline-variant/30 flex items-center gap-3"
+              >
+                <span
+                  class="material-symbols-outlined text-primary text-28"
+                  data-icon="aspect_ratio"
+                  >aspect_ratio</span
+                >
+                <div>
+                  <p class="text-label-lg font-label-lg text-on-surface">
+                    Feed Retrato (4:5)
+                  </p>
+                  <p class="text-label-md text-on-surface-variant">
+                    1080 x 1350 px
+                  </p>
+                </div>
+              </div>
+              <div
+                class="bg-surface-container-lowest px-5 py-4 rounded-2xl border border-outline-variant/30 flex items-center gap-3"
+              >
+                <span
+                  class="material-symbols-outlined text-secondary text-28"
+                  data-icon="stay_current_portrait"
+                  >stay_current_portrait</span
+                >
+                <div>
+                  <p class="text-label-lg font-label-lg text-on-surface">
+                    Stories / Status (9:16)
+                  </p>
+                  <p class="text-label-md text-on-surface-variant">
+                    1080 x 1920 px
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- SECTION 4: PREÇO 'ZERO ENROLAÇÃO' (TICKET / RECEIPT STYLE) -->
+      <section
+        class="py-20 bg-surface-container-low border-y border-outline-variant/30 relative"
+        id="preco"
+      >
+        <div class="max-w-4xl mx-auto px-6">
+          <div class="text-center max-w-xl mx-auto mb-12">
+            <span
+              class="text-label-caps text-secondary font-bold uppercase tracking-wider px-3 py-1 bg-surface-container rounded-full"
+            >
+              Transparência Absoluta
+            </span>
+            <h2
+              class="text-headline-lg lg:text-headline-xl font-headline-xl text-on-surface mt-2 tracking-tight"
+            >
+              Cardápio de Preço Zero Enrolação
+            </h2>
+            <p class="text-body-md text-on-surface-variant mt-2">
+              Sem contratos mensais de R$ 200, sem taxa de cancelamento. Você só
+              paga R$ 9,90 quando tiver uma promoção para soltar.
+            </p>
+          </div>
+          <!-- Chic Order Ticket Card -->
+          <div
+            class="relative bg-surface-container-lowest rounded-3xl border border-outline-variant/40 shadow-warm-lift overflow-hidden"
+          >
+            <!-- Top Receipt Perforation Graphic -->
+            <div
+              class="bg-surface-container-high px-8 py-5 border-b border-dashed border-outline-variant/60 flex flex-wrap justify-between items-center gap-4"
+            >
+              <div>
+                <p
+                  class="text-label-caps font-bold text-on-surface tracking-widest uppercase"
+                >
+                  Ticket de Pedido • OfertaPronta
+                </p>
+                <p class="text-headline-sm font-bold text-primary">
+                  Pacote Completo Feed + Story
+                </p>
+              </div>
+              <div
+                class="px-3 py-1 bg-secondary-fixed text-on-secondary-fixed text-label-md font-bold rounded-full"
+              >
+                Pague Apenas ao Baixar
+              </div>
+            </div>
+            <div class="p-8 sm:p-12">
+              <!-- Price Display -->
+              <div
+                class="flex flex-col sm:flex-row items-baseline justify-between border-b border-outline-variant/30 pb-8 mb-8 gap-4"
+              >
+                <div>
+                  <span
+                    class="text-body-sm text-on-surface-variant uppercase tracking-wider font-semibold"
+                    >Valor Único por Criação</span
+                  >
+                  <div class="flex items-baseline gap-2 mt-1">
+                    <span
+                      class="text-display-lg font-bold text-on-surface tracking-tight"
+                      >R$ 9,90</span
+                    >
+                    <span
+                      class="text-body-md text-on-surface-variant font-medium"
+                      >/ por arte final (sem mensalidade)</span
+                    >
+                  </div>
+                </div>
+                <div class="text-right">
+                  <span
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container text-secondary font-semibold text-label-md"
+                  >
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="bolt"
+                      >bolt</span
+                    >
+                    Via Pix Instantâneo
+                  </span>
+                </div>
+              </div>
+              <!-- Receipt Checklist Items -->
+              <div class="space-y-4 mb-10">
+                <div class="flex items-start gap-3">
+                  <div
+                    class="w-6 h-6 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary shrink-0 mt-0.5"
+                  >
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="check"
+                      >check</span
+                    >
+                  </div>
+                  <div class="text-body-md text-on-surface">
+                    <strong class="font-semibold text-on-surface"
+                      >Ambas as versões inclusas:</strong
+                    >
+                    Feed (1080x1350) e Story (1080x1920) prontas para postar.
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <div
+                    class="w-6 h-6 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary shrink-0 mt-0.5"
+                  >
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="check"
+                      >check</span
+                    >
+                  </div>
+                  <div class="text-body-md text-on-surface">
+                    <strong class="font-semibold text-on-surface"
+                      >Download em ultra resolução PNG</strong
+                    >
+                    100% limpo, sem nenhuma marca d'água.
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <div
+                    class="w-6 h-6 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary shrink-0 mt-0.5"
+                  >
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="check"
+                      >check</span
+                    >
+                  </div>
+                  <div class="text-body-md text-on-surface">
+                    <strong class="font-semibold text-on-surface"
+                      >QR Code Pix gerado na hora:</strong
+                    >
+                    confirmação do banco e download liberado em 3 segundos.
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <div
+                    class="w-6 h-6 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary shrink-0 mt-0.5"
+                  >
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="check"
+                      >check</span
+                    >
+                  </div>
+                  <div class="text-body-md text-on-surface">
+                    <strong class="font-semibold text-on-surface"
+                      >Economia real de caixa:</strong
+                    >
+                    não gaste R$ 50 a R$ 100 com agência para promoções
+                    corriqueiras da semana.
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <div
+                    class="w-6 h-6 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary shrink-0 mt-0.5"
+                  >
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="check"
+                      >check</span
+                    >
+                  </div>
+                  <div class="text-body-md text-on-surface">
+                    <strong class="font-semibold text-on-surface"
+                      >Privacidade total:</strong
+                    >
+                    sem criar conta, sem inventar senha e sem cadastrar cartão
+                    de crédito.
+                  </div>
+                </div>
+              </div>
+              <!-- Direct Prominent CTA inside ticket -->
+              <div
+                class="bg-surface-container-low p-6 rounded-2xl border border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between gap-6"
+              >
+                <div class="space-y-1 text-center sm:text-left">
+                  <p class="text-headline-sm font-bold text-on-surface">
+                    Pronto para criar sua arte?
+                  </p>
+                  <p class="text-body-sm text-on-surface-variant">
+                    Experimente agora. Você só realiza o Pix após aprovar a
+                    prévia.
+                  </p>
+                </div>
+                <button
+                  class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary-container hover:bg-primary text-on-primary text-label-lg font-label-lg px-8 py-3.5 rounded-full shadow-cherry-glow hover:shadow-warm-lift transition-all duration-200 active:scale-[0.98]"
+                >
+                  <span>Começar Agora por R$ 9,90</span>
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="arrow_forward"
+                    >arrow_forward</span
+                  >
+                </button>
+              </div>
+            </div>
+            <!-- Bottom Decorative Receipt Notch -->
+            <div
+              class="h-3 bg-surface-container-high border-t border-dashed border-outline-variant/40"
+            ></div>
+          </div>
+        </div>
+      </section>
+      <!-- SECTION 5: GRID DE DEPOIMENTOS (DONOS DE DELIVERY) -->
+      <section class="py-20 bg-surface" id="depoimentos">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12">
+          <div class="text-center max-w-2xl mx-auto mb-16">
+            <span
+              class="text-label-caps text-secondary font-bold uppercase tracking-wider px-3 py-1 bg-surface-container rounded-full"
+            >
+              Quem Usa e Recomenda
+            </span>
+            <h2
+              class="text-headline-lg lg:text-headline-xl font-headline-xl text-on-surface mt-2 tracking-tight"
+            >
+              Feito para quem vive a correria da cozinha
+            </h2>
+            <p class="text-body-md text-on-surface-variant mt-3">
+              Veja o que hamburguerias, pizzarias e restaurantes delivery dizem
+              sobre usar o OfertaPronta no dia a dia.
+            </p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Testimonial 1 -->
+            <div
+              class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 shadow-warm-subtle flex flex-col justify-between"
+            >
+              <div>
+                <div class="flex text-[#e6a100] gap-0.5 mb-4">
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                </div>
+                <p class="text-body-md text-on-surface italic leading-relaxed">
+                  "Na quinta-feira a chapa estava fria e inventei um combo duplo
+                  com batata. Em 2 minutos a arte estava pronta no Story e no
+                  status do WhatsApp. Vendi 38 combos na noite. Pagou os R$ 9,90
+                  centenas de vezes."
+                </p>
+              </div>
+              <div
+                class="mt-8 pt-6 border-t border-outline-variant/20 flex items-center gap-3"
+              >
+                <div
+                  class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold text-label-lg"
+                >
+                  MS
+                </div>
+                <div>
+                  <p class="text-label-lg font-bold text-on-surface">
+                    Marcos Silveira
+                  </p>
+                  <p class="text-label-md text-on-surface-variant">
+                    Burger House SP • São Paulo
+                  </p>
+                </div>
+              </div>
+            </div>
+            <!-- Testimonial 2 -->
+            <div
+              class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 shadow-warm-subtle flex flex-col justify-between"
+            >
+              <div>
+                <div class="flex text-[#e6a100] gap-0.5 mb-4">
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                </div>
+                <p class="text-body-md text-on-surface italic leading-relaxed">
+                  "Eu pagava R$ 600 por mês para uma freelancer fazer 8 posts. O
+                  OfertaPronta me deu independência total. A qualidade visual da
+                  tipografia e o destaque no preço do rodízio ficaram
+                  impecáveis."
+                </p>
+              </div>
+              <div
+                class="mt-8 pt-6 border-t border-outline-variant/20 flex items-center gap-3"
+              >
+                <div
+                  class="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary font-bold text-label-lg"
+                >
+                  RL
+                </div>
+                <div>
+                  <p class="text-label-lg font-bold text-on-surface">
+                    Renata L.
+                  </p>
+                  <p class="text-label-md text-on-surface-variant">
+                    Pizzaria Forno Nobre • Curitiba
+                  </p>
+                </div>
+              </div>
+            </div>
+            <!-- Testimonial 3 -->
+            <div
+              class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 shadow-warm-subtle flex flex-col justify-between"
+            >
+              <div>
+                <div class="flex text-[#e6a100] gap-0.5 mb-4">
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                  <span
+                    class="material-symbols-outlined text-sm"
+                    data-icon="star"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >star</span
+                  >
+                </div>
+                <p class="text-body-md text-on-surface italic leading-relaxed">
+                  "O fato de não precisar criar login nem colocar cartão de
+                  crédito foi o que me conquistou. Pago os R$ 9,90 no Pix da
+                  empresa e o download do PNG vem limpo, sem marca d'água
+                  nenhuma."
+                </p>
+              </div>
+              <div
+                class="mt-8 pt-6 border-t border-outline-variant/20 flex items-center gap-3"
+              >
+                <div
+                  class="w-12 h-12 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary font-bold text-label-lg"
+                >
+                  TM
+                </div>
+                <div>
+                  <p class="text-label-lg font-bold text-on-surface">
+                    Tiago Mendes
+                  </p>
+                  <p class="text-label-md text-on-surface-variant">
+                    Sushi Express • Rio de Janeiro
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- SECTION 6: FAQ ACORDEOM -->
+      <section
+        class="py-20 bg-surface-container-low border-t border-outline-variant/30"
+        id="faq"
+      >
+        <div class="max-w-4xl mx-auto px-6">
+          <div class="text-center max-w-xl mx-auto mb-16">
+            <span
+              class="text-label-caps text-secondary font-bold uppercase tracking-wider px-3 py-1 bg-surface-container rounded-full"
+            >
+              Dúvidas Frequentes
+            </span>
+            <h2
+              class="text-headline-lg lg:text-headline-xl font-headline-xl text-on-surface mt-2 tracking-tight"
+            >
+              Tudo o que você precisa saber
+            </h2>
+            <p class="text-body-md text-on-surface-variant mt-2">
+              Respostas diretas sobre o funcionamento e entrega das artes.
+            </p>
+          </div>
+          <!-- FAQ Items -->
+          <div class="space-y-4">
+            <details
+              class="group bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 [&amp;_summary::-webkit-details-marker]:hidden"
+              open=""
+            >
+              <summary class="flex items-center justify-between cursor-pointer">
+                <h3 class="text-headline-sm font-label-lg text-on-surface">
+                  Preciso ter conta ou senha para criar?
+                </h3>
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition duration-300 group-open:-rotate-180"
+                  data-icon="expand_more"
+                  >expand_more</span
+                >
+              </summary>
+              <p
+                class="mt-4 text-body-md text-on-surface-variant leading-relaxed border-t border-outline-variant/20 pt-4"
+              >
+                Não. O OfertaPronta foi planejado para agilidade extrema. Você
+                não precisa lembrar de senhas nem cadastrar dados bancários.
+                Você monta sua arte, visualiza a prévia e paga R$ 9,90 via Pix
+                somente no momento do download.
+              </p>
+            </details>
+            <details
+              class="group bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 [&amp;_summary::-webkit-details-marker]:hidden"
+            >
+              <summary class="flex items-center justify-between cursor-pointer">
+                <h3 class="text-headline-sm font-label-lg text-on-surface">
+                  E se eu não tiver uma foto profissional do prato?
+                </h3>
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition duration-300 group-open:-rotate-180"
+                  data-icon="expand_more"
+                  >expand_more</span
+                >
+              </summary>
+              <p
+                class="mt-4 text-body-md text-on-surface-variant leading-relaxed border-t border-outline-variant/20 pt-4"
+              >
+                Pode tirar a foto pelo próprio celular em um local bem
+                iluminado. Nossa ferramenta faz o ajuste de enquadramento
+                automático, aplica filtros de contraste gastronômico e adiciona
+                vinhetas que realçam as cores do alimento. Além disso,
+                disponibilizamos um banco gratuito com fotos de hambúrgueres,
+                pizzas e sushis de alto padrão.
+              </p>
+            </details>
+            <details
+              class="group bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 [&amp;_summary::-webkit-details-marker]:hidden"
+            >
+              <summary class="flex items-center justify-between cursor-pointer">
+                <h3 class="text-headline-sm font-label-lg text-on-surface">
+                  Como e quando recebo as artes?
+                </h3>
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition duration-300 group-open:-rotate-180"
+                  data-icon="expand_more"
+                  >expand_more</span
+                >
+              </summary>
+              <p
+                class="mt-4 text-body-md text-on-surface-variant leading-relaxed border-t border-outline-variant/20 pt-4"
+              >
+                A liberação é instantânea na tela. Assim que o Pix é
+                identificado pelo Banco Central (geralmente em 3 a 5 segundos),
+                o botão de download dos arquivos em formato PNG de alta
+                resolução é liberado imediatamente no seu navegador.
+              </p>
+            </details>
+            <details
+              class="group bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 [&amp;_summary::-webkit-details-marker]:hidden"
+            >
+              <summary class="flex items-center justify-between cursor-pointer">
+                <h3 class="text-headline-sm font-label-lg text-on-surface">
+                  Posso usar para anúncios patrocinados (Meta Ads)?
+                </h3>
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition duration-300 group-open:-rotate-180"
+                  data-icon="expand_more"
+                  >expand_more</span
+                >
+              </summary>
+              <p
+                class="mt-4 text-body-md text-on-surface-variant leading-relaxed border-t border-outline-variant/20 pt-4"
+              >
+                Sim! As dimensões geradas (Feed 1080x1350 e Story 1080x1920) são
+                exatamente as recomendadas pelas diretrizes do Facebook e
+                Instagram Ads para obter a melhor taxa de cliques e menor custo
+                por visualização.
+              </p>
+            </details>
+          </div>
+          <!-- Help Support Micro Box -->
+          <div
+            class="mt-12 text-center p-6 bg-surface-container rounded-2xl border border-outline-variant/40 flex flex-col sm:flex-row items-center justify-between gap-4"
+          >
+            <div class="text-left">
+              <p class="text-label-lg font-bold text-on-surface">
+                Ainda tem dúvidas sobre sua promoção?
+              </p>
+              <p class="text-body-sm text-on-surface-variant">
+                Fale com nosso time de atendimento gastronômico.
+              </p>
+            </div>
+            <a
+              class="inline-flex items-center gap-2 px-5 py-2.5 bg-secondary text-white rounded-full text-label-md font-bold hover:bg-secondary/90 transition-colors shadow-sm"
+              href="https://wa.me/"
+            >
+              <span class="material-symbols-outlined text-base" data-icon="chat"
+                >chat</span
+              >
+              Suporte WhatsApp
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+    <!-- FOOTER (Shared Component Anchor) -->
+    <footer
+      class="bg-surface-container-low border-t border-outline-variant/30 docked full-width bottom-0"
+    >
+      <div
+        class="max-w-7xl mx-auto px-6 lg:px-12 py-16 flex flex-col md:flex-row justify-between items-center gap-8 w-full"
+      >
+        <!-- Brand & Description -->
+        <div class="flex flex-col items-center md:items-start gap-2">
+          <a
+            class="text-headline-md font-headline-md font-bold text-primary flex items-center gap-2"
+            href="#"
+          >
+            <span
+              class="material-symbols-outlined text-primary text-28"
+              data-icon="restaurant_menu"
+              >restaurant_menu</span
+            >
+            OfertaPronta
+          </a>
+          <p
+            class="text-body-sm font-body-sm text-on-surface-variant text-center md:text-left max-w-sm"
+          >
+            © 2025 OfertaPronta. Todos os direitos reservados. Feito para
+            impulsionar negócios gastronômicos.
+          </p>
+        </div>
+        <!-- Links -->
+        <div
+          class="flex flex-wrap items-center justify-center gap-6 text-label-caps font-label-caps"
+        >
+          <a
+            class="text-on-surface-variant hover:text-primary transition-colors"
+            href="#"
+            >Termos de Uso</a
+          >
+          <a
+            class="text-on-surface-variant hover:text-primary transition-colors"
+            href="#"
+            >Privacidade</a
+          >
+          <a
+            class="text-on-surface-variant hover:text-primary transition-colors"
+            href="#"
+            >Suporte Pix</a
+          >
+          <a
+            class="text-on-surface-variant hover:text-primary transition-colors"
+            href="#"
+            >Contato</a
+          >
+          <a
+            class="text-on-surface-variant hover:text-primary transition-colors"
+            href="#"
+            >Instagram</a
+          >
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

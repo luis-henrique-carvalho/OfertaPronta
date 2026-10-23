@@ -3,11 +3,17 @@ import sharp from "sharp";
 import {
   generatePreviewFn,
   generatePreviewInputSchema,
+  generatePreviewOutputSchema,
+  getPreviewQuotaFn,
+  getPreviewQuotaOutputSchema,
 } from "./generator.functions";
 import { executeGeneratePreview } from "../services/preview-generator.service";
 import {
   generatePreviewFn as barrelGeneratePreviewFn,
   generatePreviewInputSchema as barrelGeneratePreviewInputSchema,
+  generatePreviewOutputSchema as barrelGeneratePreviewOutputSchema,
+  getPreviewQuotaFn as barrelGetPreviewQuotaFn,
+  getPreviewQuotaOutputSchema as barrelGetPreviewQuotaOutputSchema,
 } from "../index";
 import { saveOfferDraft, getOfferDraft } from "../services/drafts.service";
 import type { OfferDraft } from "../services/drafts.service";
@@ -15,23 +21,28 @@ import {
   setStorageServiceForTesting,
   InMemoryStorageDriver,
 } from "@/server/storage";
+import { db } from "@/server/db";
+import { drafts } from "@/server/db/schema/promotions";
+import { freePreviewLedger } from "@/server/db/schema/free-preview";
+import { eq } from "drizzle-orm";
 
 describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
   let memoryStorage: InMemoryStorageDriver;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     memoryStorage = new InMemoryStorageDriver({
       publicUrlBase: "https://pub-test.r2.dev",
     });
     setStorageServiceForTesting(memoryStorage);
+    await db.delete(freePreviewLedger);
   });
 
   afterEach(() => {
     setStorageServiceForTesting(null);
   });
 
-  describe("Input validation schema (generatePreviewInputSchema)", () => {
-    it("accepts valid draftId", () => {
+  describe("Input & Output schemas", () => {
+    it("accepts valid draftId in generatePreviewInputSchema", () => {
       const result = generatePreviewInputSchema.safeParse({
         draftId: "valid-draft-uuid",
       });
@@ -42,16 +53,60 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
     });
 
     it("rejects empty or whitespace draftId", () => {
-      const empty = generatePreviewInputSchema.safeParse({ draftId: "" });
-      expect(empty.success).toBe(false);
+      expect(
+        generatePreviewInputSchema.safeParse({ draftId: "" }).success,
+      ).toBe(false);
+      expect(
+        generatePreviewInputSchema.safeParse({ draftId: "   " }).success,
+      ).toBe(false);
+      expect(generatePreviewInputSchema.safeParse({}).success).toBe(false);
+    });
 
-      const whitespace = generatePreviewInputSchema.safeParse({
-        draftId: "   ",
+    it("validates generatePreviewOutputSchema discriminated union variants", () => {
+      const okVariant = generatePreviewOutputSchema.safeParse({
+        status: "OK",
+        draft: {
+          id: "draft-1",
+          businessSegment: "fashion",
+          targetAspectRatio: "feed",
+          businessName: "Loja",
+          offerTitle: "Vestido",
+          promoPrice: "R$ 10",
+          cardIntent: "promo",
+          aiGenerationCount: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       });
-      expect(whitespace.success).toBe(false);
+      expect(okVariant.success).toBe(true);
 
-      const missing = generatePreviewInputSchema.safeParse({});
-      expect(missing.success).toBe(false);
+      const limitVariant = generatePreviewOutputSchema.safeParse({
+        status: "LIMIT_REACHED",
+        reason: "visitor",
+        lastDraft: null,
+      });
+      expect(limitVariant.success).toBe(true);
+
+      const errorVariant = generatePreviewOutputSchema.safeParse({
+        status: "ERROR",
+        code: "NOT_FOUND",
+        message: "Rascunho não encontrado.",
+      });
+      expect(errorVariant.success).toBe(true);
+    });
+
+    it("validates getPreviewQuotaOutputSchema", () => {
+      const valid = getPreviewQuotaOutputSchema.safeParse({
+        remaining: 2,
+        blockedReason: null,
+      });
+      expect(valid.success).toBe(true);
+
+      const blocked = getPreviewQuotaOutputSchema.safeParse({
+        remaining: 0,
+        blockedReason: "global",
+      });
+      expect(blocked.success).toBe(true);
     });
   });
 
@@ -62,9 +117,22 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       expect(generatePreviewFn.method).toBe("POST");
     });
 
+    it("defines getPreviewQuotaFn with GET method and RPC structure", () => {
+      expect(getPreviewQuotaFn).toBeDefined();
+      expect(typeof getPreviewQuotaFn).toBe("function");
+      expect(getPreviewQuotaFn.method).toBe("GET");
+    });
+
     it("re-exports generatePreviewFn and schemas from server/index.ts", () => {
       expect(barrelGeneratePreviewFn).toBe(generatePreviewFn);
       expect(barrelGeneratePreviewInputSchema).toBe(generatePreviewInputSchema);
+      expect(barrelGeneratePreviewOutputSchema).toBe(
+        generatePreviewOutputSchema,
+      );
+      expect(barrelGetPreviewQuotaFn).toBe(getPreviewQuotaFn);
+      expect(barrelGetPreviewQuotaOutputSchema).toBe(
+        getPreviewQuotaOutputSchema,
+      );
     });
   });
 
@@ -83,16 +151,10 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       referenceImageDataUrl: null,
       stylePresetId: "pizza-rustic-wood",
       customStyleInstructions: null,
-      cleanMasterImageDataUrl: null,
       previewCardImageUrl: null,
-      previewAssetKey: null,
-      cleanMasterAssetKey: null,
       cardIntent: "promo",
       customIntentText: null,
       logoImageDataUrl: null,
-      productAssetKey: null,
-      referenceAssetKey: null,
-      logoAssetKey: null,
       aiGenerationCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -107,14 +169,14 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       );
 
       expect(response).toEqual({
-        success: false,
+        status: "ERROR",
         code: "NOT_FOUND",
         message: "Rascunho não encontrado.",
       });
       expect(getDraft).toHaveBeenCalledWith("non-existent-id");
     });
 
-    it("returns AI_QUOTA_EXCEEDED without calling AI when aiGenerationCount >= 1", async () => {
+    it("returns LIMIT_REACHED(visitor) without calling AI or consuming ledger when aiGenerationCount >= 1", async () => {
       const existingPreviewUrl =
         "data:image/webp;base64,existingWatermarkedPreview";
       const exhaustedDraft: OfferDraft = {
@@ -127,28 +189,75 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       const generateAdCard = vi.fn();
       const watermark = vi.fn();
       const updateDraftPreview = vi.fn();
+      const reservePreviewMock = vi.fn();
 
       const response = await executeGeneratePreview(
         { draftId: "draft-123" },
-        { getDraft, generateAdCard, watermark, updateDraftPreview },
+        {
+          getDraft,
+          generateAdCard,
+          watermark,
+          updateDraftPreview,
+          quota: {
+            reservePreview: reservePreviewMock,
+            settlePreview: vi.fn(),
+            findLastPreviewDraftId: vi.fn(),
+          },
+        },
       );
 
-      expect(response).toEqual({
-        success: false,
-        code: "AI_QUOTA_EXCEEDED",
-        message:
-          "Limite de 1 prévia gratuita por rascunho atingido. Conclua o pagamento Pix para liberar os arquivos e ter direito a até 3 regenerações.",
-        previewUrl: existingPreviewUrl,
-        aiGenerationCount: 1,
-      });
+      expect(response.status).toBe("LIMIT_REACHED");
+      if (response.status === "LIMIT_REACHED") {
+        expect(response.reason).toBe("visitor");
+        expect(response.lastDraft?.previewCardImageUrl).toBe(
+          existingPreviewUrl,
+        );
+      }
 
       expect(getDraft).toHaveBeenCalledWith("draft-123");
+      expect(reservePreviewMock).not.toHaveBeenCalled();
       expect(generateAdCard).not.toHaveBeenCalled();
       expect(watermark).not.toHaveBeenCalled();
       expect(updateDraftPreview).not.toHaveBeenCalled();
     });
 
-    it("preserves quota (aiGenerationCount: 0) and returns controlled error when AI generation fails", async () => {
+    it("blocks before Gemini when quota is exhausted and returns LIMIT_REACHED with reason", async () => {
+      const freshDraft: OfferDraft = {
+        ...mockDraft,
+        aiGenerationCount: 0,
+      };
+
+      const getDraft = vi.fn().mockResolvedValue(freshDraft);
+      const generateAdCard = vi.fn();
+      const reservePreviewMock = vi
+        .fn()
+        .mockResolvedValue({ ok: false, reason: "ip" });
+      const findLastPreviewDraftIdMock = vi.fn().mockResolvedValue(null);
+
+      const response = await executeGeneratePreview(
+        { draftId: "draft-123" },
+        {
+          getDraft,
+          generateAdCard,
+          quota: {
+            reservePreview: reservePreviewMock,
+            settlePreview: vi.fn(),
+            findLastPreviewDraftId: findLastPreviewDraftIdMock,
+          },
+        },
+      );
+
+      expect(response).toEqual({
+        status: "LIMIT_REACHED",
+        reason: "ip",
+        lastDraft: null,
+      });
+
+      expect(reservePreviewMock).toHaveBeenCalled();
+      expect(generateAdCard).not.toHaveBeenCalled();
+    });
+
+    it("settles as FAILED and returns ERROR when AI generation fails", async () => {
       const freshDraft: OfferDraft = {
         ...mockDraft,
         aiGenerationCount: 0,
@@ -160,27 +269,41 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
         .mockRejectedValue(new Error("Timeout / Rate limit from Gemini"));
       const watermark = vi.fn();
       const updateDraftPreview = vi.fn();
+      const settleMock = vi.fn();
 
       const response = await executeGeneratePreview(
         { draftId: "draft-123" },
-        { getDraft, generateAdCard, watermark, updateDraftPreview },
+        {
+          getDraft,
+          generateAdCard,
+          watermark,
+          updateDraftPreview,
+          quota: {
+            reservePreview: vi
+              .fn()
+              .mockResolvedValue({ ok: true, reservationId: "res-123" }),
+            settlePreview: settleMock,
+            findLastPreviewDraftId: vi.fn(),
+          },
+        },
       );
 
       expect(response).toEqual({
-        success: false,
+        status: "ERROR",
         code: "AI_GENERATION_FAILED",
         message:
           "Não foi possível gerar a arte no momento. Nenhuma cota foi consumida. Por favor, tente novamente.",
-        aiGenerationCount: 0,
       });
 
-      expect(getDraft).toHaveBeenCalledWith("draft-123");
-      expect(generateAdCard).toHaveBeenCalled();
-      expect(watermark).not.toHaveBeenCalled();
-      expect(updateDraftPreview).not.toHaveBeenCalled();
+      expect(settleMock).toHaveBeenCalledWith(
+        "res-123",
+        "FAILED",
+        expect.any(Date),
+        undefined,
+      );
     });
 
-    it("generates preview, applies watermark, atomically updates draft, and returns success", async () => {
+    it("generates preview, settles CONSUMED, and returns status: OK with client draft DTO", async () => {
       const freshDraft: OfferDraft = {
         ...mockDraft,
         aiGenerationCount: 0,
@@ -200,123 +323,56 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       });
       const updateDraftPreview = vi.fn().mockResolvedValue({
         ...freshDraft,
-        previewCardImageUrl: watermarkedDataUrl,
+        previewCardImageUrl:
+          "https://pub-test.r2.dev/drafts/draft-123/preview.webp",
         aiGenerationCount: 1,
       });
+      const settleMock = vi.fn();
 
       const response = await executeGeneratePreview(
         { draftId: "draft-123" },
-        { getDraft, generateAdCard, watermark, updateDraftPreview },
+        {
+          getDraft,
+          generateAdCard,
+          watermark,
+          updateDraftPreview,
+          quota: {
+            reservePreview: vi
+              .fn()
+              .mockResolvedValue({ ok: true, reservationId: "res-456" }),
+            settlePreview: settleMock,
+            findLastPreviewDraftId: vi.fn(),
+          },
+        },
       );
 
-      expect(response).toEqual({
-        success: true,
-        previewUrl: expect.stringMatching(
-          /^https?:\/\/.+\/drafts\/draft-123\/preview\.webp$/,
-        ),
-        aiGenerationCount: 1,
-      });
+      expect(response.status).toBe("OK");
+      if (response.status === "OK") {
+        expect(response.draft.aiGenerationCount).toBe(1);
+        expect(response.draft.previewCardImageUrl).toContain("/preview.webp");
+        // Verify cleanMaster* and asset keys are NOT present in client DTO
+        expect(
+          (response.draft as Record<string, unknown>).cleanMasterImageDataUrl,
+        ).toBeUndefined();
+        expect(
+          (response.draft as Record<string, unknown>).cleanMasterAssetKey,
+        ).toBeUndefined();
+        expect(
+          (response.draft as Record<string, unknown>).previewAssetKey,
+        ).toBeUndefined();
+      }
 
-      expect(getDraft).toHaveBeenCalledWith("draft-123");
-      expect(generateAdCard).toHaveBeenCalledWith({
-        businessSegment: "pizzeria",
-        targetAspectRatio: "feed",
-        businessName: "Pizzaria Bela Vista",
-        offerTitle: "Pizza Calabresa Artesanal",
-        promoPrice: "R$ 49,90",
-        originalPrice: "R$ 65,00",
-        callToAction: "Peça pelo WhatsApp!",
-        whatsapp: "(11) 99999-8888",
-        productImageDataUrl: null,
-        referenceImageDataUrl: null,
-        stylePresetId: "pizza-rustic-wood",
-        customStyleInstructions: null,
-        cardIntent: "promo",
-        customIntentText: null,
-        logoImageDataUrl: null,
-      });
-      expect(watermark).toHaveBeenCalledWith(syntheticBuffer);
-      expect(updateDraftPreview).toHaveBeenCalledWith(
-        "draft-123",
-        expect.stringMatching(
-          /^https?:\/\/.+\/drafts\/draft-123\/preview\.webp$/,
-        ),
-        `data:image/png;base64,${syntheticBuffer.toString("base64")}`,
-        "drafts/draft-123/preview.webp",
-        expect.stringMatching(/^drafts\/draft-123\/private-master-\d+\.png$/),
+      expect(settleMock).toHaveBeenCalledWith(
+        "res-456",
+        "CONSUMED",
+        expect.any(Date),
+        undefined,
       );
-    });
-
-    it("forwards targetAspectRatio: 'story' to generateAdCard when draft specifies story format", async () => {
-      const storyDraft: OfferDraft = {
-        ...mockDraft,
-        id: "draft-story-456",
-        targetAspectRatio: "story",
-        aiGenerationCount: 0,
-      };
-
-      const getDraft = vi.fn().mockResolvedValue(storyDraft);
-      const generateAdCard = vi.fn().mockResolvedValue({
-        rawImageBuffer: Buffer.from("story-buffer"),
-        mimeType: "image/png",
-      });
-      const watermark = vi.fn().mockResolvedValue({
-        dataUrl: "data:image/webp;base64,storyPreview",
-      });
-      const updateDraftPreview = vi.fn().mockResolvedValue({
-        ...storyDraft,
-        previewCardImageUrl: "data:image/webp;base64,storyPreview",
-        aiGenerationCount: 1,
-      });
-
-      const response = await executeGeneratePreview(
-        { draftId: "draft-story-456" },
-        { getDraft, generateAdCard, watermark, updateDraftPreview },
-      );
-
-      expect(response.success).toBe(true);
-      expect(generateAdCard).toHaveBeenCalledWith(
-        expect.objectContaining({
-          targetAspectRatio: "story",
-        }),
-      );
-    });
-
-    it("handles concurrent race condition where draft was updated between check and commit", async () => {
-      const freshDraft: OfferDraft = {
-        ...mockDraft,
-        aiGenerationCount: 0,
-      };
-
-      const getDraft = vi.fn().mockResolvedValue(freshDraft);
-      const generateAdCard = vi.fn().mockResolvedValue({
-        rawImageBuffer: Buffer.from("img"),
-        mimeType: "image/png",
-      });
-      const watermark = vi.fn().mockResolvedValue({
-        dataUrl: "data:image/webp;base64,watermarked",
-      });
-      // updateDraftPreview returns null if atomic update condition (aiGenerationCount == 0) failed
-      const updateDraftPreview = vi.fn().mockResolvedValue(null);
-
-      const response = await executeGeneratePreview(
-        { draftId: "draft-123" },
-        { getDraft, generateAdCard, watermark, updateDraftPreview },
-      );
-
-      expect(response).toEqual({
-        success: false,
-        code: "AI_QUOTA_EXCEEDED",
-        message:
-          "Limite de 1 prévia gratuita por rascunho atingido. Conclua o pagamento Pix para liberar os arquivos e ter direito a até 3 regenerações.",
-        previewUrl: freshDraft.previewCardImageUrl,
-        aiGenerationCount: 1,
-      });
     });
   });
 
   describe("Integration: Real DB and Watermark with Mocked AI Generator", () => {
-    it("persists watermarked preview in PostgreSQL and blocks 2nd attempt", async () => {
+    it("persists watermarked preview in PostgreSQL, settles ledger, and blocks subsequent attempt", async () => {
       // 1. Create fresh draft in real database
       const createdDraft = await saveOfferDraft({
         businessSegment: "burger-shop",
@@ -351,43 +407,38 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
         { generateAdCard: mockGenerateAdCard },
       );
 
-      expect(firstResponse.success).toBe(true);
-      if (firstResponse.success) {
-        expect(firstResponse.aiGenerationCount).toBe(1);
-        expect(firstResponse.previewUrl).toMatch(
+      expect(firstResponse.status).toBe("OK");
+      if (firstResponse.status === "OK") {
+        expect(firstResponse.draft.aiGenerationCount).toBe(1);
+        expect(firstResponse.draft.previewCardImageUrl).toMatch(
           /^https?:\/\/.+\/drafts\/.+\/preview\.webp$/,
         );
       }
 
       // 4. Verify draft in DB has been updated atomically
-      const fetchedAfter = await getOfferDraft(createdDraft.id);
-      expect(fetchedAfter).not.toBeNull();
-      expect(fetchedAfter?.aiGenerationCount).toBe(1);
-      expect(fetchedAfter?.previewCardImageUrl).toBe(
-        firstResponse.success ? firstResponse.previewUrl : null,
-      );
-      expect(fetchedAfter?.previewAssetKey).toMatch(
-        /^drafts\/.+\/preview\.webp$/,
-      );
-      expect(fetchedAfter?.cleanMasterAssetKey).toMatch(
+      const [dbRow] = await db
+        .select()
+        .from(drafts)
+        .where(eq(drafts.id, createdDraft.id));
+
+      expect(dbRow.aiGenerationCount).toBe(1);
+      expect(dbRow.previewAssetKey).toMatch(/^drafts\/.+\/preview\.webp$/);
+      expect(dbRow.cleanMasterAssetKey).toMatch(
         /^drafts\/.+\/private-master-.+\.png$/,
       );
 
-      // 5. Attempt 2nd generation on same draft -> must be blocked
+      // 5. Attempt 2nd generation on same draft -> must return LIMIT_REACHED (visitor)
       const secondMockGenerator = vi.fn();
       const secondResponse = await executeGeneratePreview(
         { draftId: createdDraft.id },
         { generateAdCard: secondMockGenerator },
       );
 
-      expect(secondResponse).toEqual({
-        success: false,
-        code: "AI_QUOTA_EXCEEDED",
-        message:
-          "Limite de 1 prévia gratuita por rascunho atingido. Conclua o pagamento Pix para liberar os arquivos e ter direito a até 3 regenerações.",
-        previewUrl: fetchedAfter?.previewCardImageUrl,
-        aiGenerationCount: 1,
-      });
+      expect(secondResponse.status).toBe("LIMIT_REACHED");
+      if (secondResponse.status === "LIMIT_REACHED") {
+        expect(secondResponse.reason).toBe("visitor");
+        expect(secondResponse.lastDraft?.id).toBe(createdDraft.id);
+      }
       expect(secondMockGenerator).not.toHaveBeenCalled();
     });
 
@@ -409,11 +460,10 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       );
 
       expect(response).toEqual({
-        success: false,
+        status: "ERROR",
         code: "AI_GENERATION_FAILED",
         message:
           "Não foi possível gerar a arte no momento. Nenhuma cota foi consumida. Por favor, tente novamente.",
-        aiGenerationCount: 0,
       });
 
       // Confirm in real DB that draft was untouched

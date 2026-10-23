@@ -9,6 +9,7 @@
 ---
 
 ## 1. Contexto & Requisitos
+
 Garantir que a nova experiência do checkout passe em todos os testes unitários, de renderização e de integração sem quebras de regressão, removendo ou ajustando os componentes e testes legados.
 
 ## 2. Tarefas de Implementação
@@ -30,6 +31,7 @@ Garantir que a nova experiência do checkout passe em todos os testes unitários
    - Validar responsividade mobile (390px) e desktop (1440px).
 
 ## 3. Critérios de Aceite (BDD)
+
 - [x] Todos os testes em `checkout-view.test.tsx` passam com 100% de sucesso.
 - [x] O pipeline oficial `./.agents/scripts/verify.sh` passa com zero erros e zero warnings.
 - [x] Nenhum vazamento de código server-only no client.

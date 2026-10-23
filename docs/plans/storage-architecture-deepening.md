@@ -11,13 +11,14 @@
 
 ## 1. Visão Geral Arquitetural e Auditoria dos 4 Pilares de Engenharia
 
-Esta iniciativa aprofunda e sela a arquitetura de armazenamento do OfertaPronta, transformando o `ExportEngine` em um Módulo Profundo (*Deep Module*), eliminando vazamentos de abstração no `StorageService` e sanando uma vulnerabilidade latente de inchaço de dados (*TOAST bloat*) no banco PostgreSQL decorrente do envio de fotos em Base64 no assistente de criação de anúncios.
+Esta iniciativa aprofunda e sela a arquitetura de armazenamento do OfertaPronta, transformando o `ExportEngine` em um Módulo Profundo (_Deep Module_), eliminando vazamentos de abstração no `StorageService` e sanando uma vulnerabilidade latente de inchaço de dados (_TOAST bloat_) no banco PostgreSQL decorrente do envio de fotos em Base64 no assistente de criação de anúncios.
 
 ### Pilar 1: Arquitetura & Deep Modules (`codebase-design`)
+
 - **Sealing Hermético do `StorageService`:**
-  - O `InMemoryStorageDriver` atual gera URLs sintéticas contendo `"https://storage.local.fake"`, que forçam os chamadores a realizar *string sniffing* frágil (`url.includes("storage.local.fake")`) para desviar o fluxo para endpoints de download locais.
+  - O `InMemoryStorageDriver` atual gera URLs sintéticas contendo `"https://storage.local.fake"`, que forçam os chamadores a realizar _string sniffing_ frágil (`url.includes("storage.local.fake")`) para desviar o fluxo para endpoints de download locais.
   - A costura é vedada: quando `publicUrlBase` não for fornecida, o `InMemoryStorageDriver` passa a retornar Data URLs autocontidas (`data:${contentType};base64,...`) perfeitamente consumíveis por tags `<img />` e clientes HTTP sem necessidade de rede.
-  - O `CloudflareR2StorageDriver` passa a adotar política *fail-fast* estrita: sua inicialização sem `publicUrl` (`R2_PUBLIC_URL`) lança erro imediato em tempo de inicialização, prevenindo a geração de URLs privadas do R2 inoperantes para clientes finais.
+  - O `CloudflareR2StorageDriver` passa a adotar política _fail-fast_ estrita: sua inicialização sem `publicUrl` (`R2_PUBLIC_URL`) lança erro imediato em tempo de inicialização, prevenindo a geração de URLs privadas do R2 inoperantes para clientes finais.
 - **Elevação do `ExportEngine` a Módulo Profundo:**
   - Anteriormente, o `ExportEngine` expunha apenas funções utilitárias isoladas do Sharp (`formatFeedCard`, `formatStoryCard`, `applyWatermark`, `applyCobrandingSignature`), delegando aos chamadores (`DeliveryService`, `PreviewGeneratorService`, `PostPaymentRegenerationService`) a responsabilidade de formatar dimensões, construir nomes canônicos de arquivos, chamar o `StorageService` e anexar strings de cache-busting de CDN (`?v=timestamp`).
   - O novo `ExportEngine` encapsula o pipeline completo através de 3 métodos de alto nível:
@@ -27,15 +28,17 @@ Esta iniciativa aprofunda e sela a arquitetura de armazenamento do OfertaPronta,
   - **Leverage Máximo:** Deletar o `ExportEngine` espalharia dezenas de linhas de I/O, Sharp e formatação de strings por 4 serviços diferentes; sua centralização oferece interface concisa e implementação rica.
 
 ### Pilar 2: Integridade de Regras de Negócio
+
 - **Simetria Rigorosa na Regeneração Pós-Pagamento:**
   - Ao regenerar um card em `PostPaymentRegenerationService`, a nova arte mestre gerada pelo Google Gemini deixa de ser gravada apenas como Base64 no snapshot do pedido: ela é obrigatoriamente persistida no `StorageService` via `exportEngine.saveCleanMaster(...)` e o campo `orders.cleanMasterAssetKey` é atualizado atomicamente no banco.
   - O `deliveryService.updateExports(...)` substitui os arquivos HD no bucket com cache-busting atualizado, garantindo que o cliente baixe imediatamente o card corrigido sem colisões de cache de CDN ou navegador.
 - **Preservação de Cota e Transações Atômicas:**
   - A cota de 3 regenerações por pedido continua protegida: falhas na chamada do modelo multimodal do Gemini abortam a operação sem incrementar o contador `aiRegenerationCount` e sem corromper a arte mestre anterior.
 - **Retrocompatibilidade Transparente com Dados Legados:**
-  - Registros de rascunhos ou pedidos anteriores à migração (que contêm imagens gravadas em Data URLs Base64 no PostgreSQL) continuam sendo lidos e processados normalmente através de *fallback* transparente, sem quebrar funcionalidades em produção.
+  - Registros de rascunhos ou pedidos anteriores à migração (que contêm imagens gravadas em Data URLs Base64 no PostgreSQL) continuam sendo lidos e processados normalmente através de _fallback_ transparente, sem quebrar funcionalidades em produção.
 
 ### Pilar 3: Segurança por Design
+
 - **Fail-Fast de Configuração de Ambiente:**
   - Se `STORAGE_DRIVER === "r2"`, a ausência de `R2_PUBLIC_URL` interrompe a subida da aplicação com mensagem operacional explícita, impedindo que a aplicação sirva links inacessíveis.
 - **Isolamento Estrito de Credenciais e Binários:**
@@ -44,6 +47,7 @@ Esta iniciativa aprofunda e sela a arquitetura de armazenamento do OfertaPronta,
   - O endpoint de download realiza streaming com sanitização de cabeçalhos RFC 6266 (`Content-Disposition: attachment; filename="ofertapronta-{format}-{orderId}.png"`).
 
 ### Pilar 4: Qualidade, Simplicidade & Anti-Bloat (YAGNI & TDD)
+
 - **Eliminação de Bloat TOAST no PostgreSQL:**
   - Insumos enviados pelo microempresário no assistente (Foto do Produto, Imagem de Referência e Logotipo) pesavam entre 5 MB e 15 MB por rascunho na tabela `drafts`.
   - O pipeline de salvamento (`saveOfferDraft`) intercepta Data URLs Base64, salva os binários no `StorageService` sob chaves leves (`inputs/{draftId}/product.png`, `reference.png`, `logo.png`) e grava apenas essas chaves de texto no PostgreSQL, mantendo as colunas Base64 nulas. O peso por rascunho cai de ~10 MB para menos de 2 KB.
@@ -130,7 +134,7 @@ sequenceDiagram
     User->>UI: Seleciona Foto do Produto / Referência / Logo
     UI->>RPC: saveDraft({ id, productImageDataUrl: "data:image/png;base64,..." })
     RPC->>Service: saveOfferDraft(input)
-    
+
     alt Insumo contém Data URL Base64
         Service->>Service: Decodifica buffer binário e detecta contentType
         Service->>Storage: uploadAsset({ key: "inputs/{draftId}/product.png", buffer, contentType: "image/png" })
@@ -204,7 +208,7 @@ stateDiagram-v2
     MasterSalvo --> PagamentoAprovado: Cliente paga R$ 9,90 via Pix (PAID)
     PagamentoAprovado --> FormatosDerivados: ExportEngine deriva Feed (1080x1350) e Story (1080x1920)
     FormatosDerivados --> EntregaPronta: Arquivos salvos em deliveries/{orderId}/...
-    
+
     EntregaPronta --> RegeneracaoSolicitada: Cliente solicita ajuste (até 3 vezes)
     RegeneracaoSolicitada --> NovaMasterSalva: IA gera nova arte -> saveCleanMaster(masters/orders/{orderId}/...)
     NovaMasterSalva --> FormatosAtualizados: updateExports sobrescreve deliveries/{orderId}/... com ?v=ts
@@ -218,6 +222,7 @@ stateDiagram-v2
 ### 3.1. Sealing do `StorageService` (`src/server/storage/`)
 
 #### 3.1.1. Interface Unificada (`src/server/storage/index.ts`)
+
 ```typescript
 export interface AssetUploadOptions {
   key: string;
@@ -246,12 +251,14 @@ export interface StorageService {
 ```
 
 #### 3.1.2. Comportamento do `InMemoryStorageDriver` (`src/server/storage/memory-driver.ts`)
+
 - **Eliminação de `storage.local.fake`:**
   - Quando `publicUrlBase` for fornecida explicitamente: retorna `${publicUrlBase}/${cleanKey}`.
   - Quando `publicUrlBase` for omitida (padrão em testes e dev local): busca o asset no mapa de memória. Se presente, gera uma Data URL compatível com qualquer navegador: `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`. Se a chave não existir no momento da consulta, gera Data URL neutra para evitar referências nulas.
   - `uploadAsset`: retorna a URL canônica gerada por `getPublicUrl(key)`.
 
 #### 3.1.3. Validação Fail-Fast no `CloudflareR2StorageDriver` (`src/server/storage/r2-driver.ts`)
+
 - No construtor:
   ```typescript
   if (!options.publicUrl || options.publicUrl.trim().length === 0) {
@@ -267,6 +274,7 @@ export interface StorageService {
 ### 3.2. Módulo Profundo `ExportEngine` (`src/server/export-engine/`)
 
 #### 3.2.1. Contrato da Interface Pública (`src/server/export-engine/index.ts`)
+
 ```typescript
 export interface ExportPreviewCardInput {
   draftId: string;
@@ -314,13 +322,18 @@ export interface SaveCleanMasterResult {
 }
 
 export interface ExportEngine {
-  exportPreviewCard(input: ExportPreviewCardInput): Promise<ExportPreviewCardResult>;
-  exportFinalCampaign(input: ExportFinalCampaignInput): Promise<ExportFinalCampaignResult>;
+  exportPreviewCard(
+    input: ExportPreviewCardInput,
+  ): Promise<ExportPreviewCardResult>;
+  exportFinalCampaign(
+    input: ExportFinalCampaignInput,
+  ): Promise<ExportFinalCampaignResult>;
   saveCleanMaster(input: SaveCleanMasterInput): Promise<SaveCleanMasterResult>;
 }
 ```
 
 #### 3.2.2. Implementação Concreta e Fábrica Singleton
+
 - **Convenção Canônica de Chaves:**
   - Prévias protegidas: `previews/{draftId}/{timestamp}.webp` (ou `.png` dependendo do pipeline)
   - Mestres limpas de rascunhos: `masters/drafts/{draftId}/{timestamp}.png`
@@ -338,11 +351,12 @@ export interface ExportEngine {
 ### 3.3. Drizzle Schema e Migrações SQL (`src/server/db/schema/promotions.ts`)
 
 #### 3.3.1. Novas Colunas na Tabela `drafts`
+
 ```typescript
 export const drafts = pgTable("drafts", {
   id: text("id").primaryKey(),
   // ... colunas existentes ...
-  
+
   // === COLUNAS DE ASSETS DE INSUMOS (DRAFTS INTAKE) ===
   productAssetKey: text("product_asset_key"),
   referenceAssetKey: text("reference_asset_key"),
@@ -356,11 +370,13 @@ export const drafts = pgTable("drafts", {
 ```
 
 #### 3.3.2. Migração SQL Oficial (`drizzle/0009_warm_dormammu.sql`)
+
 ```sql
 ALTER TABLE "drafts" ADD COLUMN "product_asset_key" text;
 ALTER TABLE "drafts" ADD COLUMN "reference_asset_key" text;
 ALTER TABLE "drafts" ADD COLUMN "logo_asset_key" text;
 ```
+
 Gerada via `pnpm db:generate` e aplicada via `pnpm db:migrate` dentro da worktree.
 
 ---
@@ -368,6 +384,7 @@ Gerada via `pnpm db:generate` e aplicada via `pnpm db:migrate` dentro da worktre
 ### 3.4. Ingestão de Insumos e Schemas Zod (`src/features/promotions/`)
 
 #### 3.4.1. Atualização no `saveOfferDraftSchema` (`offer-brief.schema.ts`)
+
 ```typescript
 export const saveOfferDraftSchema = z.object({
   id: z.string().optional(),
@@ -375,7 +392,7 @@ export const saveOfferDraftSchema = z.object({
   productImageDataUrl: imageDataUrlSchema.optional().nullable(),
   referenceImageDataUrl: imageDataUrlSchema.optional().nullable(),
   logoImageDataUrl: imageDataUrlSchema.optional().nullable(),
-  
+
   // Novas chaves leves opcionais
   productAssetKey: z.string().optional().nullable(),
   referenceAssetKey: z.string().optional().nullable(),
@@ -387,6 +404,7 @@ export const saveOfferDraftSchema = z.object({
 ```
 
 #### 3.4.2. Fluxo em `drafts.service.ts` (`saveOfferDraft` e `getOfferDraft`)
+
 - **Em `saveOfferDraft`:**
   - Função auxiliar `processVisualAsset(draftId, assetType, inputDataUrl, existingAssetKey, storageService)`:
     - Se `inputDataUrl` começar com `"data:image/"`:
@@ -403,6 +421,7 @@ export const saveOfferDraftSchema = z.object({
   - Para garantir transparência total no frontend (`Step3VisualAssets`), se a coluna `productAssetKey` estiver presente e `productImageDataUrl` for nula, resolve a URL pública via `storageService.getPublicUrl(draft.productAssetKey)` e a preenche no campo retornado. O assistente exibe a imagem perfeitamente sem modificações no componente visual.
 
 #### 3.4.3. Resolução no `PreviewGeneratorService`
+
 - Ao preparar os insumos para o `aiCardGenerator`:
   - Se `draft.productAssetKey` estiver presente, busca o buffer via `storageService.getAsset(draft.productAssetKey)` e converte em Data URL para o SDK `@google/genai`.
   - Se for rascunho legado sem `productAssetKey`, utiliza a coluna `draft.productImageDataUrl` diretamente.
@@ -453,6 +472,7 @@ export const saveOfferDraftSchema = z.object({
 ## 5. Plano de Costuras TDD e Escopo dos Builders Paralelos
 
 ### Stream 1: Backend Storage Stream (`01-backend-storage-stream.md`)
+
 - **Responsável:** `backend-builder` (Stream 1)
 - **Escopo de Arquivos:**
   - `src/server/storage/index.ts`
@@ -471,6 +491,7 @@ export const saveOfferDraftSchema = z.object({
   ```
 
 ### Stream 2: Delivery & Intake Stream (`02-delivery-and-intake-stream.md`)
+
 - **Responsável:** `backend-builder` / `frontend-builder` (Stream 2)
 - **Escopo de Arquivos:**
   - `src/features/delivery/server/services/delivery.service.ts`
@@ -494,7 +515,9 @@ export const saveOfferDraftSchema = z.object({
 ## 6. Verificação de Fechamento & Pipeline Global
 
 Concluídas ambas as streams, o pipeline oficial completo deve ser executado pelo `test-verifier`:
+
 ```bash
 ./.agents/scripts/verify.sh
 ```
+
 Garantindo conformidade total de Shadcn UI, Typecheck estrito, ESLint, suíte completa de testes unitários/integração com Vitest e build de produção do TanStack Start / Nitro.

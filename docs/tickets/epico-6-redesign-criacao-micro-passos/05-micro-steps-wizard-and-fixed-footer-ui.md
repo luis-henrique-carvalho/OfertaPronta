@@ -6,6 +6,7 @@
 Construção da interface oficial do wizard em micro-passos mobile-first (`offer-creation-wizard.tsx` e subcomponentes de passos), com barra de progresso tátil, rodapé fixo de navegação colado na base (`CreationFixedFooter`), modal de progresso contextual com IA (`ContextualAiLoader`) e redirecionamento direto para o checkout Pix com a prévia em destaque. Substituição oficial do wizard antigo na rota `/criar` (`src/routes/criar.tsx`).
 
 **Blocked by:**
+
 - `03: Catálogo Isomórfico Extensível e Componentes de Mini-Posts`
 - `04: Hook de Estado e Orquestração de Geração com Redirecionamento ao Checkout`
 
@@ -26,9 +27,9 @@ Construção da interface oficial do wizard em micro-passos mobile-first (`offer
     - **Completamente oculto (sem botão de adição)** nos objetivos `new-arrival`, `special-date`, `announcement` e `schedule`.
 - [x] **Passo 3: Suas Imagens (`Step3VisualAssets`)**:
   - Exibe os três cartões opcionais via `PhotoOptionCard`: Foto do Produto, Print de Card para Copiar Estilo e Logomarca da Loja.
-  - Se nenhuma imagem estiver carregada, exibe botão rápido em destaque: *"Não tenho imagens agora — Deixar a IA criar tudo"*, que avança diretamente para o Passo 4.
+  - Se nenhuma imagem estiver carregada, exibe botão rápido em destaque: _"Não tenho imagens agora — Deixar a IA criar tudo"_, que avança diretamente para o Passo 4.
 - [x] **Passo 4: Visual do Card & Paleta (`Step4StyleAndPalette`)**:
-  - Se houver print de referência enviado no Passo 3, exibe alerta visual: *"Print de Referência Ativo! A IA vai seguir o formato do print que você enviou"*.
+  - Se houver print de referência enviado no Passo 3, exibe alerta visual: _"Print de Referência Ativo! A IA vai seguir o formato do print que você enviou"_.
   - Grade 2x3 com os 6 `StyleMiniPostCard` do segmento, atualizados dinamicamente com os dados digitados pelo comerciante.
   - Seção de paleta com chips das 6 paletas rápidas (`QUICK_BRAND_PALETTES`) e campo de texto para cor personalizada.
 - [x] **Rodapé Fixo Mobile-First (`CreationFixedFooter`)**:

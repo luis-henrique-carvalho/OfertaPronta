@@ -12,6 +12,7 @@
 Na concepção anterior da documentação, o sistema estava restrito ao setor de alimentação e tratava a inteligência artificial apenas como um recurso secundário para gerar fotos isoladas de pratos (1:1), enquanto o card em si era montado por templates SVG estáticos e pré-fabricados. Além disso, o envio de foto própria e o uso de IA eram tratados como opções mutuamente exclusivas.
 
 Essa abordagem contradiz a visão central do produto por três razões fundamentais:
+
 1. **Público Multisegmento:** O produto atende microempresários de múltiplos ramos (donos de supermercado, cabeleireiros, barbearias, pizzarias, hamburguerias, restaurantes e comércio local), cujas necessidades visuais não cabem em três templates engessados de comida.
 2. **O Card Final é Criado por IA:** O diferencial competitivo do OfertaPronta é que a própria IA projeta e gera o **Card Publicitário (`Ad Card`) completo** — incluindo composição gráfica, cenário, iluminação comercial e integração tipográfica da oferta e dos preços.
 3. **Insumos Combináveis (Produto + Referência + Briefing):** O microempresário frequentemente possui a foto simples do seu produto (ex.: item na prateleira do mercado, corte de cabelo ou lanche) e/ou uma imagem de referência de um anúncio que achou atraente, desejando que a IA combine ambos para gerar um card publicitário profissional.
@@ -41,9 +42,11 @@ Adotamos a **Geração Completa de Cards Publicitários via IA Multimodal** util
 ## Consequências
 
 ### Positivas
+
 - **Alinhamento Total com o Core do Produto:** Entrega exatamente a proposta de valor de criar cards publicitários sob medida com IA para qualquer microempresário (supermercado, salão, restaurante, etc.).
 - **Fusão Criativa Real (Produto + Referência):** Permite ao comerciante transformar uma foto simples de celular + uma referência de design em uma peça publicitária de nível de agência.
 - **Arquitetura Mais Simples (YAGNI):** Elimina a necessidade de desenhar e manter dezenas de layouts SVG manuais para cada segmento de mercado.
 
 ### Negativas / Trade-offs
+
 - **Controle de Custo e Latência de Inferência:** A geração multimodal leva de 4 a 10 segundos e consome tokens de imagem da API Gemini, exigindo controle rigoroso de cotas por sessão/pedido e aplicação de marca d'água server-side nas prévias.

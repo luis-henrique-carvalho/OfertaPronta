@@ -6,6 +6,7 @@
 ## Problem Statement
 
 Atualmente, o OfertaPronta possui uma landing page e um fluxo de criação, pagamento e entrega robustos, porém:
+
 1. **Transparência e Credibilidade Legal:** O rodapé é mínimo e não exibe dados cadastrais formais (Razão Social, CNPJ, e-mail de contato e link de suporte), o que pode gerar desconfiança em microempresários acostumados a golpes via Pix na internet.
 2. **Conformidade Regulatória (LGPD e CDC):** Não existem rotas dedicadas e transparentes de Termos de Uso e Política de Privacidade que esclareçam expressamente os direitos do consumidor, a ausência de assinatura ou cobrança recorrente (produto avulso a R$ 9,90), as regras de regeneração por IA (limite de 3 tentativas em até 30 minutos) e o ciclo de vida dos arquivos gerados (retenção segura de 7 dias com links assinados).
 3. **Privacidade e Consentimento de Cookies:** Não há banner de consentimento de cookies em conformidade com a LGPD para visitantes no primeiro acesso mobile/desktop.
@@ -20,12 +21,12 @@ Criar uma solução integrada de **Confiança, Legalidade e Rastreamento (`Trust
 
 1. **Configuração Unificada de Identidade Legal e Suporte (`compliance-config`):**
    - Centralizar na configuração pública do cliente (`client-env.ts` / catálogo tipado `legal-company.ts`) as informações cadastrais e de suporte:
-     - `legalName` (Razão Social, padrão: *"OfertaPronta Tecnologia Ltda"* ou configurável via `VITE_PUBLIC_LEGAL_NAME`)
-     - `tradeName` (Nome Fantasia: *"OfertaPronta"*)
-     - `cnpj` (padrão: *"00.000.000/0001-00"* ou `VITE_PUBLIC_LEGAL_CNPJ`)
-     - `contactEmail` (padrão: *"contato@ofertapronta.com.br"* ou `VITE_PUBLIC_CONTACT_EMAIL`)
+     - `legalName` (Razão Social, padrão: _"OfertaPronta Tecnologia Ltda"_ ou configurável via `VITE_PUBLIC_LEGAL_NAME`)
+     - `tradeName` (Nome Fantasia: _"OfertaPronta"_)
+     - `cnpj` (padrão: _"00.000.000/0001-00"_ ou `VITE_PUBLIC_LEGAL_CNPJ`)
+     - `contactEmail` (padrão: _"contato@ofertapronta.com.br"_ ou `VITE_PUBLIC_CONTACT_EMAIL`)
      - `supportWhatsapp` (número com DDI/DDD: `VITE_PUBLIC_SUPPORT_WHATSAPP` ou fallback de demonstração `5511999999999`)
-     - `whatsappDefaultMessage` (*"Olá! Preciso de ajuda com meu pedido no OfertaPronta."*)
+     - `whatsappDefaultMessage` (_"Olá! Preciso de ajuda com meu pedido no OfertaPronta."_)
      - `tracking`: `VITE_PUBLIC_META_PIXEL_ID` e `VITE_PUBLIC_GOOGLE_ADS_ID`.
 
 2. **Páginas Institucionais Legais Dedicadas:**
@@ -78,6 +79,7 @@ Criar uma solução integrada de **Confiança, Legalidade e Rastreamento (`Trust
 ## Implementation Decisions
 
 ### 1. Dados Legais e Configuração Centralizada
+
 - Criar `src/lib/legal-company.ts` com tipagem Zod e fallbacks determinísticos:
   ```ts
   export interface CompanyLegalProfile {
@@ -100,6 +102,7 @@ Criar uma solução integrada de **Confiança, Legalidade e Rastreamento (`Trust
   - `VITE_PUBLIC_GOOGLE_ADS_ID`
 
 ### 2. Módulo de Tracking e Analytics (`src/lib/tracking.ts`)
+
 - Módulo profundo com interface pública concisa:
   - `initTrackingScripts(): void`
   - `trackPageView(pageUrl?: string): void`
@@ -112,10 +115,12 @@ Criar uma solução integrada de **Confiança, Legalidade e Rastreamento (`Trust
   - Idempotência no disparo de `trackPurchase` (usando `sessionStorage` ou flag local por `orderId` para evitar duplicidade de compra se o usuário der refresh na tela `pedido.$orderId`).
 
 ### 3. Rotas Institucionais Legais
+
 - Criar `src/routes/termos.tsx` e `src/routes/privacidade.tsx` utilizando componentes semânticos do `shadcn/ui` (`Typography`, `Card`, `Separator`, `Button`) e layout consistente com `LandingHeader` e `LandingFooter`.
 - Textos redigidos de forma jurídica sólida e comercialmente transparente para o modelo do OfertaPronta.
 
 ### 4. Componentes de UI Mobile-First
+
 - `src/components/shared/cookie-consent-banner.tsx`:
   - Fixed banner no rodapé (com z-index adequado, animação suave e botão "Entendi" acessível).
   - Escuta `localStorage.getItem("ofertapronta_cookie_consent")`.

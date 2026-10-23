@@ -20,8 +20,8 @@ O **Épico 5** eleva a qualidade da direção de arte e a taxa de conversão na 
 1. **Arquitetura & Módulos Profundos (`codebase-design`)**:
    - `StylePresetsCatalog` (`src/features/promotions/data/style-presets-catalog.ts`): módulo profundo isomórfico que centraliza a fonte única da verdade para os 24 estilos visuais (4 por segmento comercial). Apresenta uma interface concisa (`getSegmentPresets`, `getPresetById`, `resolveArtDirectionDirective`) ocultando centenas de linhas de diretrizes de design de agência (paletas exatas, proporções, tipografia publicitária, iluminação de estúdio e atmosfera) e especificações declarativas de renderização visual.
    - `StyleMockupThumbnail` (`src/features/promotions/components/style-mockup-thumbnail.tsx`): componente profundo de apresentação que encapsula a renderização gráfica de 6 variantes visuais de nicho comercial (`retail-burst`, `fresh-organic`, `dark-luxury`, `rustic-wood`, `clean-minimal`, `neon-urban`) em proporção 4:5.
-   - `StylePresetGallery` (`src/features/promotions/components/style-preset-gallery.tsx`): componente visual mobile-first que substitui o antigo `StylePresetsCard`. Organiza os estilos em abas (*"Estilos Prontos (Galeria)"* vs *"Enviar Arte Própria"*), grid compacto de 2 colunas no celular (`grid-cols-2`), touch targets generosos (≥ 44px) e seleção instantânea em 1 toque.
-   - Disciplina de Costuras (*replace-don't-layer*): o catálogo é uma estrutura de dados e funções puras em memória; o gerador consome a diretriz via função pura, permitindo testes unitários ultra-rápidos sem mocks externos ou rede.
+   - `StylePresetGallery` (`src/features/promotions/components/style-preset-gallery.tsx`): componente visual mobile-first que substitui o antigo `StylePresetsCard`. Organiza os estilos em abas (_"Estilos Prontos (Galeria)"_ vs _"Enviar Arte Própria"_), grid compacto de 2 colunas no celular (`grid-cols-2`), touch targets generosos (≥ 44px) e seleção instantânea em 1 toque.
+   - Disciplina de Costuras (_replace-don't-layer_): o catálogo é uma estrutura de dados e funções puras em memória; o gerador consome a diretriz via função pura, permitindo testes unitários ultra-rápidos sem mocks externos ou rede.
 
 2. **Integridade de Negócio & Regras Autoritativas no Backend**:
    - **Exclusividade Mútua de Insumos Visuais**: a escolha de um estilo pronto da galeria limpa automaticamente qualquer imagem de referência manual (`referenceImageDataUrl = undefined`) e vice-versa. Isso elimina conflitos estéticos no modelo multimodal (ex.: enviar foto de pizza artesanal enquanto seleciona estilo de encarte de supermercado).
@@ -128,7 +128,7 @@ stateDiagram-v2
 
     InitialPresetSelected --> CustomReferenceTabSelected: Usuário clica na aba 'Enviar Arte Própria'
     CustomReferenceTabSelected --> CustomReferenceUploaded: Usuário seleciona arquivo JPG/PNG/WebP
-    
+
     state CustomReferenceUploaded {
         [*] --> ReferenciaAtiva
         ReferenciaAtiva: referenceImageDataUrl definido
@@ -148,7 +148,7 @@ stateDiagram-v2
 
     InitialPresetSelected --> SegmentChanged: Usuário volta ao Passo 1 e altera o Segmento Comercial
     CustomReferenceUploaded --> SegmentChanged: Usuário altera o Segmento Comercial
-    
+
     state SegmentChanged {
         [*] --> RecalculaCatalogo
         RecalculaCatalogo: Carrega os 4 estilos do novo segmento
@@ -248,7 +248,9 @@ export interface CuratedStylePreset {
 /**
  * Retorna exatamente os 4 estilos visuais curados para o segmento comercial informado.
  */
-export function getSegmentPresets(segment: BusinessSegment): CuratedStylePreset[];
+export function getSegmentPresets(
+  segment: BusinessSegment,
+): CuratedStylePreset[];
 
 /**
  * Busca um estilo específico dentro do catálogo de um segmento.
@@ -271,32 +273,32 @@ export function resolveArtDirectionDirective(
 
 #### Catálogo dos 24 Estilos Visuais Curados (4 por Segmento)
 
-| Segmento | ID do Estilo | Nome Comercial | Variante Mockup | Paleta Principal | Foco Estético |
-|---|---|---|---|---|---|
-| **Supermercado** | `market-discount` | Super Encarte Amarelo & Vermelho | `retail-burst` | `#EF4444`, `#FBBF24` | Varejo agressivo, selos explosivos, preço gigante |
-| **Supermercado** | `market-fresh` | Feira & Hortifrúti Natural | `fresh-organic` | `#10B981`, `#047857` | Verde folha, madeira clara, frescor e saúde |
-| **Supermercado** | `market-premium` | Empório Gourmet & Carnes Nobres | `dark-luxury` | `#1F2937`, `#F59E0B` | Fundo escuro texturizado, luz quente em carnes nobres |
-| **Supermercado** | `market-daily` | Ofertas do Dia & Sacolão | `retail-burst` | `#F97316`, `#FDE047` | Laranja vibrante, direto ao ponto para hortifrúti diário |
-| **Salão & Barbearia** | `barber-vintage` | Barber Club Retrô & Couro | `rustic-wood` | `#78350F`, `#D97706` | Madeira escura, couro, luz quente e navalha clássica |
-| **Salão & Barbearia** | `salon-glamour` | Glamour Rose Gold & Editorial | `clean-minimal` | `#EC4899`, `#F43F5E` | Rose gold suave, tipografia fina, elegância feminina |
-| **Salão & Barbearia** | `beauty-clean` | Clean Estética & Spa | `clean-minimal` | `#6366F1`, `#06B6D4` | Tons menta/ciano, sensação de pureza e bem-estar |
-| **Salão & Barbearia** | `barber-modern` | Urban Fade & Neon Barber | `neon-urban` | `#0F172A`, `#8B5CF6` | Fundo grafite com brilhos neon roxo/azul moderno |
-| **Pizzaria** | `pizza-rustic-wood` | Forno a Lenha Rústico | `rustic-wood` | `#B45309`, `#DC2626` | Madeira rústica, chamas, queijo borbulhante e apetite |
-| **Pizzaria** | `pizza-artisan-craft` | Forneria Artesanal Italiana | `rustic-wood` | `#DC2626`, `#15803D` | Toalha xadrez sutil, manjericão fresco, azeite dourado |
-| **Pizzaria** | `pizza-neon-night` | Delivery Noturno Quente | `neon-urban` | `#18181B`, `#EA580C` | Contraste escuro com luz âmbar/alaranjada de delivery |
-| **Pizzaria** | `pizza-promo-combo` | Super Combo & Borda Recheada | `retail-burst` | `#EA580C`, `#FACC15` | Composição de pizza + refrigerante com destaque de combo |
-| **Hamburgueria** | `burger-dark-bold` | Dark Burger & Fumaça | `dark-luxury` | `#111827`, `#F59E0B` | Fundo carvão dramático, fumaça quente, cheddar escorrendo |
-| **Hamburgueria** | `burger-smash-fire` | Smash na Chapa & Fogo | `rustic-wood` | `#B45309`, `#EF4444` | Tons de brasa, luz lateral na crostinha caramelizada |
-| **Hamburgueria** | `burger-urban-pop` | Street Food Pop & Grafite | `retail-burst` | `#F59E0B`, `#DC2626` | Diner americano, amarelo e vermelho com tipografia ousada |
-| **Hamburgueria** | `burger-artisan-wood` | Gourmet na Tábua Artesanal | `rustic-wood` | `#78350F`, `#10B981` | Tábua de corte rústica, molhos artesanais e textura |
-| **Restaurante** | `restaurant-homestyle` | Comidinha Caseira & Aconchego | `rustic-wood` | `#D97706`, `#15803D` | Panela de ferro, aroma de fazenda, comida afetiva |
-| **Restaurante** | `restaurant-buffet` | Prato Feito Executivo Farto | `fresh-organic` | `#059669`, `#D97706` | Arroz brilhante, feijão suculento, carne e salada colorida |
-| **Restaurante** | `restaurant-gourmet` | Bistrô & Empratado Fino | `dark-luxury` | `#334155`, `#E2E8F0` | Louça clara impecável, iluminação difusa sofisticada |
-| **Restaurante** | `restaurant-delivery` | Marmita Express do Dia | `retail-burst` | `#EA580C`, `#F59E0B` | Visual prático e apetitoso para entrega rápida de almoço |
-| **Comércio Local** | `retail-vibrant` | Varejo Dinâmico & Amigável | `retail-burst` | `#3B82F6`, `#FBBF24` | Azul e amarelo convidativo para lojas de bairro e pet shops |
-| **Comércio Local** | `retail-dynamic` | Liquidação & Black Week | `retail-burst` | `#EAB308`, `#18181B` | Faixas de impacto, preto e amarelo com urgência de compra |
-| **Comércio Local** | `retail-clean-modern` | Moderno & Tecnológico | `clean-minimal` | `#0EA5E9`, `#64748B` | Geometrias limpas e tons neutros para óticas e informática |
-| **Comércio Local** | `retail-service-pro` | Serviço Profissional & Confiança | `clean-minimal` | `#1E40AF`, `#F8FAFC` | Azul profundo institucional com selo de garantia de serviço |
+| Segmento              | ID do Estilo           | Nome Comercial                   | Variante Mockup | Paleta Principal     | Foco Estético                                               |
+| --------------------- | ---------------------- | -------------------------------- | --------------- | -------------------- | ----------------------------------------------------------- |
+| **Supermercado**      | `market-discount`      | Super Encarte Amarelo & Vermelho | `retail-burst`  | `#EF4444`, `#FBBF24` | Varejo agressivo, selos explosivos, preço gigante           |
+| **Supermercado**      | `market-fresh`         | Feira & Hortifrúti Natural       | `fresh-organic` | `#10B981`, `#047857` | Verde folha, madeira clara, frescor e saúde                 |
+| **Supermercado**      | `market-premium`       | Empório Gourmet & Carnes Nobres  | `dark-luxury`   | `#1F2937`, `#F59E0B` | Fundo escuro texturizado, luz quente em carnes nobres       |
+| **Supermercado**      | `market-daily`         | Ofertas do Dia & Sacolão         | `retail-burst`  | `#F97316`, `#FDE047` | Laranja vibrante, direto ao ponto para hortifrúti diário    |
+| **Salão & Barbearia** | `barber-vintage`       | Barber Club Retrô & Couro        | `rustic-wood`   | `#78350F`, `#D97706` | Madeira escura, couro, luz quente e navalha clássica        |
+| **Salão & Barbearia** | `salon-glamour`        | Glamour Rose Gold & Editorial    | `clean-minimal` | `#EC4899`, `#F43F5E` | Rose gold suave, tipografia fina, elegância feminina        |
+| **Salão & Barbearia** | `beauty-clean`         | Clean Estética & Spa             | `clean-minimal` | `#6366F1`, `#06B6D4` | Tons menta/ciano, sensação de pureza e bem-estar            |
+| **Salão & Barbearia** | `barber-modern`        | Urban Fade & Neon Barber         | `neon-urban`    | `#0F172A`, `#8B5CF6` | Fundo grafite com brilhos neon roxo/azul moderno            |
+| **Pizzaria**          | `pizza-rustic-wood`    | Forno a Lenha Rústico            | `rustic-wood`   | `#B45309`, `#DC2626` | Madeira rústica, chamas, queijo borbulhante e apetite       |
+| **Pizzaria**          | `pizza-artisan-craft`  | Forneria Artesanal Italiana      | `rustic-wood`   | `#DC2626`, `#15803D` | Toalha xadrez sutil, manjericão fresco, azeite dourado      |
+| **Pizzaria**          | `pizza-neon-night`     | Delivery Noturno Quente          | `neon-urban`    | `#18181B`, `#EA580C` | Contraste escuro com luz âmbar/alaranjada de delivery       |
+| **Pizzaria**          | `pizza-promo-combo`    | Super Combo & Borda Recheada     | `retail-burst`  | `#EA580C`, `#FACC15` | Composição de pizza + refrigerante com destaque de combo    |
+| **Hamburgueria**      | `burger-dark-bold`     | Dark Burger & Fumaça             | `dark-luxury`   | `#111827`, `#F59E0B` | Fundo carvão dramático, fumaça quente, cheddar escorrendo   |
+| **Hamburgueria**      | `burger-smash-fire`    | Smash na Chapa & Fogo            | `rustic-wood`   | `#B45309`, `#EF4444` | Tons de brasa, luz lateral na crostinha caramelizada        |
+| **Hamburgueria**      | `burger-urban-pop`     | Street Food Pop & Grafite        | `retail-burst`  | `#F59E0B`, `#DC2626` | Diner americano, amarelo e vermelho com tipografia ousada   |
+| **Hamburgueria**      | `burger-artisan-wood`  | Gourmet na Tábua Artesanal       | `rustic-wood`   | `#78350F`, `#10B981` | Tábua de corte rústica, molhos artesanais e textura         |
+| **Restaurante**       | `restaurant-homestyle` | Comidinha Caseira & Aconchego    | `rustic-wood`   | `#D97706`, `#15803D` | Panela de ferro, aroma de fazenda, comida afetiva           |
+| **Restaurante**       | `restaurant-buffet`    | Prato Feito Executivo Farto      | `fresh-organic` | `#059669`, `#D97706` | Arroz brilhante, feijão suculento, carne e salada colorida  |
+| **Restaurante**       | `restaurant-gourmet`   | Bistrô & Empratado Fino          | `dark-luxury`   | `#334155`, `#E2E8F0` | Louça clara impecável, iluminação difusa sofisticada        |
+| **Restaurante**       | `restaurant-delivery`  | Marmita Express do Dia           | `retail-burst`  | `#EA580C`, `#F59E0B` | Visual prático e apetitoso para entrega rápida de almoço    |
+| **Comércio Local**    | `retail-vibrant`       | Varejo Dinâmico & Amigável       | `retail-burst`  | `#3B82F6`, `#FBBF24` | Azul e amarelo convidativo para lojas de bairro e pet shops |
+| **Comércio Local**    | `retail-dynamic`       | Liquidação & Black Week          | `retail-burst`  | `#EAB308`, `#18181B` | Faixas de impacto, preto e amarelo com urgência de compra   |
+| **Comércio Local**    | `retail-clean-modern`  | Moderno & Tecnológico            | `clean-minimal` | `#0EA5E9`, `#64748B` | Geometrias limpas e tons neutros para óticas e informática  |
+| **Comércio Local**    | `retail-service-pro`   | Serviço Profissional & Confiança | `clean-minimal` | `#1E40AF`, `#F8FAFC` | Azul profundo institucional com selo de garantia de serviço |
 
 ---
 
@@ -340,7 +342,7 @@ export interface ProductImageUploaderCardProps {
 }
 ```
 
-- Exibe informações claras: *"Foto do Produto / Serviço (Opcional)"*.
+- Exibe informações claras: _"Foto do Produto / Serviço (Opcional)"_.
 - Se carregada: exibe imagem com botão de remoção rápida (`Trash2`).
 - Se vazia: botão de upload estilizado acessível com touch target ≥ 44px.
 
@@ -368,8 +370,8 @@ export interface StylePresetGalleryProps {
 ```
 
 - **Abas de Navegação (Tabs)**:
-  - Aba 1: *"Estilos Prontos (Galeria)"* (ativa por padrão se houver preset selecionado ou rascunho novo).
-  - Aba 2: *"Enviar Arte Própria"* (ativa se houver `referenceImageDataUrl` preenchido).
+  - Aba 1: _"Estilos Prontos (Galeria)"_ (ativa por padrão se houver preset selecionado ou rascunho novo).
+  - Aba 2: _"Enviar Arte Própria"_ (ativa se houver `referenceImageDataUrl` preenchido).
 - **Grid Mobile-First**: 2 colunas (`grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4`) exibindo os 4 estilos do segmento.
 - **Cartão do Estilo**:
   - Miniatura `StyleMockupThumbnail`.
@@ -382,7 +384,7 @@ export interface StylePresetGalleryProps {
   - Uploader tradicional de imagem (JPG, PNG, WebP até 4MB).
   - Ao carregar a imagem, limpa automaticamente `stylePresetId`.
 - **Instruções Adicionais Expansíveis**:
-  - Acordeão sanfona *"Instruções extras de estilo para a IA (opcional)"*, permitindo refinar o clima (ex.: *"Quero fundo com fumaça escura"*).
+  - Acordeão sanfona _"Instruções extras de estilo para a IA (opcional)"_, permitindo refinar o clima (ex.: _"Quero fundo com fumaça escura"_).
 
 ---
 
@@ -412,9 +414,10 @@ ${productNote ? `${productNote}\n` : ""}${referenceNote ? `${referenceNote}\n` :
 
 ## 4. Disciplina de Costuras e Estratégia de Testes TDD
 
-Seguindo os princípios de `codebase-design` e `solid` (*replace-don't-layer* com *fakes in-memory*):
+Seguindo os princípios de `codebase-design` e `solid` (_replace-don't-layer_ com _fakes in-memory_):
 
 ### 4.1. `src/features/promotions/data/style-presets-catalog.test.ts`
+
 - **Validação de Cobertura**: testa os 6 segmentos comerciais (`supermarket`, `beauty-salon`, `pizzeria`, `burger-shop`, `restaurant`, `local-retail`).
 - **Completude Estrutural**: garante que cada segmento possui exatamente 4 presets com `id`, `label`, `description`, `tags` (mínimo 2), `previewBadgeColor`, `accentColor`, `mockup` e `artDirection`.
 - **Unicidade de Identificadores**: garante que os 24 `id` de estilos são globalmente únicos no catálogo.
@@ -423,11 +426,13 @@ Seguindo os princípios de `codebase-design` e `solid` (*replace-don't-layer* co
   - `resolveArtDirectionDirective("pizzeria", "estilo-fantasma")` retorna a diretriz do primeiro preset sem disparar exceção.
 
 ### 4.2. `src/features/promotions/components/style-mockup-thumbnail.test.tsx`
+
 - **Renderização de Variantes**: testa a renderização sem erros das 6 variantes visuais (`retail-burst`, `fresh-organic`, `dark-luxury`, `rustic-wood`, `clean-minimal`, `neon-urban`).
 - **Estrutura SVG**: verifica a presença de nós `<svg>`, retângulos e gradientes correspondentes.
 - **Desempenho**: assegura zero chamadas a endpoints externos ou tags `<img>` remotas.
 
 ### 4.3. `src/features/promotions/components/style-preset-gallery.test.tsx`
+
 - **Renderização da Galeria**: verifica a exibição dos 4 cartões de estilo para o segmento informado.
 - **Seleção em 1 Toque**: clica em um cartão e valida o disparo de `onStylePresetChange` com o `id` correspondente.
 - **Exclusividade Mútua**:
@@ -436,11 +441,13 @@ Seguindo os princípios de `codebase-design` e `solid` (*replace-don't-layer* co
 - **Acessibilidade & Mobile**: verifica atributos `role="tab"`, `aria-selected`, `aria-pressed`, e ausência de elementos com touch target < 44px.
 
 ### 4.4. `src/features/promotions/server/services/ai-card-generator.service.test.ts`
+
 - **Injeção de Direção de Arte**: testa que ao chamar `generateAdCardImage` com `stylePresetId: "market-discount"`, o prompt passado ao cliente Gemini contém a seção `--- DIRETRIZ DE DIREÇÃO DE ARTE PROFISSIONAL: "Super Encarte Amarelo & Vermelho" ---` com a paleta de cores e atmosfera do preset.
 - **Comportamento com Preset Inexistente**: testa que um preset inválido utiliza o fallback de direção de arte do segmento sem lançar erro.
 
 ### 4.5. `src/features/promotions/components/offer-brief-wizard.test.tsx` & `use-offer-brief-draft.test.ts`
-- **Troca Reativa de Segmento**: no Passo 1, trocar de *"Supermercado"* para *"Pizzaria"* atualiza a galeria do Passo 2 para os 4 estilos de pizza e redefine o `stylePresetId` para `"pizza-rustic-wood"`.
+
+- **Troca Reativa de Segmento**: no Passo 1, trocar de _"Supermercado"_ para _"Pizzaria"_ atualiza a galeria do Passo 2 para os 4 estilos de pizza e redefine o `stylePresetId` para `"pizza-rustic-wood"`.
 - **Persistência**: rascunho com `stylePresetId` selecionado envia o ID correto na chamada RPC `saveDraftFn`.
 
 ---
@@ -503,11 +510,11 @@ flowchart TD
 
 ## 6. Matriz de Rastreabilidade
 
-| Ticket | Entregáveis Técnicos | Critérios de Aceite BDD Atendidos | Testes Automatizados |
-|---|---|---|---|
-| **01** | `style-presets-catalog.ts`, `ai-card-generator.service.ts` | - 24 estilos curados para os 6 segmentos (4 por segmento).<br/>- `resolveArtDirectionDirective` injeta paleta, iluminação e atmosfera no prompt Gemini.<br/>- Fallback gracioso para presets inválidos/nulos. | `style-presets-catalog.test.ts`<br/>`ai-card-generator.service.test.ts` |
-| **02** | `style-mockup-thumbnail.tsx` | - Renderização das 6 variantes visuais em proporção 4:5.<br/>- Zero chamadas de rede ou assets externos (100% SVG em memória).<br/>- Performance instantânea em redes móveis. | `style-mockup-thumbnail.test.tsx` |
-| **03** | `style-preset-gallery.tsx`, `product-image-uploader-card.tsx` | - Galeria mobile-first em grid de 2 colunas com seleção em 1 toque.<br/>- Abas *"Estilos Prontos"* vs *"Enviar Arte Própria"* com exclusividade mútua estrita.<br/>- Modal de detalhes visuais e campo expansível de instruções extras.<br/>- Touch targets ≥ 44px e atributos de acessibilidade. | `style-preset-gallery.test.tsx` |
+| Ticket | Entregáveis Técnicos                                                               | Critérios de Aceite BDD Atendidos                                                                                                                                                                                                                                                                                            | Testes Automatizados                                                                                |
+| ------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **01** | `style-presets-catalog.ts`, `ai-card-generator.service.ts`                         | - 24 estilos curados para os 6 segmentos (4 por segmento).<br/>- `resolveArtDirectionDirective` injeta paleta, iluminação e atmosfera no prompt Gemini.<br/>- Fallback gracioso para presets inválidos/nulos.                                                                                                                | `style-presets-catalog.test.ts`<br/>`ai-card-generator.service.test.ts`                             |
+| **02** | `style-mockup-thumbnail.tsx`                                                       | - Renderização das 6 variantes visuais em proporção 4:5.<br/>- Zero chamadas de rede ou assets externos (100% SVG em memória).<br/>- Performance instantânea em redes móveis.                                                                                                                                                | `style-mockup-thumbnail.test.tsx`                                                                   |
+| **03** | `style-preset-gallery.tsx`, `product-image-uploader-card.tsx`                      | - Galeria mobile-first em grid de 2 colunas com seleção em 1 toque.<br/>- Abas _"Estilos Prontos"_ vs _"Enviar Arte Própria"_ com exclusividade mútua estrita.<br/>- Modal de detalhes visuais e campo expansível de instruções extras.<br/>- Touch targets ≥ 44px e atributos de acessibilidade.                            | `style-preset-gallery.test.tsx`                                                                     |
 | **04** | `flexible-visual-inputs.tsx`, `use-offer-brief-draft.ts`, `offer-brief-wizard.tsx` | - Troca reativa de segmento no Passo 1 redefine estilos e seleção no Passo 2.<br/>- Persistência e recarga transparente de `stylePresetId` via `saveDraftFn` e `getDraftFn`.<br/>- Geração de prévia com marca d'água refletindo a direção de arte.<br/>- Aprovação total no pipeline oficial `./.agents/scripts/verify.sh`. | `offer-brief-wizard.test.tsx`<br/>`use-offer-brief-draft.test.ts`<br/>`./.agents/scripts/verify.sh` |
 
 ---

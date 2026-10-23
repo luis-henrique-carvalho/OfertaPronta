@@ -7,7 +7,7 @@
 - **Spec de Produto**: [`docs/specs/cloudflare-r2-storage.md`](../specs/cloudflare-r2-storage.md)
 - **Macro-Tickets de Execução**:
   1. [`docs/tickets/cloudflare-r2-storage/01-backend-storage-stream.md`](../tickets/cloudflare-r2-storage/01-backend-storage-stream.md)
-  2. [`docs/tickets/cloudflare-r2-storage/02-showcase-and-delivery-stream.md`](../tickets/cloudflare-r2-storage/02-showcase-and-delivery-stream.md) *(Execução Concorrente)*
+  2. [`docs/tickets/cloudflare-r2-storage/02-showcase-and-delivery-stream.md`](../tickets/cloudflare-r2-storage/02-showcase-and-delivery-stream.md) _(Execução Concorrente)_
 
 ---
 
@@ -20,24 +20,28 @@ Esta feature introduz uma **camada de armazenamento de objetos desacoplada e de 
 A solução foi concebida sob os **4 Pilares Universais de Engenharia**:
 
 ### 1.1. Arquitetura & Módulos Profundos (`codebase-design`)
+
 - **Módulo Profundo `StorageService` (`src/server/storage/`)**: Centraliza em uma interface pública concisa (`uploadAsset`, `getAsset`, `deleteAsset`, `getPublicUrl`) todas as operações de persistência e leitura de binários. Toda a complexidade de autenticação AWS S3 v4, endpoint Cloudflare R2, streaming assíncrono de buffers e resolução de domínios públicos fica encapsulada e isolada do restante da aplicação.
 - **Costura Determinística via `InMemoryStorageDriver` (Replace-Don't-Layer)**: Em vez de espalhar mocks frágeis ou criar portas com múltiplos adaptadores hipotéticos, o módulo possui dois drivers canônicos: `CloudflareR2StorageDriver` (produção/staging usando `@aws-sdk/client-s3`) e `InMemoryStorageDriver` (desenvolvimento offline e suíte de testes Vitest com velocidade de 1-2s).
 - **Isolamento Estrito Client/Server**: A SDK da AWS (`@aws-sdk/client-s3`), segredos de acesso (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`) e processamento de imagem rodam exclusivamente no Node.js/Nitro. O frontend acessa assets públicos diretamente por URLs HTTPS de CDN e assets protegidos via Server Functions e rotas de streaming HTTP.
 - **Módulo Profundo `ShowcaseService` (`src/features/promotions/server/services/showcase.service.ts`)**: Encapsula a recuperação e filtragem de exemplos curados de cards por segmento e estilo, com fallback transparente para o catálogo de semente estático (`SHOWCASE_SEED_CATALOG`), eliminando telas em branco e acoplamentos espalhados.
 
 ### 1.2. Integridade das Regras de Negócio
+
 - **Imutabilidade e Congelamento de Pedido (`Frozen Snapshot`)**: As chaves e URLs de assets mestre e prévias são registradas no snapshot congelado do pedido (`orders.frozenSnapshot`), garantindo que o cliente sempre receba exatamente os insumos contratados, mesmo após eventuais regenerações.
 - **Controle Estrito de Cotas**: A cota gratuita de 1 prévia por rascunho (`drafts.aiGenerationCount`) e a cota pós-pagamento de até 3 regenerações (`orders.aiRegenerationCount`) continuam protegidas por transações atômicas no banco de dados.
 - **Retrocompatibilidade Universal (Zero-Regressão)**: Pedidos e rascunhos legados gravados como Data URLs Base64 continuam funcionando sem necessidade de migrações em lote no banco. O `DeliveryService` e a rota `/api/delivery/download` inspecionam o prefixo do payload e servem tanto buffers baixados do R2 quanto buffers decodificados de Base64.
 
 ### 1.3. Segurança por Design (`Security by Design`)
+
 - **Arquitetura de Balde Híbrido (Público vs. Privado)**:
-  - *Público:* Prévias com marca d'água (`previews/*`) e cards da vitrine (`showcase/*`) são distribuídos via CDN global da Cloudflare com cache no edge, eliminando carga no servidor da aplicação.
-  - *Privado:* Artes mestres limpas (`masters/*`) e arquivos finais pagos (`deliveries/*`) são armazenados em diretórios privados, inacessíveis diretamente pelo browser.
+  - _Público:_ Prévias com marca d'água (`previews/*`) e cards da vitrine (`showcase/*`) são distribuídos via CDN global da Cloudflare com cache no edge, eliminando carga no servidor da aplicação.
+  - _Privado:_ Artes mestres limpas (`masters/*`) e arquivos finais pagos (`deliveries/*`) são armazenados em diretórios privados, inacessíveis diretamente pelo browser.
 - **Entrega Autoritativa e Streaming Seguro (`/api/delivery/download`)**: Apenas pedidos com `status === "PAID"` têm permissão para acessar os arquivos em alta resolução. O endpoint valida o pedido, incrementa atomicamente a métrica `downloadCount` e envia o binário com cabeçalhos de segurança (`Content-Disposition: attachment`, `Content-Type: image/png`, `Cache-Control: private, no-transform`).
 - **Anonimização e Conformidade LGPD na Vitrine**: A vitrine expõe exclusivamente exemplos curados com dados comerciais e visuais fictícios, sem expor nomes de clientes reais, números de WhatsApp ou logotipos proprietários.
 
 ### 1.4. Qualidade, Simplicidade & Costuras TDD (`SOLID` + `YAGNI`)
+
 - **Zero Egress Fees com Cloudflare R2**: A escolha pelo Cloudflare R2 elimina taxas de transferência de saída (diferente da AWS S3 tradicional), garantindo viabilidade econômica para distribuição em massa de imagens HD.
 - **Sem Bloat de CMS Administrativo (YAGNI/Ponytail)**: Sem painéis administrativos ou formulários de upload para gerenciar a vitrine no MVP. O gerenciamento é feito via seed de dados versionado no Git e migrações Drizzle.
 - **Testes Ultrarrápidos em Memória**: Com o `InMemoryStorageDriver`, toda a suíte de testes unitários roda em memória sem tocar a rede, mantendo tempo de execução inferior a 2 segundos.
@@ -132,14 +136,14 @@ sequenceDiagram
     PrevGen->>DB: getDraft(draftId) & valida cota == 0
     PrevGen->>AI: generateAdCardImage(briefing)
     AI-->>PrevGen: rawImageBuffer (PNG Master sem marca)
-    
+
     PrevGen->>Export: applyWatermark(rawImageBuffer)
     Export-->>PrevGen: { watermarkedBuffer, dataUrl }
 
     Note over PrevGen,Storage: Persistência Desacoplada no Cloudflare R2
     PrevGen->>Storage: uploadAsset({ key: "previews/{draftId}/{timestamp}.png", buffer: watermarkedBuffer, isPublic: true })
     Storage-->>PrevGen: { key: previewKey, url: previewCdnUrl }
-    
+
     PrevGen->>Storage: uploadAsset({ key: "masters/{draftId}/{timestamp}.png", buffer: rawImageBuffer, isPublic: false })
     Storage-->>PrevGen: { key: masterKey, url: masterStorageUrl }
 
@@ -166,7 +170,7 @@ sequenceDiagram
     Customer->>DeliveryUI: Acessa tela de entrega pós-Pix (/pedido/$orderId)
     DeliveryUI->>DeliverySvc: getDeliveryDetails(orderId)
     DeliverySvc->>DB: Busca order (valida status === PAID)
-    
+
     alt Exports ainda não derivados (Primeiro Acesso)
         DeliverySvc->>Storage: getAsset(order.cleanMasterAssetKey)
         alt Chave R2 existe
@@ -184,7 +188,7 @@ sequenceDiagram
     DeliveryUI->>DownloadRoute: GET /api/delivery/download?orderId=...&format=feed
     DownloadRoute->>DeliverySvc: getExportBinary(orderId, "feed")
     DeliverySvc->>DB: Busca exportRecord (valida orderId)
-    
+
     alt Asset armazenado no R2 (Novo Padrão)
         DeliverySvc->>Storage: getAsset(exportRecord.feedAssetKey)
         Storage-->>DeliverySvc: { buffer, contentType: "image/png" }
@@ -281,7 +285,9 @@ export interface StorageService {
 }
 
 export function getStorageService(): StorageService;
-export function setStorageServiceForTesting(service: StorageService | null): void;
+export function setStorageServiceForTesting(
+  service: StorageService | null,
+): void;
 ```
 
 ### 3.2. Driver Cloudflare R2 (`src/server/storage/r2-driver.ts`)
@@ -380,6 +386,7 @@ export type NewShowcaseCard = typeof showcaseCards.$inferInsert;
 ### 4.2. Atualização da Tabela `drafts` (`src/server/db/schema/promotions.ts`)
 
 Adição de colunas para referências de chaves no storage:
+
 ```typescript
 previewAssetKey: text("preview_asset_key"),
 cleanMasterAssetKey: text("clean_master_asset_key"),
@@ -388,6 +395,7 @@ cleanMasterAssetKey: text("clean_master_asset_key"),
 ### 4.3. Atualização da Tabela `orders` (`src/server/db/schema/orders.ts`)
 
 Adição da coluna para persistência da chave da arte mestre limpa:
+
 ```typescript
 cleanMasterAssetKey: text("clean_master_asset_key"),
 ```
@@ -457,7 +465,9 @@ A tabela já conta com as colunas estruturais `feedAssetKey` e `storyAssetKey` (
 
 - **Serviço de Negócio:**
   ```typescript
-  export async function getShowcaseCards(input: GetShowcaseCardsInput): Promise<ShowcaseCardItem[]> {
+  export async function getShowcaseCards(
+    input: GetShowcaseCardsInput,
+  ): Promise<ShowcaseCardItem[]> {
     // 1. Tenta consulta ao banco Drizzle showcase_cards filtrado por segmento e ordenado por displayOrder
     // 2. Se a tabela estiver vazia (banco local sem seed ou ambiente de teste), retorna o fallback de SHOWCASE_SEED_CATALOG
   }
@@ -468,10 +478,10 @@ A tabela já conta com as colunas estruturais `feedAssetKey` e `storyAssetKey` (
 ### 6.3. Componente `ShowcaseGalleryDialog` (`src/features/promotions/components/wizard/showcase-gallery-dialog.tsx`)
 
 - **Design System Mobile-First:** Construído com primitivos do shadcn/ui (`Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`, `Button`, `Badge`, `AspectRatio`).
-- **Gatilho no Passo 4:** Botão com destaque visual e ícone `Sparkles` posicionado acima da grade de estilos rápidos: *"Ver Exemplos Reais Criados por IA"*.
+- **Gatilho no Passo 4:** Botão com destaque visual e ícone `Sparkles` posicionado acima da grade de estilos rápidos: _"Ver Exemplos Reais Criados por IA"_.
 - **Ação de 1 Toque ("Usar este Estilo"):**
   - Cada card exibe imagem ampliada, título da oferta, preço promocional e estilo correspondente.
-  - Ao tocar em *"Usar este Estilo"*, aciona `onSelectStyle(card.stylePresetId)`, fecha o diálogo modal e destaca o estilo selecionado no formulário.
+  - Ao tocar em _"Usar este Estilo"_, aciona `onSelectStyle(card.stylePresetId)`, fecha o diálogo modal e destaca o estilo selecionado no formulário.
 - **Acessibilidade & A11y:**
   - Gerenciamento de foco do Radix UI.
   - Fechamento via tecla `Escape` e clique no backdrop.
@@ -482,12 +492,12 @@ A tabela já conta com as colunas estruturais `feedAssetKey` e `storyAssetKey` (
 
 ## 7. Estratégia de Retrocompatibilidade e Raio de Impacto (Blast Radius)
 
-| Ponto de Integração | Comportamento com Chaves R2 (Novo) | Comportamento com Data URLs (Legado) |
-|---|---|---|
+| Ponto de Integração                                                  | Comportamento com Chaves R2 (Novo)                                                  | Comportamento com Data URLs (Legado)                                                           |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | **Exibição da Prévia (`LiveCardPreview`, `AdCardCheckoutShowcase`)** | Renderiza `<img src="https://...r2.../previews/..." />` via CDN de alta velocidade. | Renderiza `<img src="data:image/png;base64,..." />` nativamente. Zero alteração no componente. |
-| **Geração de Formatos HD (`DeliveryService.ensureDeliveryExports`)** | Lê master de `storageService.getAsset(order.cleanMasterAssetKey)`. | Lê master de `order.cleanMasterImageDataUrl` via `parseDataUrlBuffer()`. |
-| **Download de Arquivos (`/api/delivery/download`)** | Recupera bytes de `storageService.getAsset(key)`. | Decodifica `data:image/png;base64,...` para buffer em memória. |
-| **Consultas de Vitrine (`ShowcaseService.getShowcaseCards`)** | Lê registros persistidos da tabela `showcase_cards`. | Recorre automaticamente ao catálogo estático `SHOWCASE_SEED_CATALOG`. |
+| **Geração de Formatos HD (`DeliveryService.ensureDeliveryExports`)** | Lê master de `storageService.getAsset(order.cleanMasterAssetKey)`.                  | Lê master de `order.cleanMasterImageDataUrl` via `parseDataUrlBuffer()`.                       |
+| **Download de Arquivos (`/api/delivery/download`)**                  | Recupera bytes de `storageService.getAsset(key)`.                                   | Decodifica `data:image/png;base64,...` para buffer em memória.                                 |
+| **Consultas de Vitrine (`ShowcaseService.getShowcaseCards`)**        | Lê registros persistidos da tabela `showcase_cards`.                                | Recorre automaticamente ao catálogo estático `SHOWCASE_SEED_CATALOG`.                          |
 
 ---
 
@@ -505,6 +515,7 @@ A tabela já conta com as colunas estruturais `feedAssetKey` e `storyAssetKey` (
 ## 9. Plano de Costuras TDD e Escopo dos Builders Paralelos
 
 ### 9.1. Stream 1: Backend Storage Stream (`backend-builder` — Ticket 01)
+
 - **Dependência:** Instalar `@aws-sdk/client-s3` via `pnpm add @aws-sdk/client-s3`.
 - **Arquivos a Criar/Editar:**
   - `src/config/server-env.ts` (adicionar `STORAGE_DRIVER`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`).
@@ -528,6 +539,7 @@ A tabela já conta com as colunas estruturais `feedAssetKey` e `storyAssetKey` (
   - `pnpm typecheck`
 
 ### 9.2. Stream 2: Showcase & Delivery Stream (`frontend-builder` — Ticket 02)
+
 - **Arquivos a Criar/Editar:**
   - `src/features/promotions/data/showcase-catalog.ts` (catálogo com 18+ cards curados para 6 segmentos).
   - `src/features/promotions/server/services/showcase.service.ts` (serviço de consulta e fallback).

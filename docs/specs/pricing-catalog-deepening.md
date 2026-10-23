@@ -8,13 +8,14 @@
 Atualmente, a regra de precificação e os direitos comerciais de uma **Campanha (`Campaign`)** no **OfertaPronta** estão espalhados como números mágicos (`990` centavos) e textos estáticos (`"R$ 9,90"`, `"até 3 regenerações"`) por dezenas de arquivos entre o banco de dados (`orders.ts`), o módulo de checkout (`PixCheckoutService`) e múltiplos componentes visuais da Landing Page, da etapa de Prévia e da tela de Checkout Pix.
 
 Essa dispersão viola a **Localidade (`Locality`)** e a **Alavancagem (`Leverage`)** da arquitetura de módulos profundos:
+
 1. Qualquer ajuste promocional, teste de preço ou ativação dos pacotes previstos na Seção 4 do `PRD.md` (1 campanha por R$ 9,90, 5 campanhas por R$ 29,90, 10 campanhas por R$ 49,90) exige caçar e alterar literais em mais de 10 pontos da aplicação.
 2. O `PixCheckoutService` valida cegamente `payload.value !== 990` no webhook e `remoteTx.valueCents === 990` na reconciliação ativa, além de reemitir cobranças expiradas sempre com `990`, ignorando o valor real (`charge.amountCents` / `order.amountCents`) congelado no **Pedido (`Order`)**.
 3. A interface de usuário exibe valores fixos no JSX em vez de refletir dinamicamente o **Plano de Campanha (`Campaign Plan`)** ativo ou o `Frozen Snapshot` do pedido em andamento.
 
 ## Solution
 
-Introduzir o módulo profundo **`CampaignCatalog`** como fonte única da verdade (*Single Source of Truth*) para os **Planos de Campanha (`Campaign Plan`)**, preços em centavos, formatação monetária BRL e direitos de uso/regeneração por IA, aprofundando simultaneamente o `PixCheckoutService` e os componentes visuais mobile-first:
+Introduzir o módulo profundo **`CampaignCatalog`** como fonte única da verdade (_Single Source of Truth_) para os **Planos de Campanha (`Campaign Plan`)**, preços em centavos, formatação monetária BRL e direitos de uso/regeneração por IA, aprofundando simultaneamente o `PixCheckoutService` e os componentes visuais mobile-first:
 
 1. **Módulo Profundo `CampaignCatalog` (`in-process` com override opcional de ambiente)**:
    - Modela os planos oficiais do `PRD.md`:
@@ -44,6 +45,7 @@ Introduzir o módulo profundo **`CampaignCatalog`** como fonte única da verdade
 ## Implementation Decisions
 
 ### 1. Módulo Profundo `CampaignCatalog`
+
 - **Localização**: `src/lib/campaign-catalog.ts` (ou exportado de forma isomórfica segura para consumo de metadados/formatação no cliente e resolução autoritativa com suporte a override de ambiente no servidor).
 - **Planos Modelados (`CampaignPlanId`)**:
   - `"single_campaign"`: 1 Campanha (Feed 1080×1350 + Story 1080×1920), `defaultAmountCents: 990`, `campaignsCount: 1`, `maxPostPaymentRegenerations: 3`, `freePreviewGenerations: 1`, `isActiveInMvp: true`.
@@ -57,6 +59,7 @@ Introduzir o módulo profundo **`CampaignCatalog`** como fonte única da verdade
   - Em `src/config/server-env.ts`, adicionar suporte opcional a `CAMPAIGN_SINGLE_PRICE_CENTS` (inteiro positivo). Quando definido no ambiente de execução do servidor, `CampaignCatalog` utiliza esse valor para `single_campaign`.
 
 ### 2. Schema de Pedidos (`src/server/db/schema/orders.ts`) e Contratos Zod (`checkout.schemas.ts`)
+
 - Adicionar coluna `planId: text("plan_id").notNull().default("single_campaign")` na tabela `orders` para rastrear explicitamente qual **Plano de Campanha (`Campaign Plan`)** originou o pedido.
 - Remover os `.default(990)` mágicos ou torná-los explicitamente derivados da criação autoritativa no serviço, garantindo que `orders.amountCents` e `paymentCharges.amountCents` recebam sempre o valor resolvido pelo `CampaignCatalog` no momento da compra.
 - No `initiateCheckoutSchema` (`src/features/checkout/data/checkout.schemas.ts`), aceitar `planId: campaignPlanIdSchema.optional().default("single_campaign")` (O cliente nunca envia `amountCents`; envia no máximo o identificador do plano, cujo preço é resolvido exclusivamente no backend).
@@ -67,6 +70,7 @@ Introduzir o módulo profundo **`CampaignCatalog`** como fonte única da verdade
   - `maxPostPaymentRegenerations`: Cota de regenerações pós-pagamento congelada para o pedido (`3`).
 
 ### 3. Aprofundamento do `PixCheckoutService`
+
 - **`initiateCheckout`**:
   - Resolve o plano via `CampaignCatalog` (`getCampaignPlanById(validated.planId ?? "single_campaign")`).
   - Verifica se o plano está ativo para compra (`plan.isActiveInMvp`); caso alguém tente iniciar checkout de um plano ainda inativo no MVP, rejeita com erro claro de domínio.
@@ -80,6 +84,7 @@ Introduzir o módulo profundo **`CampaignCatalog`** como fonte única da verdade
   - Emite a nova cobrança na Pushin Pay usando `valueCents: order.amountCents` (respeitando o preço congelado no `Order`) e grava `amountCents: order.amountCents` no novo registro de `paymentCharges`.
 
 ### 4. Desacoplamento de Preços na UI Mobile-First
+
 - **Componentes orientados ao Pedido (`Order` / `CheckoutDetailsResult`)**:
   - `OrderSummaryCard`: recebe `amountCents` obrigatório (ou vindo do pedido), `planName` e `maxRegenerations` opcionais derivados do snapshot/catálogo, usando `formatBRL(amountCents)`.
   - `PixCopiaEColaCard`: recebe `amountCents: number` como prop e exibe `formatBRL(amountCents)` no passo 3 das instruções bancárias.

@@ -24,7 +24,7 @@ Evolução do módulo profundo `AdCardGenerator` (`src/features/promotions/serve
   - Para `schedule`: foca em legibilidade do comunicado de horário de atendimento/feriado.
   - Para `custom`: injeta o `customIntentText` fornecido pelo comerciante como foco da peça.
 - [x] **Tratamento de Ausência de Preço**:
-  - Se `promoPrice` for vazio ou indefinido, o prompt instrui expressamente: *"ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica. É expressamente proibido inserir 'R$ 0,00' ou valores inventados."*
+  - Se `promoPrice` for vazio ou indefinido, o prompt instrui expressamente: _"ESTE É UM CARD INSTITUCIONAL / INFORMATIVO: Não exiba nenhum preço ou valor monetário na arte gráfica. É expressamente proibido inserir 'R$ 0,00' ou valores inventados."_
   - Não renderiza valores nulos ou artificiais como "R$ 0,00".
 - [x] **Segmento Moda & Roupas (`fashion`)**:
   - Mapeamento em `SEGMENT_ART_DIRECTIVES` para `fashion` com visual de boutique, vitrine elegante e iluminação suave de estúdio de moda.

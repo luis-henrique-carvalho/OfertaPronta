@@ -71,6 +71,13 @@
       "when": 1792612127514,
       "tag": "0009_handy_maelstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792712815060,
+      "tag": "0010_sturdy_vampiro",
+      "breakpoints": true
     }
   ]
 }

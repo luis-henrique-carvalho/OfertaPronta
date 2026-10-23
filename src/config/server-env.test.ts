@@ -35,6 +35,7 @@ describe("serverEnv", () => {
         "postgresql://app_user:secret@db.production:5432/oferta_prod",
       NODE_ENV: "production",
       PORT: "8080",
+      FREE_PREVIEW_SECRET: "production-secret-with-at-least-32-chars-ok",
     };
 
     const env = parseServerEnv(custom);
@@ -44,6 +45,43 @@ describe("serverEnv", () => {
     );
     expect(env.NODE_ENV).toBe("production");
     expect(env.PORT).toBe(8080);
+    expect(env.FREE_PREVIEW_SECRET).toBe(
+      "production-secret-with-at-least-32-chars-ok",
+    );
+  });
+
+  it("should parse Free Preview variables with defaults in development/test", () => {
+    const env = parseServerEnv({});
+    expect(env.FREE_PREVIEW_SECRET).toBe(
+      "dev-secret-free-preview-must-be-32-chars-minimum!",
+    );
+    expect(env.FREE_PREVIEW_SECRET_PREVIOUS).toBeUndefined();
+    expect(env.FREE_PREVIEW_DAILY_BUDGET).toBe(300);
+    expect(env.TRUSTED_PROXY).toBe(false);
+
+    const custom = parseServerEnv({
+      FREE_PREVIEW_SECRET: "custom-secret-with-at-least-32-characters!",
+      FREE_PREVIEW_SECRET_PREVIOUS: "previous-secret-with-32-characters-here!",
+      FREE_PREVIEW_DAILY_BUDGET: "500",
+      TRUSTED_PROXY: "true",
+    });
+
+    expect(custom.FREE_PREVIEW_SECRET).toBe(
+      "custom-secret-with-at-least-32-characters!",
+    );
+    expect(custom.FREE_PREVIEW_SECRET_PREVIOUS).toBe(
+      "previous-secret-with-32-characters-here!",
+    );
+    expect(custom.FREE_PREVIEW_DAILY_BUDGET).toBe(500);
+    expect(custom.TRUSTED_PROXY).toBe(true);
+  });
+
+  it("should enforce FREE_PREVIEW_SECRET in production", () => {
+    expect(() =>
+      parseServerEnv({
+        NODE_ENV: "production",
+      }),
+    ).toThrow();
   });
 
   it("should reject invalid NODE_ENV", () => {

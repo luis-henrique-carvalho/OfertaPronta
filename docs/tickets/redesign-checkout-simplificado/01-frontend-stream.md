@@ -8,6 +8,7 @@
 ---
 
 ## 1. Contexto & Requisitos
+
 O usuário precisa ver o card de forma clara e atraente no topo da tela de checkout, despertando o desejo imediato de pagar para ter o arquivo em alta resolução sem marca d'água. Em seguida, logo abaixo do showcase visual, um painel compacto unificado permite copiar o código Pix em 1 toque (ou visualizar o QR Code em aba dedicada), com indicador sutil de tempo restante e acordeão de WhatsApp.
 
 ## 2. Tarefas de Implementação
@@ -40,6 +41,7 @@ O usuário precisa ver o card de forma clara e atraente no topo da tela de check
    - Manter redirecionamento com `CheckoutPaidSuccessCard` quando `isPaid` for confirmado.
 
 ## 3. Critérios de Aceite (BDD)
+
 - [x] O card publicitário é exibido em tamanho expressivo com aspect ratio correto e visual atraente.
 - [x] Preço R$ 9,90 e entrega de ambos os formatos (Feed e Story) destacados sem poluição de bullet points.
 - [x] Botão de Copiar Código Pix funciona em 1 toque com feedback visual imediato.

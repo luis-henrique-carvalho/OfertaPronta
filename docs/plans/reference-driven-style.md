@@ -6,8 +6,8 @@
 - **Autor**: Principal Solution & Security Architect
 - **Spec de Produto**: [`docs/specs/reference-driven-style.md`](../specs/reference-driven-style.md)
 - **Macro-Tickets de Execução**:
-  1. [`docs/tickets/reference-driven-style/01-backend-stream.md`](../tickets/reference-driven-style/01-backend-stream.md) *(Stream 1: Backend & Data — Modo `REFERENCE_DRIVEN` no `AdCardGenerator`, Eliminação de Attention Bleeding e Testes Unitários)*
-  2. [`docs/tickets/reference-driven-style/02-frontend-stream.md`](../tickets/reference-driven-style/02-frontend-stream.md) *(Stream 2: Frontend & UX — Card Especial de Referência no Passo 4, Hook `useOfferBriefDraft` e Testes de Integração)*
+  1. [`docs/tickets/reference-driven-style/01-backend-stream.md`](../tickets/reference-driven-style/01-backend-stream.md) _(Stream 1: Backend & Data — Modo `REFERENCE_DRIVEN` no `AdCardGenerator`, Eliminação de Attention Bleeding e Testes Unitários)_
+  2. [`docs/tickets/reference-driven-style/02-frontend-stream.md`](../tickets/reference-driven-style/02-frontend-stream.md) _(Stream 2: Frontend & UX — Card Especial de Referência no Passo 4, Hook `useOfferBriefDraft` e Testes de Integração)_
 
 ---
 
@@ -16,9 +16,10 @@
 O OfertaPronta permite que o comerciante envie no Passo 3 uma **Imagem de Referência (`referenceImageDataUrl`)** para clonar a estética visual de um anúncio real (composição, luz, tipografia, paleta).
 
 ### A Causa Raiz Técnica
+
 1. **Atribuição Indesejada no Frontend**:
    - No `use-offer-brief-draft.ts`, `getInitialFields` inicializava `stylePresetId` com `SEGMENT_CATALOG[segment].stylePresets[0].id`.
-   - No `step4-style-and-palette.tsx`, a expressão `selectedStyleId || styles[0]?.id` forçava a seleção visual do primeiro preset do segmento (ex.: `"burger-dark"` / *"Dark Burger & Fumaça"*).
+   - No `step4-style-and-palette.tsx`, a expressão `selectedStyleId || styles[0]?.id` forçava a seleção visual do primeiro preset do segmento (ex.: `"burger-dark"` / _"Dark Burger & Fumaça"_).
 2. **Poluição Semântica no Backend**:
    - Em `ai-card-generator.service.ts`, a função `resolvePresetAndBlueprint` fazia fallback obrigatório para `presets[0]`.
    - O compilador de prompt injetava:
@@ -70,9 +71,9 @@ flowchart TD
 
     subgraph Backend_Deep_Module["Deep Module: AdCardGenerator (ai-card-generator.service.ts)"]
         ModeDetector["isReferenceDrivenMode(input)\n(referenceImageDataUrl ativo &&\n!presetId || presetId === 'reference-style')"]
-        
+
         RefCompiler["Compilador REFERENCE_DRIVEN\n- Diretriz de Replicação Estética\n- 4 Camadas Narrativas 100% Referência\n- ZERO Paletas HEX de presets externos\n- ZERO Layout Variants concorrentes"]
-        
+
         HybridCompiler["Compilador HÍBRIDO / CATALOG\n- Estrutura do Preset Selecionado\n- Prioridade Cromática Adaptada"]
     end
 
@@ -142,11 +143,11 @@ sequenceDiagram
     Wizard->>Hook: generateCardAndInitiateCheckout()
     Hook->>RPC: saveDraft + generatePreviewFn({ draftId })
     RPC->>Gen: generateAdCardImage(input)
-    
+
     Gen->>Gen: isReferenceDrivenMode(input) => true
     Gen->>Gen: buildReferenceDrivenPromptText()
     Note over Gen: Injeta: Diretriz de Replicação Estética<br/>Injeta: 4 Camadas baseadas no Print<br/>OMITE: HEX, descrições e blueprints de catálogo
-    
+
     Gen->>Gemini: models.generateContent({ contents: [refImage, promptText], config: imageConfig })
     Gemini-->>Gen: Buffer da Imagem Gerada (Fiel ao Print)
     Gen-->>RPC: GenerateAdCardResult
@@ -174,7 +175,8 @@ export function isReferenceDrivenMode(input: {
   stylePresetId?: string | null;
 }): boolean {
   const hasRef = Boolean(
-    input.referenceImageDataUrl && input.referenceImageDataUrl.trim().length > 0,
+    input.referenceImageDataUrl &&
+    input.referenceImageDataUrl.trim().length > 0,
   );
   if (!hasRef) return false;
 
@@ -200,6 +202,7 @@ function buildReferenceDrivenArtDirective(): string {
 ```
 
 #### Narrativa de 4 Camadas no Modo Referência:
+
 - **Camada 1 (Fundo & Atmosfera)**: Full-bleed edge-to-edge; paleta cromática, texturas e atmosfera extraídas 100% da imagem de referência anexa.
 - **Camada 2 (Sujeito Hero & Óptica Fotográfica)**: Tratamento e iluminação do produto/sujeito inspirados no acabamento da referência (e preservação estrita da foto do produto, se anexa).
 - **Camada 3 (Geometria de Grid & Tipografia)**: Grid e fontes espelhando a diagramação da referência; zona segura respeitada se story.
@@ -208,6 +211,7 @@ function buildReferenceDrivenArtDirective(): string {
 ### 4.3. Contratos de Frontend (`use-offer-brief-draft.ts` e `step4-style-and-palette.tsx`)
 
 #### No Hook `use-offer-brief-draft.ts`:
+
 - Em `getInitialFields`:
   ```typescript
   stylePresetId:
@@ -229,12 +233,13 @@ function buildReferenceDrivenArtDirective(): string {
   Permite selecionar tanto um preset do catálogo quanto `REFERENCE_STYLE_PRESET_ID`, sem limpar destrutivamente a imagem de referência enviada.
 
 #### No Componente `Step4StyleAndPalette`:
+
 - Card superior interativo quando `referenceImageDataUrl` estiver presente:
   - `data-testid="reference-style-card"`
   - Miniatura do print (`referenceImageDataUrl`)
-  - Título: *"Estilo do seu Print de Referência"*
-  - Descrição: *"A IA vai copiar a estética, paleta de cores e tipografia do print que você enviou."*
-  - Badge: *"Ativo / Recomendado"*
+  - Título: _"Estilo do seu Print de Referência"_
+  - Descrição: _"A IA vai copiar a estética, paleta de cores e tipografia do print que você enviou."_
+  - Badge: _"Ativo / Recomendado"_
   - Estado de seleção (`aria-pressed={isRefSelected}`)
   - Clique ativa `onSelectStyle(REFERENCE_STYLE_PRESET_ID)`
 - Grade de presets do catálogo:
@@ -245,20 +250,21 @@ function buildReferenceDrivenArtDirective(): string {
 
 ## 5. Checklist de Segurança, Qualidade e Invariantes (`AGENTS.md`)
 
-| Pilar | Requisito / Invariante | Como é Garantido |
-|---|---|---|
-| **Boundary Isolation** | Zero imports de backend no cliente | `REFERENCE_STYLE_PRESET_ID` é constante isomórfica pura. Código do Gemini permanece em `server/services/ai-card-generator.service.ts`. |
-| **Integridade de Negócio** | Preço e cotas inalterados | Preço continua autoritativo do backend (R$ 9,90). Cota de 1 geração de prévia gratuita preservada. |
-| **Anti-Attention Bleeding** | Zero poluição de prompt | Diretrizes de catálogo (HEX, nomes, blueprints) são completamente omitidas quando `isReferenceDrivenMode` for verdadeiro. |
-| **Segurança e Validação Zod** | Validação estrita na borda | `stylePresetId` aceita string opcional (`"reference-style"` ou id de catálogo). Data URLs continuam sob limite de 4MB. |
-| **Acessibilidade e Mobile-First** | Conformidade Shadcn UI | O card especial de referência usa tags semânticas, `role="button"`, foco acessível via teclado (`onKeyDown`), sem HTML cru não estilizado. |
-| **Simplicidade (YAGNI & Ponytail)** | Zero abstrações desnecessárias | Não cria novos adapters nem camadas extras. Modifica pontualmente o compilador interno do Deep Module existente. |
+| Pilar                               | Requisito / Invariante             | Como é Garantido                                                                                                                           |
+| ----------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Boundary Isolation**              | Zero imports de backend no cliente | `REFERENCE_STYLE_PRESET_ID` é constante isomórfica pura. Código do Gemini permanece em `server/services/ai-card-generator.service.ts`.     |
+| **Integridade de Negócio**          | Preço e cotas inalterados          | Preço continua autoritativo do backend (R$ 9,90). Cota de 1 geração de prévia gratuita preservada.                                         |
+| **Anti-Attention Bleeding**         | Zero poluição de prompt            | Diretrizes de catálogo (HEX, nomes, blueprints) são completamente omitidas quando `isReferenceDrivenMode` for verdadeiro.                  |
+| **Segurança e Validação Zod**       | Validação estrita na borda         | `stylePresetId` aceita string opcional (`"reference-style"` ou id de catálogo). Data URLs continuam sob limite de 4MB.                     |
+| **Acessibilidade e Mobile-First**   | Conformidade Shadcn UI             | O card especial de referência usa tags semânticas, `role="button"`, foco acessível via teclado (`onKeyDown`), sem HTML cru não estilizado. |
+| **Simplicidade (YAGNI & Ponytail)** | Zero abstrações desnecessárias     | Não cria novos adapters nem camadas extras. Modifica pontualmente o compilador interno do Deep Module existente.                           |
 
 ---
 
 ## 6. Plano de Seams TDD e Escopo Paralelo de Builders
 
 ### Macro-Stream 1 (Backend & Prompt Engineering) — `01-backend-stream.md`
+
 - **Arquivos**:
   - `src/features/promotions/data/offer-brief.schema.ts`
   - `src/features/promotions/server/services/ai-card-generator.service.ts`
@@ -275,6 +281,7 @@ function buildReferenceDrivenArtDirective(): string {
   5. Garante que gerações sem imagem de referência permanecem 100% inalteradas.
 
 ### Macro-Stream 2 (Frontend & UX) — `02-frontend-stream.md`
+
 - **Arquivos**:
   - `src/features/promotions/hooks/use-offer-brief-draft.ts`
   - `src/features/promotions/components/wizard/step4-style-and-palette.tsx`

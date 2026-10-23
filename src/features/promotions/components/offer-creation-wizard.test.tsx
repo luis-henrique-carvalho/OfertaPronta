@@ -1,14 +1,28 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  render,
+  render as rtlRender,
   screen,
   fireEvent,
   waitFor,
   act,
   cleanup,
 } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OfferCreationWizard } from "./offer-creation-wizard";
+
+const render = (
+  ui: React.ReactElement,
+  options?: Parameters<typeof rtlRender>[1],
+) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return rtlRender(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+    options,
+  );
+};
 import type { SaveOfferDraftInput } from "../data/offer-brief.schema";
 import type { SaveDraftResponse, GeneratePreviewResponse } from "../server";
 
@@ -43,13 +57,7 @@ describe("OfferCreationWizard Integration Flow", () => {
         referenceImageDataUrl: null,
         stylePresetId: "fashion-boutique",
         customStyleInstructions: null,
-        cleanMasterImageDataUrl: null,
         previewCardImageUrl: null,
-        previewAssetKey: null,
-        cleanMasterAssetKey: null,
-        productAssetKey: null,
-        referenceAssetKey: null,
-        logoAssetKey: null,
         aiGenerationCount: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -59,9 +67,20 @@ describe("OfferCreationWizard Integration Flow", () => {
   const mockGeneratePreview = vi
     .fn()
     .mockImplementation(async (): Promise<GeneratePreviewResponse> => ({
-      success: true,
-      previewUrl: "data:image/png;base64,mockPreviewDataUrl",
-      aiGenerationCount: 1,
+      status: "OK",
+      draft: {
+        id: "draft-fashion-123",
+        businessSegment: "fashion",
+        targetAspectRatio: "feed",
+        businessName: "Boutique Elegance",
+        offerTitle: "Vestido",
+        promoPrice: "R$ 89,90",
+        cardIntent: "promo",
+        previewCardImageUrl: "data:image/png;base64,mockPreviewDataUrl",
+        aiGenerationCount: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     }));
 
   const mockInitiateCheckout = vi
@@ -619,10 +638,9 @@ describe("OfferCreationWizard Integration Flow", () => {
     const mockFailedPreview = vi
       .fn()
       .mockImplementation(async (): Promise<GeneratePreviewResponse> => ({
-        success: false,
+        status: "ERROR",
         code: "AI_GENERATION_FAILED",
         message: "Instabilidade temporária na IA. Tente novamente.",
-        aiGenerationCount: 0,
       }));
 
     const onNavigateToCheckout = vi.fn();
@@ -690,13 +708,7 @@ describe("OfferCreationWizard Integration Flow", () => {
               referenceImageDataUrl: null,
               stylePresetId: "fashion-boutique",
               customStyleInstructions: null,
-              cleanMasterImageDataUrl: null,
               previewCardImageUrl: null,
-              previewAssetKey: null,
-              cleanMasterAssetKey: null,
-              productAssetKey: null,
-              referenceAssetKey: null,
-              logoAssetKey: null,
               aiGenerationCount: 0,
               createdAt: new Date(),
               updatedAt: new Date(),
@@ -742,6 +754,123 @@ describe("OfferCreationWizard Integration Flow", () => {
     await waitFor(() => {
       expect(trackingSaveDraft).toHaveBeenCalled();
       expect(capturedSavePayload?.targetAspectRatio).toBe("story");
+    });
+  });
+
+  it("deve exibir indicador de cotas restantes no Passo 4 a partir de getPreviewQuotaFn", async () => {
+    const mockGetQuota = vi.fn().mockResolvedValue({
+      remaining: 1,
+      blockedReason: null,
+    });
+
+    render(
+      <OfferCreationWizard
+        initialDraft={{
+          businessSegment: "fashion",
+          businessName: "Boutique Flor",
+          offerTitle: "Vestido Floral",
+          promoPrice: "R$ 89,90",
+        }}
+        saveDraftFn={mockSaveDraft}
+        generatePreviewFn={mockGeneratePreview}
+        getPreviewQuotaFn={mockGetQuota}
+      />,
+    );
+
+    // Avança 1 -> 2 -> 3 -> 4
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+
+    // No Passo 4, indicador de cota restante visível
+    await waitFor(() => {
+      expect(screen.getByTestId("quota-counter")).toBeDefined();
+      expect(screen.getByText(/1 prévia grátis restante hoje/i)).toBeDefined();
+    });
+  });
+
+  it("deve desabilitar botão de gerar com 'Prévias esgotadas hoje' quando cota estiver bloqueada e não houver draft anterior", async () => {
+    const mockBlockedQuota = vi.fn().mockResolvedValue({
+      remaining: 0,
+      blockedReason: "visitor",
+    });
+
+    render(
+      <OfferCreationWizard
+        initialDraft={{
+          businessSegment: "fashion",
+          businessName: "Boutique Flor",
+          offerTitle: "Vestido Floral",
+          promoPrice: "R$ 89,90",
+        }}
+        saveDraftFn={mockSaveDraft}
+        generatePreviewFn={mockGeneratePreview}
+        getPreviewQuotaFn={mockBlockedQuota}
+      />,
+    );
+
+    // Avança 1 -> 2 -> 3 -> 4
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+
+    await waitFor(() => {
+      const btn = screen.getByTestId("btn-wizard-generate");
+      expect(btn).toBeDefined();
+      expect(btn.getAttribute("disabled")).toBeDefined();
+      expect(screen.getByText(/Prévias esgotadas hoje/i)).toBeDefined();
+    });
+  });
+
+  it("deve adaptar botão para 'Liberar por R$ 9,90' quando cota estiver bloqueada mas houver preview anterior", async () => {
+    const mockBlockedQuota = vi.fn().mockResolvedValue({
+      remaining: 0,
+      blockedReason: "visitor",
+    });
+    const onNavigateToCheckout = vi.fn();
+
+    render(
+      <OfferCreationWizard
+        initialDraft={{
+          id: "draft-prev-456",
+          businessSegment: "fashion",
+          businessName: "Boutique Flor",
+          offerTitle: "Vestido Floral",
+          promoPrice: "R$ 89,90",
+          previewCardImageUrl: "data:image/png;base64,previousWatermarkedPng",
+        }}
+        saveDraftFn={mockSaveDraft}
+        generatePreviewFn={mockGeneratePreview}
+        initiateCheckoutFn={mockInitiateCheckout}
+        getPreviewQuotaFn={mockBlockedQuota}
+        onNavigateToCheckout={onNavigateToCheckout}
+      />,
+    );
+
+    // Avança 1 -> 2 -> 3 -> 4
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+    fireEvent.click(screen.getByTestId("btn-wizard-next"));
+
+    await waitFor(() => {
+      const ctaBtn = screen.getByTestId("btn-wizard-generate");
+      expect(ctaBtn).toBeDefined();
+      expect(screen.getByText(/Liberar por R\$ 9,90/i)).toBeDefined();
+    });
+
+    // Clicar no botão adaptado deve disparar o checkout
+    const ctaBtn = screen.getByTestId("btn-wizard-generate");
+    await act(async () => {
+      fireEvent.click(ctaBtn);
+    });
+
+    await waitFor(() => {
+      expect(mockInitiateCheckout).toHaveBeenCalledWith({
+        data: {
+          draftId: "draft-prev-456",
+        },
+      });
+      expect(onNavigateToCheckout).toHaveBeenCalledWith("order-pix-789");
     });
   });
 });

@@ -25,7 +25,7 @@
 
 3. **Edição Pós-Pagamento Adaptativa (`SURGICAL` vs. `RECOMPOSE`)**:
    - `detectEditIntentMode({ customStyleInstructions, presetChanged, hasReferenceOverride })` classifica a intenção do ajuste:
-     - **`'RECOMPOSE'`**: Ativado quando o comerciante pede reposicionamento espacial, desobstrução de texto atrás de personagem, mudança de layout/estrutura/fundo/cenário ou quando troca o `stylePresetId` (`presetChanged === true`). Remove a trava *"Mantenha 100% da estrutura, faixas e posições da IMAGEM BASE rigorosamente inalterados"*, instrui a IA a **reposicionar livremente textos e elementos** colocando toda a tipografia em **1º plano absoluto (100% legível e sem oclusão)** e, se houver troca de preset, injeta a nova Diretriz de Direção de Arte (`resolveArtDirectionDirective`) do preset escolhido.
+     - **`'RECOMPOSE'`**: Ativado quando o comerciante pede reposicionamento espacial, desobstrução de texto atrás de personagem, mudança de layout/estrutura/fundo/cenário ou quando troca o `stylePresetId` (`presetChanged === true`). Remove a trava _"Mantenha 100% da estrutura, faixas e posições da IMAGEM BASE rigorosamente inalterados"_, instrui a IA a **reposicionar livremente textos e elementos** colocando toda a tipografia em **1º plano absoluto (100% legível e sem oclusão)** e, se houver troca de preset, injeta a nova Diretriz de Direção de Arte (`resolveArtDirectionDirective`) do preset escolhido.
      - **`'SURGICAL'`**: Ativado para ajustes pontuais (ex.: corrigir preço, telefone, cor de detalhe como `"Mudar a logo para verde"`), mantendo os títulos e marcadores canônicos (`"EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE"`, `"PRESERVAÇÃO ESTRITA"`, `"PROIBIDO REINVENTAR"`) combinados com a regra de Zero Oclusão Tipográfica.
 
 ---
@@ -275,8 +275,8 @@ export const ZERO_TEXT_OCCLUSION_DIRECTIVE = [
     - Mantém os cabeçalhos `"EDIÇÃO CIRÚRGICA DE IMAGEM EXISTENTE"`, `"PRESERVAÇÃO ESTRITA"` e `"PROIBIDO REINVENTAR"` exigidos pelos testes existentes, adicionando a seção `ZERO_TEXT_OCCLUSION_DIRECTIVE`.
   - Quando `detectEditIntentMode(...) === "RECOMPOSE"`:
     - Emite o cabeçalho `"RECOMPOSIÇÃO VISUAL E REESTRUTURAÇÃO DE LAYOUT DE CARD EXISTENTE (MODO RECOMPOSE)"`.
-    - **Remove** a frase *"Mantenha 100% da estrutura, cenário, iluminação, produto anunciado, acompanhamentos, paleta de cores, tipografia, fontes, faixas e posições da IMAGEM BASE rigorosamente inalterados"*.
-    - Instrui explicitamente: *"DESTRAVAMENTO ESPACIAL E DE ESTILO: Você está AUTORIZADO E OBRIGADO a alterar posições, reorganizar o grid/layout, corrigir textos encobertos e aplicar o novo estilo visual solicitado pelo cliente."*
+    - **Remove** a frase _"Mantenha 100% da estrutura, cenário, iluminação, produto anunciado, acompanhamentos, paleta de cores, tipografia, fontes, faixas e posições da IMAGEM BASE rigorosamente inalterados"_.
+    - Instrui explicitamente: _"DESTRAVAMENTO ESPACIAL E DE ESTILO: Você está AUTORIZADO E OBRIGADO a alterar posições, reorganizar o grid/layout, corrigir textos encobertos e aplicar o novo estilo visual solicitado pelo cliente."_
     - Se `input.stylePresetId` estiver presente e não for `REFERENCE_DRIVEN`, injeta `resolveArtDirectionDirective(input.businessSegment, input.stylePresetId, ...)` para que a troca de preset na tela de entrega aplique de fato as cores, iluminação e tipografia do novo estilo.
     - Inclui `ZERO_TEXT_OCCLUSION_DIRECTIVE` exigindo que todo texto fique 100% visível na camada frontal (`100% foreground layer`), nunca atrás de personagens ou produtos.
 
@@ -304,13 +304,14 @@ export const ZERO_TEXT_OCCLUSION_DIRECTIVE = [
   - Zero `any`, zero supressões de lint (`eslint-disable`, `@ts-ignore`).
 - [x] **Deep Modules & TDD Seams (`codebase-design` & `ponytail`)**:
   - Interface pública enxuta em `src/server/prompt-engine/index.ts`.
-  - Testes usam fakes in-memory simples implementando `PromptPlannerClient` e `GoogleGenAIClient` (*replace-don't-layer*).
+  - Testes usam fakes in-memory simples implementando `PromptPlannerClient` e `GoogleGenAIClient` (_replace-don't-layer_).
 
 ---
 
 ## 5. TDD Seam Plan & Escopo dos Builders por Ticket
 
 ### Ticket 01 (`01-decoupled-prompt-engine-and-hybrid-compiler.md`) — `backend-builder`
+
 - **Arquivos a Criar/Modificar**:
   - `src/config/server-env.ts` (adicionar opcional `GEMINI_PROMPT_MODEL: z.string().default("gemini-3.8-flash")` se aplicável, sem quebrar `parseServerEnv`)
   - `src/server/prompt-engine/types.ts`
@@ -328,11 +329,12 @@ export const ZERO_TEXT_OCCLUSION_DIRECTIVE = [
     ```
 
 ### Ticket 02 (`02-smart-regeneration-editing-and-service-integration.md`) — `backend-builder`
+
 - **Arquivos a Modificar**:
   - `src/features/promotions/server/services/ai-card-generator.service.ts` (delegar para `src/server/prompt-engine/`, manter re-exports e suportar `options?: GenerateAdCardOptions` com Etapa 1 + Etapa 2)
   - `src/features/promotions/server/services/ai-card-generator.service.test.ts` (adicionar testes de integração com `PromptEngine`, anti-oclusão de personagem e edição adaptativa `SURGICAL` vs. `RECOMPOSE`)
   - `src/features/delivery/server/services/post-payment-regeneration.service.ts` (delegar `resolveRegenerationStyleInstructions` ao `PromptEngine` detectando `presetChanged` quando `validated.stylePresetId` diferir de `snapshot.stylePresetId`)
-  - `src/features/delivery/server/services/post-payment-regeneration.service.test.ts` (adicionar testes verificando destravamento `RECOMPOSE` ao trocar `stylePresetId` ou pedir ajuste espacial como *"não colocar o texto atrás do personagem"*)
+  - `src/features/delivery/server/services/post-payment-regeneration.service.test.ts` (adicionar testes verificando destravamento `RECOMPOSE` ao trocar `stylePresetId` ou pedir ajuste espacial como _"não colocar o texto atrás do personagem"_)
 - **Ciclo TDD Cirúrgico**:
   - Red → Green → Refactor executando exclusivamente:
     ```bash

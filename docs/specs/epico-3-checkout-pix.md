@@ -12,6 +12,7 @@ Após preencher o Briefing da Oferta e validar o Card Publicitário gerado pela 
 Entretanto, donos de pequenos negócios (supermercados, barbearias, salões, pizzarias e restaurantes) operam primariamente via celular, frequentemente em ambientes com distrações e conexões móveis oscilantes. Formulários tradicionais de checkout com cadastros longos, senhas ou preenchimento obrigatório de CPF geram alto atrito, desconfiança e taxas severas de abandono de carrinho.
 
 Do ponto de vista de produto e negócio:
+
 1. **Zero Fricção de Conversão**: A conversão deve ocorrer em **1 clique** a partir da aprovação da prévia, sem exigir criação de conta, senha ou digitação obrigatória de CPF.
 2. **Pagamento Instantâneo via Pix Dinâmico**: O sistema deve apresentar imediatamente o código Pix Copia e Cola (com cópia em um toque) e o QR Code visual, com valor fixo de **R$ 9,90** e expiração controlada (30 minutos).
 3. **Detecção e Redirecionamento em Tempo Real**: Assim que o microempresário confirmar o pagamento no aplicativo do seu banco, o sistema deve detectar a compensação em menos de 3 segundos (sem exigir recarga manual de página) e transicionar imediatamente para a tela de entrega do pedido (`/pedido/$orderId`).
@@ -33,7 +34,7 @@ flowchart TD
     D --> E["1 Toque: 'Copiar Código Pix' (Feedback Tátil/Visual)"]
     D -.->|"Opcional"| F["Informa WhatsApp para Resgate do Link"]
     E --> G["Usuário abre App do Banco e Paga"]
-    
+
     subgraph "Confirmação Resiliente (Dupla Via)"
         G -->|"Compensação Pix"| H["Pushin Pay Gateway"]
         H -->|"Webhook Instantâneo (POST /api/webhooks/pix)"| I["PixCheckoutService (Transiciona para PAID)"]
@@ -65,11 +66,11 @@ flowchart TD
    - Botão em destaque "Copiar Código Pix" com microinteração de cópia bem-sucedida.
    - Card retrátil/acessível com o QR Code visual.
    - Indicador pulsante de espera com cronômetro regressivo de 30 minutos.
-   - Campo opcional: *"Receber link por WhatsApp caso feche o navegador"* (pré-preenchido com o WhatsApp do rascunho, se informado).
-   - Botão de fallback: *"Já paguei? Verificar agora"*.
+   - Campo opcional: _"Receber link por WhatsApp caso feche o navegador"_ (pré-preenchido com o WhatsApp do rascunho, se informado).
+   - Botão de fallback: _"Já paguei? Verificar agora"_.
 5. **Tratamento de Expiração e Reemissão**:
    - Se o prazo de 30 minutos expirar sem pagamento, o status da cobrança passa para `EXPIRED`.
-   - A tela de checkout substitui o QR Code por um aviso claro e o botão *"Gerar Novo Código Pix"*, mantendo o mesmo pedido e snapshot.
+   - A tela de checkout substitui o QR Code por um aviso claro e o botão _"Gerar Novo Código Pix"_, mantendo o mesmo pedido e snapshot.
 
 ---
 
@@ -77,17 +78,17 @@ flowchart TD
 
 ### Happy Paths
 
-1. **Como microempresário visualizando a prévia do meu card**, quero clicar em *"Liberar em HD sem marca d'água (R$ 9,90)"* e ser levado instantaneamente à tela de pagamento Pix sem preencher nenhum formulário cadastral ou informar CPF.
-2. **Como microempresário no celular**, quero tocar no botão *"Copiar Código Pix"* e ver a indicação imediata de que o código foi copiado para a área de transferência, para colar no meu app de banco sem erros de digitação.
+1. **Como microempresário visualizando a prévia do meu card**, quero clicar em _"Liberar em HD sem marca d'água (R$ 9,90)"_ e ser levado instantaneamente à tela de pagamento Pix sem preencher nenhum formulário cadastral ou informar CPF.
+2. **Como microempresário no celular**, quero tocar no botão _"Copiar Código Pix"_ e ver a indicação imediata de que o código foi copiado para a área de transferência, para colar no meu app de banco sem erros de digitação.
 3. **Como microempresário no computador**, quero ver o QR Code Pix nítido na tela para poder escanear com a câmera do celular no aplicativo do meu banco.
-4. **Como microempresário aguardando a compensação**, quero ver um indicador visual animado (*"Aguardando confirmação do banco..."*) e ser redirecionado automaticamente para a tela do pedido assim que o pagamento for concluído, sem precisar recarregar a página.
+4. **Como microempresário aguardando a compensação**, quero ver um indicador visual animado (_"Aguardando confirmação do banco..."_) e ser redirecionado automaticamente para a tela do pedido assim que o pagamento for concluído, sem precisar recarregar a página.
 5. **Como microempresário precavido**, quero poder digitar ou confirmar meu número de WhatsApp na tela de checkout, para receber o link direto da arte caso a bateria do meu celular acabe ou a aba feche acidentalmente.
 
 ### Edge Cases & Regras de Negócio
 
-6. **Como microempresário cuja conexão oscilou após o pagamento**, quando o webhook da Pushin Pay sofrer atraso de entrega pela operadora, quero que a checagem ativa do sistema (polling ou botão *"Já paguei / Verificar agora"*) consulte a API da Pushin Pay e libere meu pedido imediatamente.
+6. **Como microempresário cuja conexão oscilou após o pagamento**, quando o webhook da Pushin Pay sofrer atraso de entrega pela operadora, quero que a checagem ativa do sistema (polling ou botão _"Já paguei / Verificar agora"_) consulte a API da Pushin Pay e libere meu pedido imediatamente.
 7. **Como sistema de pagamento**, quando o webhook da Pushin Pay enviar notificações repetidas para o mesmo pagamento, devo processar de forma idempotente, registrando o `paidAt` na primeira vez e ignorando eventos duplicados com retorno HTTP 200.
-8. **Como microempresário que demorou mais de 30 minutos para pagar**, se o código Pix expirar, quero ver um aviso amigável na tela informando que o código venceu e um botão *"Gerar Novo Código Pix"* para criar uma nova cobrança válida para o mesmo card sem perder o trabalho.
+8. **Como microempresário que demorou mais de 30 minutos para pagar**, se o código Pix expirar, quero ver um aviso amigável na tela informando que o código venceu e um botão _"Gerar Novo Código Pix"_ para criar uma nova cobrança válida para o mesmo card sem perder o trabalho.
 9. **Como sistema**, quando um pagamento for confirmado, devo garantir que o valor pago recebido da Pushin Pay seja exatamente igual a 990 centavos (`R$ 9,90`), rejeitando qualquer valor divergente para proteger contra fraudes de manipulação de parâmetros.
 10. **Como microempresário que já pagou o pedido**, se eu tentar acessar novamente a URL `/checkout/$orderId`, devo ser redirecionado automaticamente para `/pedido/$orderId`, prevenindo qualquer tentativa de pagamento duplo.
 11. **Como microempresário abrindo o checkout em múltiplas abas simultâneas**, o sistema deve sincronizar o mesmo estado do pedido via polling, garantindo que o primeiro evento de confirmação atualize ambas as abas para o status `PAID`.
@@ -135,6 +136,7 @@ src/
 ### 2. Modelo de Dados e Schema Drizzle (`src/server/db/schema/orders.ts`)
 
 Ajustes necessários no schema Drizzle:
+
 1. `orders`:
    - Adicionar `draftId: text("draft_id").references(() => drafts.id)` para vincular diretamente o pedido ao rascunho.
    - Adicionar `aiRegenerationCount: integer("ai_regeneration_count").notNull().default(0)` para gerenciar a cota de até 3 regenerações do Épico 4.
@@ -144,6 +146,7 @@ Ajustes necessários no schema Drizzle:
 ### 3. Interface Pública dos Módulos Profundos
 
 #### `PushinPayService` (`src/features/checkout/server/services/pushin-pay.service.ts`)
+
 ```typescript
 export interface CreatePixChargeInput {
   valueCents: number; // fixo em 990
@@ -160,11 +163,18 @@ export interface PixChargeResult {
 
 export interface PushinPayService {
   createCashInCharge(input: CreatePixChargeInput): Promise<PixChargeResult>;
-  getTransactionStatus(txId: string): Promise<{ status: "paid" | "created" | "expired" | "canceled"; paidAt?: Date; valueCents: number }>;
+  getTransactionStatus(
+    txId: string,
+  ): Promise<{
+    status: "paid" | "created" | "expired" | "canceled";
+    paidAt?: Date;
+    valueCents: number;
+  }>;
 }
 ```
 
 #### `PixCheckoutService` (`src/features/checkout/server/services/pix-checkout.service.ts`)
+
 ```typescript
 export interface InitiateCheckoutInput {
   draftId: string;
@@ -198,8 +208,13 @@ export interface WebhookPayload {
 export interface PixCheckoutService {
   initiateCheckout(input: InitiateCheckoutInput): Promise<{ orderId: string }>;
   getCheckoutDetails(orderId: string): Promise<CheckoutDetailsResult>;
-  checkPaymentStatus(orderId: string): Promise<{ status: string; isPaid: boolean }>;
-  handleWebhookPayment(payload: WebhookPayload, secretHeader?: string): Promise<{ processed: boolean; orderId?: string }>;
+  checkPaymentStatus(
+    orderId: string,
+  ): Promise<{ status: string; isPaid: boolean }>;
+  handleWebhookPayment(
+    payload: WebhookPayload,
+    secretHeader?: string,
+  ): Promise<{ processed: boolean; orderId?: string }>;
   updateCustomerWhatsapp(orderId: string, whatsapp: string): Promise<void>;
   regenerateExpiredCharge(orderId: string): Promise<CheckoutDetailsResult>;
 }

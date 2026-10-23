@@ -1,23 +1,23 @@
+// shadcn-ignore: componente container orquestrador que coordena as etapas do wizard
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import {
   useOfferBriefDraft,
   type SaveDraftFunction,
   type GeneratePreviewFunction,
 } from "../hooks/use-offer-brief-draft";
+import {
+  usePreviewQuota,
+  type GetPreviewQuotaFunction,
+} from "../hooks/use-preview-quota";
 import type { SaveOfferDraftInput } from "../data/offer-brief.schema";
 import { SEGMENT_CATALOG } from "../data/offer-brief.schema";
 import { initiateCheckoutFn as defaultInitiateCheckoutFn } from "@/features/checkout/server/functions/checkout.functions";
 import { WizardStep1Segment } from "./wizard-step1-segment";
-import { FlexibleVisualInputs } from "./flexible-visual-inputs";
+import { WizardStep2Form } from "./wizard-step2-form";
 import { WizardProgressBar } from "./wizard-progress-bar";
-import { OfferDetailsFormCard } from "./offer-details-form-card";
 import { WizardStep3Preview } from "./wizard-step3-preview";
 import { ContextualAiLoader } from "./contextual-ai-loader";
-import { AiGenerationErrorAlert } from "./ai-generation-error-alert";
-import { ArrowLeft, Wand2 } from "lucide-react";
 
 export type InitiateCheckoutFunction = (input: {
   data: { draftId: string; customerWhatsapp?: string };
@@ -28,6 +28,7 @@ export interface OfferBriefWizardProps {
   saveDraftFn?: SaveDraftFunction;
   generatePreviewFn?: GeneratePreviewFunction;
   initiateCheckoutFn?: InitiateCheckoutFunction;
+  getPreviewQuotaFn?: GetPreviewQuotaFunction;
   onNavigateToCheckout?: (orderId: string) => void;
 }
 
@@ -36,11 +37,16 @@ export function OfferBriefWizard({
   saveDraftFn: customSaveDraftFn,
   generatePreviewFn: customGeneratePreviewFn,
   initiateCheckoutFn: customInitiateCheckoutFn,
+  getPreviewQuotaFn: customGetPreviewQuotaFn,
   onNavigateToCheckout,
 }: OfferBriefWizardProps = {}) {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [isInitiatingCheckout, setIsInitiatingCheckout] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  const quota = usePreviewQuota({
+    getPreviewQuotaFn: customGetPreviewQuotaFn,
+  });
 
   let navigateHook: ReturnType<typeof useNavigate> | null = null;
   try {
@@ -68,7 +74,12 @@ export function OfferBriefWizard({
       if (!isValid) return;
 
       const result = await draft.generateAiPreview();
-      if (result.success || result.code === "AI_QUOTA_EXCEEDED") {
+      if (
+        result.success ||
+        result.code === "AI_QUOTA_EXCEEDED" ||
+        result.status === "LIMIT_REACHED" ||
+        draft.isLimitReached
+      ) {
         setCurrentStep(3);
       }
     }
@@ -125,7 +136,8 @@ export function OfferBriefWizard({
     }
   };
 
-  const isQuotaExceeded = draft.generationError?.code === "AI_QUOTA_EXCEEDED";
+  const isQuotaExceeded =
+    draft.isLimitReached || draft.generationError?.code === "AI_QUOTA_EXCEEDED";
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
@@ -147,86 +159,13 @@ export function OfferBriefWizard({
 
       {/* ETAPA 2: Dados do Briefing + Insumos Visuais Combináveis */}
       {currentStep === 2 && (
-        <div className="flex flex-col gap-6">
-          {draft.generationError &&
-            draft.generationError.code !== "AI_QUOTA_EXCEEDED" && (
-              <AiGenerationErrorAlert
-                message={draft.generationError.message}
-                disabled={draft.isGenerating || draft.isSaving}
-                onRetry={handleNextStep}
-              />
-            )}
-
-          <OfferDetailsFormCard
-            currentCatalog={currentCatalog}
-            targetAspectRatio={draft.targetAspectRatio}
-            businessName={draft.businessName}
-            offerTitle={draft.offerTitle}
-            promoPrice={draft.promoPrice}
-            originalPrice={draft.originalPrice}
-            callToAction={draft.callToAction}
-            whatsapp={draft.whatsapp}
-            validationErrors={draft.validationErrors}
-            onTargetAspectRatioChange={draft.setTargetAspectRatio}
-            onBusinessNameChange={draft.setBusinessName}
-            onOfferTitleChange={draft.setOfferTitle}
-            onPromoPriceChange={draft.setPromoPrice}
-            onOriginalPriceChange={draft.setOriginalPrice}
-            onCallToActionChange={draft.setCallToAction}
-            onWhatsappChange={draft.setWhatsapp}
-          />
-
-          <FlexibleVisualInputs
-            segment={draft.businessSegment}
-            productImageDataUrl={draft.productImageDataUrl}
-            referenceImageDataUrl={draft.referenceImageDataUrl}
-            stylePresetId={draft.stylePresetId}
-            customStyleInstructions={draft.customStyleInstructions}
-            onProductImageChange={draft.setProductImageDataUrl}
-            onReferenceImageChange={draft.setReferenceImageDataUrl}
-            onStylePresetChange={draft.setStylePresetId}
-            onCustomStyleInstructionsChange={draft.setCustomStyleInstructions}
-            onApplyExample={draft.applyExample}
-          />
-
-          <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              disabled={draft.isGenerating || draft.isSaving}
-              onClick={handlePrevStep}
-              className="h-13 w-1/3 rounded-xl border-border font-semibold text-xs sm:text-sm px-2"
-            >
-              <ArrowLeft className="size-4 mr-1 shrink-0" />
-              <span>Voltar</span>
-            </Button>
-            <Button
-              type="button"
-              size="lg"
-              disabled={draft.isSaving || draft.isGenerating}
-              onClick={handleNextStep}
-              className="h-13 w-2/3 rounded-xl bg-primary text-xs sm:text-base font-bold shadow-md hover:bg-primary/90 px-3 whitespace-normal break-words text-center"
-            >
-              {draft.isGenerating ? (
-                <>
-                  <Spinner className="size-4 mr-1.5 shrink-0" />
-                  <span>Gerando arte com IA...</span>
-                </>
-              ) : draft.isSaving ? (
-                <>
-                  <Spinner className="size-4 mr-1.5 shrink-0" />
-                  <span>Salvando dados...</span>
-                </>
-              ) : (
-                <>
-                  <span>Gerar Prévia com IA</span>
-                  <Wand2 className="size-4 sm:size-5 ml-1 shrink-0" />
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
+        <WizardStep2Form
+          draft={draft}
+          currentCatalog={currentCatalog}
+          quotaRemainingLabel={quota.remainingLabel}
+          onPrevStep={handlePrevStep}
+          onNextStep={handleNextStep}
+        />
       )}
 
       {/* ETAPA 3: Prévia Completa do Card Publicitário & Avanço para Checkout */}

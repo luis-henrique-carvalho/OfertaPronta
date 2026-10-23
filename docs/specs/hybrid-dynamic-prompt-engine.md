@@ -16,8 +16,8 @@ O microempresário (`Merchant`) que utiliza o OfertaPronta enfrenta hoje três p
    - Quando o comerciante envia uma foto de personagem/modelo humano ou produto vertical (ex.: foto de pessoa na inauguração de loja de moda/salão) combinada com um título longo (ex.: `"INAUGURAÇÃO LOJA ALAGOINHAS"`), o template estático não adapta o layout à anatomia da imagem e não impõe prioridade absoluta de camada frontal (`z-index`) para a tipografia. Como resultado, a cabeça ou o corpo do personagem fica na frente do texto principal, encobrindo letras e tornando o título ilegível.
 
 3. **Edição Pós-Pagamento Travada (`Surgical Lock Bug`)**:
-   - Na regeneração pós-pagamento (`buildSurgicalEditPromptText`), o prompt ordena incondicionalmente: *"Mantenha 100% da estrutura, faixas e posições da IMAGEM BASE rigorosamente inalterados"*.
-   - Quando o comerciante pede explicitamente uma correção espacial (ex.: *"não coloque o texto atrás do personagem"*, *"mude o texto de lugar"*) ou seleciona outro `StylePreset` no painel de regeneração, a IA obedece à trava de congelamento de posições da imagem base e ignora a solicitação do usuário.
+   - Na regeneração pós-pagamento (`buildSurgicalEditPromptText`), o prompt ordena incondicionalmente: _"Mantenha 100% da estrutura, faixas e posições da IMAGEM BASE rigorosamente inalterados"_.
+   - Quando o comerciante pede explicitamente uma correção espacial (ex.: _"não coloque o texto atrás do personagem"_, _"mude o texto de lugar"_) ou seleciona outro `StylePreset` no painel de regeneração, a IA obedece à trava de congelamento de posições da imagem base e ignora a solicitação do usuário.
 
 ## Solution
 
@@ -37,14 +37,14 @@ Extrair e centralizar 100% da inteligência de prompts em um **Módulo Profundo 
 
 3. **Edição Pós-Pagamento Adaptativa por Intenção (`SURGICAL` vs. `RECOMPOSE`)**:
    - Na edição/regeneração (`baseCardImageDataUrl` presente), o `PromptEngine` classifica a intenção do ajuste:
-     - **Modo `RECOMPOSE` (Reposicionamento Espacial / Mudança de Layout ou Estilo)**: Ativado automaticamente quando `customStyleInstructions` contém verbos/termos espaciais ou estruturais (ex.: *"atrás"*, *"frente"*, *"personagem"*, *"escondido"*, *"cobrindo"*, *"cortado"*, *"posição"*, *"mover"*, *"cima"*, *"baixo"*, *"lado"*, *"layout"*, *"fundo"*, *"trocar estilo"*) ou quando o usuário altera o `stylePresetId` na regeneração. Neste modo, a trava de congelamento estrutural da imagem base é removida, instruindo a IA a **reorganizar livremente a posição dos textos e elementos** para atender ao pedido do comerciante (garantindo texto 100% visível em 1º plano) enquanto preserva a identidade do produto/personagem e a ortografia dos dados.
+     - **Modo `RECOMPOSE` (Reposicionamento Espacial / Mudança de Layout ou Estilo)**: Ativado automaticamente quando `customStyleInstructions` contém verbos/termos espaciais ou estruturais (ex.: _"atrás"_, _"frente"_, _"personagem"_, _"escondido"_, _"cobrindo"_, _"cortado"_, _"posição"_, _"mover"_, _"cima"_, _"baixo"_, _"lado"_, _"layout"_, _"fundo"_, _"trocar estilo"_) ou quando o usuário altera o `stylePresetId` na regeneração. Neste modo, a trava de congelamento estrutural da imagem base é removida, instruindo a IA a **reorganizar livremente a posição dos textos e elementos** para atender ao pedido do comerciante (garantindo texto 100% visível em 1º plano) enquanto preserva a identidade do produto/personagem e a ortografia dos dados.
      - **Modo `SURGICAL` (Ajuste Fino)**: Ativado para pequenos ajustes pontuais (ex.: corrigir cor de detalhe ou brilho) mantendo a composição base, porém sempre subordinado à prioridade máxima da instrução do usuário e à regra de zero oclusão de texto.
 
 ## User Stories
 
 1. Como um **Microempresário (`Merchant`)**, quero que a IA planeje dinamicamente a composição do meu Card Publicitário com base no meu briefing, estilo e foto enviada, para que os cards não fiquem todos engessados na mesma estrutura repetitiva.
 2. Como um **Microempresário (`Merchant`)** que envia uma foto contendo uma pessoa/personagem ou produto vertical junto com um título longo (ex.: `"INAUGURAÇÃO LOJA ALAGOINHAS"`), quero que o texto principal nunca fique escondido atrás do personagem ou cortado, garantindo 100% de legibilidade imediata no Feed e no Story.
-3. Como um **Microempresário (`Merchant`)** na tela de entrega pós-pagamento (`/pedido/$orderId`), quero pedir ajustes de posição ou layout (ex.: *"não coloque o texto atrás do personagem"*, *"coloque o título mais para baixo"*) e ver a IA realmente reposicionar os elementos sem ficar travada na estrutura defeituosa da imagem anterior.
+3. Como um **Microempresário (`Merchant`)** na tela de entrega pós-pagamento (`/pedido/$orderId`), quero pedir ajustes de posição ou layout (ex.: _"não coloque o texto atrás do personagem"_, _"coloque o título mais para baixo"_) e ver a IA realmente reposicionar os elementos sem ficar travada na estrutura defeituosa da imagem anterior.
 4. Como um **Microempresário (`Merchant`)** na tela de entrega pós-pagamento (`/pedido/$orderId`), quero trocar o Estilo Visual (`StylePreset`) em uma das minhas 3 regenerações e receber um card com a nova direção de arte e paleta aplicadas de verdade, sem que o prompt de edição force a manutenção das cores e faixas antigas.
 5. Como um **Microempresário (`Merchant`)**, quero que a geração do meu card continue rápida e confiável mesmo se a etapa de planejamento dinâmico de prompt oscilar, através de um fallback automático transparente que entrega o card dentro do SLA esperado.
 6. Como um **Desenvolvedor / Engenheiro de Prompt do OfertaPronta**, quero que 100% dos templates, blueprints de direção de arte, regras de anti-oclusão e instruções de edição estejam centralizados em `src/server/prompt-engine/`, para que eu possa calibrar e testar a qualidade dos prompts em um único lugar sem caçar strings espalhadas pela codebase.
@@ -63,13 +63,13 @@ Extrair e centralizar 100% da inteligência de prompts em um **Módulo Profundo 
 2. **Invariante de Anti-Oclusão Tipográfica (`Zero Text Occlusion`)**:
    - Tanto no planejador dinâmico quanto no compilador determinístico e de edição, deve constar diretriz imperativa:
      - **Prioridade de Camada (`Z-Index / Layering`)**: Todo texto, título, headline, badge e preço DEVE ser renderizado na camada frontal superior (`100% foreground layer, NEVER behind subject/person/character`).
-     - **Adaptação Espacial ao Sujeito**: Quando houver foto de pessoa/personagem ou produto vertical alto, posicionar o bloco tipográfico em área de respiro desobstruída (ou em faixa/container de alto contraste no topo/base em 1º plano), proibindo efeito *magazine depth* que esconda letras atrás da cabeça ou corpo do sujeito.
+     - **Adaptação Espacial ao Sujeito**: Quando houver foto de pessoa/personagem ou produto vertical alto, posicionar o bloco tipográfico em área de respiro desobstruída (ou em faixa/container de alto contraste no topo/base em 1º plano), proibindo efeito _magazine depth_ que esconda letras atrás da cabeça ou corpo do sujeito.
 
 3. **Classificador de Intenção de Edição (`SURGICAL` vs. `RECOMPOSE`)**:
    - `detectEditIntentMode({ customStyleInstructions, presetChanged, hasReferenceOverride })`:
      - Retorna `'RECOMPOSE'` sempre que `presetChanged === true`, `hasReferenceOverride === true` ou quando `customStyleInstructions` contiver indicadores de mudança espacial, estrutural, desobstrução de texto ou troca de estilo/fundo (ex.: regex case-insensitive cobrindo `atrás|atras|frente|personagem|escondid|cobrind|cobert|cortad|sobrepon|sobrepos|posiç|posic|mover|mova|mude o lugar|mudar de lugar|baixo|cima|topo|rodapé|rodape|lado|esquerda|direita|layout|estrutura|estilo|fundo|cenário|cenario|reorganizar|afastar|separar|visível|visivel|legível|legivel`).
      - Retorna `'SURGICAL'` quando o pedido for apenas ajuste fino de texto, preço ou detalhe cromático sem solicitação de mudança posicional/estrutural.
-   - No modo `'RECOMPOSE'`, o prompt de edição **não** inclui a frase *"Mantenha 100% da estrutura, faixas e posições da IMAGEM BASE rigorosamente inalterados"*; em vez disso, instrui a IA a **descartar o posicionamento problemático da imagem base**, corrigir imediatamente a sobreposição/layout solicitado pelo comerciante e colocar todos os textos em 1º plano 100% legível.
+   - No modo `'RECOMPOSE'`, o prompt de edição **não** inclui a frase _"Mantenha 100% da estrutura, faixas e posições da IMAGEM BASE rigorosamente inalterados"_; em vez disso, instrui a IA a **descartar o posicionamento problemático da imagem base**, corrigir imediatamente a sobreposição/layout solicitado pelo comerciante e colocar todos os textos em 1º plano 100% legível.
 
 4. **Integração Limpa e Retrocompatibilidade**:
    - `src/features/promotions/server/services/ai-card-generator.service.ts` delega `buildPromptText`, `buildSurgicalEditPromptText`, `buildMultimodalPromptParts` e `isReferenceDrivenMode` para `src/server/prompt-engine/` (re-exportando-os para não quebrar testes ou chamadores existentes).
@@ -89,8 +89,8 @@ Extrair e centralizar 100% da inteligência de prompts em um **Módulo Profundo 
      - Testar o fallback determinístico automático quando a Etapa 1 lança erro, expira timeout ou não retorna texto.
      - Testar a presença explícita das diretrizes de **Zero Oclusão Tipográfica** (proibição de texto atrás do personagem/produto e exigência de 1º plano absoluto para textos).
      - Testar `detectEditIntentMode` e `buildAdaptiveEditPromptText`:
-       - Pedidos como *"não colocar o texto atrás do personagem"*, *"mover o título para baixo"* ou troca de `stylePresetId` devem ativar `'RECOMPOSE'`, removendo a trava de posição fixa e exigindo reposicionamento desobstruído.
-       - Pedidos simples como *"corrigir o preço para R$ 19,90"* devem ativar `'SURGICAL'`, preservando a estrutura com prioridade para a alteração solicitada.
+       - Pedidos como _"não colocar o texto atrás do personagem"_, _"mover o título para baixo"_ ou troca de `stylePresetId` devem ativar `'RECOMPOSE'`, removendo a trava de posição fixa e exigindo reposicionamento desobstruído.
+       - Pedidos simples como _"corrigir o preço para R$ 19,90"_ devem ativar `'SURGICAL'`, preservando a estrutura com prioridade para a alteração solicitada.
   2. **Suítes de Integração dos Serviços Consumidores**:
      - `src/features/promotions/server/services/ai-card-generator.service.test.ts`: Validar que `generateAdCardImage` funciona ponta a ponta tanto com o planejador dinâmico quanto em fallback, preservando o contrato `imageConfig: { aspectRatio, imageSize: "1K" }` e a montagem multimodal.
      - `src/features/delivery/server/services/post-payment-regeneration.service.test.ts`: Validar que a regeneração pós-pagamento propaga mudanças de preset e instruções espaciais destravadas para o gerador de imagem.

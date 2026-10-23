@@ -11,6 +11,7 @@
 O projeto **OfertaPronta** utiliza **TanStack Start** (React 19 + TanStack Router + Vite/Nitro) com uma arquitetura de **Módulos Profundos (Deep Modules)** e **Feature-Sliced Design**. Atualmente, existem chamadas esparsas a `console.warn` e `console.error` em arquivos de backend (como `generator.functions.ts` e `ai-card-generator.service.ts`), sem rastreabilidade de correlação (`requestId`), sem padronização estruturada (JSON para observabilidade/produção) e sem garantia formal de ciclo de vida nos endpoints RPC e rotas HTTP.
 
 ### Objetivos desta Pesquisa
+
 1. **Investigar o mecanismo nativo de middleware do TanStack Start** contra fontes primárias do framework (`@tanstack/react-start`, `@tanstack/start-client-core`, `@tanstack/start-plugin-core`).
 2. **Definir um padrão reaproveitável** para todos os módulos de backend (`promotions`, `checkout`, `delivery`, `export-engine`, `db`, `routes/api.*`).
 3. **Garantir Isolamento Estrito (Zero Server Code Leaks)**: comprovar tecnicamente como o código do logger, dependências do Node.js (`node:async_hooks`, etc.) e metadados confidenciais nunca são empacotados no bundle do cliente.
@@ -26,12 +27,12 @@ Com base na inspeção direta do código-fonte e documentação embutida de `@ta
 
 Conforme documentado em `node_modules/@tanstack/start-client-core/skills/start-core/middleware/SKILL.md`:
 
-| Característica | Request Middleware | Server Function Middleware |
-|---|---|---|
-| **Escopo** | Todas as requisições HTTP (SSR, rotas `/api/*`, Server Functions) | Exclusivo para Server Functions RPC (`createServerFn`) |
-| **Fases / Métodos** | `.server()` | `.client()` e `.server()` |
-| **Validação de Entrada** | Não | Sim (`.validator()`) |
-| **Criação** | `createMiddleware()` | `createMiddleware({ type: 'function' })` |
+| Característica           | Request Middleware                                                | Server Function Middleware                             |
+| ------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------ |
+| **Escopo**               | Todas as requisições HTTP (SSR, rotas `/api/*`, Server Functions) | Exclusivo para Server Functions RPC (`createServerFn`) |
+| **Fases / Métodos**      | `.server()`                                                       | `.client()` e `.server()`                              |
+| **Validação de Entrada** | Não                                                               | Sim (`.validator()`)                                   |
+| **Criação**              | `createMiddleware()`                                              | `createMiddleware({ type: 'function' })`               |
 
 ### 2.2. O Arquivo Global `src/start.ts` e Descoberta Automática
 
@@ -40,9 +41,9 @@ O plugin do compilador do TanStack Start (`@tanstack/start-plugin-core/src/plann
 ```typescript
 // planning.ts
 const startFilePath = resolveEntry({
-  type: 'start entry',
+  type: "start entry",
   configuredEntry: opts.startConfig.start.entry,
-  defaultEntry: 'start',
+  defaultEntry: "start",
   resolvedSrcDirectory: srcDirectory,
   required: false,
 });
@@ -68,7 +69,7 @@ export const startInstance = createStart(() => ({
 
 O TanStack Start suporta propagação de contexto via `next({ context: { ... } })`. No entanto, passar contexto explicitamente em cada middleware ou função de serviço acopla as assinaturas de métodos (`PixCheckoutService.initiateCheckout(data, ctx)`).
 
-A solução idiomática e de baixo acoplamento para Node.js é o **`AsyncLocalStorage`** nativo (`node:async_hooks`). 
+A solução idiomática e de baixo acoplamento para Node.js é o **`AsyncLocalStorage`** nativo (`node:async_hooks`).
 Como o método `.server(async ({ next, request }) => ...)` do middleware retorna uma Promise encadeada com `next()`, ao envolver a chamada com:
 
 ```typescript
@@ -84,7 +85,8 @@ Qualquer camada síncrona ou assíncrona chamada subsequentemente (serviços de 
 ## 3. Garantia de Isolamento: Por que Não Vaza para o Cliente?
 
 A invariante 2 do `AGENTS.md` estabelece:
-> *"Isolamento Estrito entre Client e Server (Zero Server Code Leaks): Arquivos dentro de src/server/ ou subpastas server/ dentro de features contêm código que roda exclusivamente no Node.js. Dependências nativas de backend e segredos de ambiente NUNCA devem ser importados em componentes cliente ou em código executado no navegador."*
+
+> _"Isolamento Estrito entre Client e Server (Zero Server Code Leaks): Arquivos dentro de src/server/ ou subpastas server/ dentro de features contêm código que roda exclusivamente no Node.js. Dependências nativas de backend e segredos de ambiente NUNCA devem ser importados em componentes cliente ou em código executado no navegador."_
 
 Como o TanStack Start garante isso na prática?
 
@@ -93,12 +95,14 @@ Como o TanStack Start garante isso na prática?
 Inspecionando `@tanstack/start-plugin-core/src/start-compiler/`:
 
 1. **`handleCreateMiddleware.ts` (Linha 34-37)**:
+
    ```typescript
    if (server) {
      // remove the server call expression
      stripMethodCall(server.callPath);
    }
    ```
+
    No bundle do cliente, qualquer bloco `.server(...)` dentro de um `createMiddleware` é **literalmente podado (stripped)** da AST via Babel/compiler transform. O código dentro de `.server()` simplesmente deixa de existir no JavaScript servido ao navegador.
 
 2. **`handleCreateServerFn.ts`**:
@@ -120,6 +124,7 @@ Para blindagem total contra vazamentos:
 ## 4. Arquitetura do Padrão de Logs (Deep Module `ServerLogger`)
 
 Seguindo o princípio de **Módulos Profundos (Deep Modules)** e **Ponytail (anti-bloat)**:
+
 - Não é necessário instalar bibliotecas pesadas de terceiros (como Winston ou Pino com worker threads complexos incompatíveis com SSR/Vite Nitro).
 - O módulo profundo oculta a complexidade de:
   - Captura contextual via `node:async_hooks` (`AsyncLocalStorage`).
@@ -152,6 +157,7 @@ export interface Logger {
 ### 4.2. Exemplo de Uso nos Módulos do Sistema
 
 #### Em Serviços de Negócio (ex.: `src/features/checkout/server/services/pix-checkout.service.ts`):
+
 ```typescript
 import { createServerLogger } from "~/server/logger";
 
@@ -159,25 +165,32 @@ const log = createServerLogger("checkout.pix");
 
 export class PixCheckoutService {
   async handleWebhookPayment(payload: PushinPayWebhookPayload) {
-    log.info("Processando webhook Pix", { txId: payload.id, valueCents: payload.value });
+    log.info("Processando webhook Pix", {
+      txId: payload.id,
+      valueCents: payload.value,
+    });
     // ...
   }
 }
 ```
 
 #### Em Server Functions RPC (ex.: `generator.functions.ts`):
+
 ```typescript
 import { createServerLogger } from "~/server/logger";
 
 const log = createServerLogger("promotions.generator");
 
 export async function executeGeneratePreview(data: GeneratePreviewInput) {
-  log.info("Iniciando geração de prévia de card publicitário", { draftId: data.draftId });
+  log.info("Iniciando geração de prévia de card publicitário", {
+    draftId: data.draftId,
+  });
   // Substitui os console.warn/console.error esparsos por logs rastreáveis e estruturados
 }
 ```
 
 #### No Middleware Global (`src/start.ts`):
+
 ```typescript
 import { createStart, createMiddleware } from "@tanstack/react-start";
 import { requestLoggingMiddleware } from "~/server/logger/middleware";

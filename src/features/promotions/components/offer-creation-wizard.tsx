@@ -1,8 +1,5 @@
+// shadcn-ignore: componente container orquestrador que coordena as etapas do wizard
 import * as React from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Typography } from "@/components/ui/typography";
-import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SaveOfferDraftInput } from "../data/offer-brief.schema";
 import { getCreationSegment } from "../data/creation-catalog";
@@ -12,12 +9,19 @@ import {
   type GeneratePreviewFunction,
   type InitiateCheckoutFunction,
 } from "../hooks/use-offer-brief-draft";
+import {
+  usePreviewQuota,
+  type GetPreviewQuotaFunction,
+} from "../hooks/use-preview-quota";
 import { ContextualAiLoader } from "./contextual-ai-loader";
+import { AiQuotaExceededAlert } from "./ai-quota-exceeded-alert";
 import { Step1SegmentSelect } from "./wizard/step1-segment-select";
 import { Step2OfferDetails } from "./wizard/step2-offer-details";
 import { Step3VisualAssets } from "./wizard/step3-visual-assets";
 import { Step4StyleAndPalette } from "./wizard/step4-style-and-palette";
 import { CreationFixedFooter } from "./wizard/creation-fixed-footer";
+import { CreationProgressBar } from "./wizard/creation-progress-bar";
+import { CreationErrorAlert } from "./wizard/creation-error-alert";
 
 export interface OfferCreationWizardProps {
   initialDraft?: Partial<SaveOfferDraftInput> & {
@@ -27,28 +31,44 @@ export interface OfferCreationWizardProps {
   saveDraftFn?: SaveDraftFunction;
   generatePreviewFn?: GeneratePreviewFunction;
   initiateCheckoutFn?: InitiateCheckoutFunction;
+  getPreviewQuotaFn?: GetPreviewQuotaFunction;
   onNavigateToCheckout?: (orderId: string) => void;
   navigate?: (opts: { to: string; params: { orderId: string } }) => void;
   className?: string;
 }
 
-const STEP_TITLES: Record<1 | 2 | 3 | 4, string> = {
-  1: "1. Ramo",
-  2: "2. O Anúncio",
-  3: "3. Suas Imagens",
-  4: "4. Visual do Card",
-};
+function navigateToCheckout(
+  orderId: string,
+  onNavigateToCheckout?: (orderId: string) => void,
+  navigate?: (opts: { to: string; params: { orderId: string } }) => void,
+) {
+  if (onNavigateToCheckout) {
+    onNavigateToCheckout(orderId);
+  } else if (navigate) {
+    navigate({
+      to: "/checkout/$orderId",
+      params: { orderId },
+    });
+  } else if (typeof window !== "undefined") {
+    window.location.href = `/checkout/${orderId}`;
+  }
+}
 
 export function OfferCreationWizard({
   initialDraft,
   saveDraftFn,
   generatePreviewFn,
   initiateCheckoutFn,
+  getPreviewQuotaFn,
   onNavigateToCheckout,
   navigate,
   className,
 }: OfferCreationWizardProps = {}) {
   const [step, setStep] = React.useState<1 | 2 | 3 | 4>(1);
+
+  const quota = usePreviewQuota({
+    getPreviewQuotaFn,
+  });
 
   const draft = useOfferBriefDraft({
     initialDraft,
@@ -74,16 +94,14 @@ export function OfferCreationWizard({
   const handleGenerate = async () => {
     const result = await draft.generateCardAndInitiateCheckout();
     if (result.success) {
-      if (onNavigateToCheckout) {
-        onNavigateToCheckout(result.orderId);
-      } else if (navigate) {
-        navigate({
-          to: "/checkout/$orderId",
-          params: { orderId: result.orderId },
-        });
-      } else if (typeof window !== "undefined") {
-        window.location.href = `/checkout/${result.orderId}`;
-      }
+      navigateToCheckout(result.orderId, onNavigateToCheckout, navigate);
+    }
+  };
+
+  const handleCheckoutLastDraft = async () => {
+    const result = await draft.initiateLastDraftCheckout();
+    if (result.success) {
+      navigateToCheckout(result.orderId, onNavigateToCheckout, navigate);
     }
   };
 
@@ -96,62 +114,25 @@ export function OfferCreationWizard({
       )}
     >
       {/* Barra de Progresso Mobile-First */}
-      <div
-        data-testid="wizard-progress-bar"
-        className="mx-auto w-full max-w-lg px-4 pt-4"
-      >
-        <div className="flex items-center justify-between pb-2 text-xs font-semibold">
-          <span className="flex items-center gap-1 text-primary">
-            <Sparkles className="size-3.5" />
-            Passo {step} de 4
-          </span>
-          <span className="text-foreground">{STEP_TITLES[step]}</span>
-        </div>
-        <div className="grid grid-cols-4 gap-1.5">
-          {([1, 2, 3, 4] as const).map((s) => (
-            <div
-              key={s}
-              data-testid={`step-indicator-${s}`}
-              className={cn(
-                "h-1.5 rounded-full transition-all duration-300",
-                s <= step ? "bg-primary" : "bg-muted",
-              )}
-            />
-          ))}
-        </div>
-      </div>
+      <CreationProgressBar step={step} />
 
       {/* Conteúdo Central do Passo Atual */}
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pt-5 pb-6">
-        {draft.generationError && (
-          <Card
-            data-testid="wizard-generation-error-alert"
-            className="rounded-2xl border-destructive/50 bg-destructive/10 p-4 text-destructive flex items-start justify-between gap-3 mb-4 animate-in fade-in"
-          >
-            <div className="space-y-1">
-              <Typography
-                variant="h4"
-                className="text-sm font-bold text-destructive"
-              >
-                Não foi possível gerar a arte no momento
-              </Typography>
-              <Typography
-                variant="muted"
-                className="text-xs text-destructive/90"
-              >
-                {draft.generationError.message}
-              </Typography>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={draft.clearGenerationError}
-              className="shrink-0 h-8 text-xs border-destructive/40 text-destructive hover:bg-destructive/10"
-            >
-              Fechar
-            </Button>
-          </Card>
+        {draft.isLimitReached && (
+          <AiQuotaExceededAlert
+            reason={draft.limitReason}
+            hasLastDraft={Boolean(draft.previewCardImageUrl || draft.lastDraft)}
+            onCheckout={handleCheckoutLastDraft}
+            isInitiatingCheckout={draft.isInitiatingCheckout}
+            className="mb-4"
+          />
+        )}
+
+        {draft.generationError && !draft.isLimitReached && (
+          <CreationErrorAlert
+            message={draft.generationError.message}
+            onDismiss={draft.clearGenerationError}
+          />
         )}
 
         {step === 1 && (
@@ -227,6 +208,12 @@ export function OfferCreationWizard({
         onBack={handleBack}
         onNext={handleNext}
         onGenerate={handleGenerate}
+        quotaRemaining={quota.remaining}
+        quotaBlocked={quota.isBlocked || draft.isLimitReached}
+        quotaLabel={quota.remainingLabel}
+        hasLastDraft={Boolean(draft.previewCardImageUrl || draft.lastDraft)}
+        onCheckoutLastDraft={handleCheckoutLastDraft}
+        isCheckingOut={draft.isInitiatingCheckout}
       />
 
       {/* Modal de Carregamento Contextual com IA */}

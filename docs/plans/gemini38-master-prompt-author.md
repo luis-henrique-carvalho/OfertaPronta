@@ -1,12 +1,14 @@
 # Plano Técnico: Gemini 3.8 Flash como Autor Único do Prompt Final (`gemini38-master-prompt-author`)
 
 ## 1. Contexto e Motivação
+
 A análise forense dos logs (`.server.log`, pedido `15c571e8-834c-49d8-bd0c-37833a742df6`) e o protótipo validado pelo usuário demonstraram que:
+
 1. O motor anterior usava o `gemini-3.8-flash` apenas para preencher um micro-JSON de 4 campos e o enterrava dentro de ~8.800 caracteres de templates estáticos contraditórios em TypeScript.
-2. O arquétipo `split-editorial` sobrescrevia presets gastronômicos (`rustic-wood`) para `clean-minimal` (estética de revista de moda) e exigia *"separação física em duas zonas verticais"*, gerando cards divididos ao meio por paredes chapadas e fontes retas sem expressão.
-3. Ofertas sem preço (`promoPrice: ""`) sofriam degradação estética para *"selo institucional discreto"*.
+2. O arquétipo `split-editorial` sobrescrevia presets gastronômicos (`rustic-wood`) para `clean-minimal` (estética de revista de moda) e exigia _"separação física em duas zonas verticais"_, gerando cards divididos ao meio por paredes chapadas e fontes retas sem expressão.
+3. Ofertas sem preço (`promoPrice: ""`) sofriam degradação estética para _"selo institucional discreto"_.
 4. Na regeneração em modo `RECOMPOSE`, o envio de `baseCardImageDataUrl` como `inlineData` para o `gemini-nano-banana-2.1` travava a estrutura espacial nos pixels da imagem anterior (impedindo centralizar o produto).
-5. Quando o **`gemini-3.8-flash` assume 100% da autoria do prompt final de Direção de Arte** (com `maxOutputTokens: 4096` e `thinkingLevel: "low"`), o `gemini-nano-banana-2.1` produz peças publicitárias de nível de agência com cena 3D contínua (full-bleed), *food/product styling* hiper-realista, lettering multi-estilo expressivo, *micro-copy* de atributos sensoriais (`•`) e selo de CTA com textura gráfica real (*grunge brush stroke* / carimbo).
+5. Quando o **`gemini-3.8-flash` assume 100% da autoria do prompt final de Direção de Arte** (com `maxOutputTokens: 4096` e `thinkingLevel: "low"`), o `gemini-nano-banana-2.1` produz peças publicitárias de nível de agência com cena 3D contínua (full-bleed), _food/product styling_ hiper-realista, lettering multi-estilo expressivo, _micro-copy_ de atributos sensoriais (`•`) e selo de CTA com textura gráfica real (_grunge brush stroke_ / carimbo).
 
 ---
 
@@ -31,12 +33,12 @@ flowchart LR
 3. **`src/server/prompt-engine/dynamic-planner.ts`**:
    - Implementar `buildMasterPromptAuthorContents(input: PromptEngineInput)` que instrui o `gemini-3.8-flash` a atuar como **Diretor de Arte Publicitário Sênior de Agência**, redigindo 100% do prompt visual final em português (3 a 5 parágrafos densos e coesos) para todos os 7 segmentos (`burger-shop`, `pizzeria`, `restaurant`, `supermarket`, `fashion`, `beauty-salon`, `local-retail`), contemplando:
      - **Cena Única Tridimensional Contínua (Full-Bleed, Proibido Divisão 50/50 Chapada)**: superfície contínua, sujeito Hero imponente, elementos de apoio em 1º plano (profundidade Z), fundo autêntico do segmento em bokeh (ex: luminária industrial quente, forno a lenha, boutique, salão) e zona de penumbra orgânica/texturizada para leitura limpa dos textos.
-     - **Detalhamento Sensorial e *Food/Product Styling* Hiper-Realista**: descrição tátil específica do `offerTitle` anunciado (reação de Maillard, queijo derretendo, gergelim, ervas, sal grosso, gotículas, vapor, texturas reais de tecidos/produtos) com óptica 85mm f/2.0 e *rim light* dourada.
+     - **Detalhamento Sensorial e _Food/Product Styling_ Hiper-Realista**: descrição tátil específica do `offerTitle` anunciado (reação de Maillard, queijo derretendo, gergelim, ervas, sal grosso, gotículas, vapor, texturas reais de tecidos/produtos) com óptica 85mm f/2.0 e _rim light_ dourada.
      - **Tipografia Publicitária Expressiva Multi-Estilo**:
        - Assinatura da marca no topo como emblema/insígnia artesanal com pequeno ícone temático desenhado à mão (ou preservação fiel do logotipo anexado);
-       - Título principal quebrado combinando fontes contrastantes (display condensada robusta com leve textura + *lettering brush script* / caligráfico dinâmico inclinado nas palavras-chave de sabor/apelo em cor de destaque + conectores pintados à mão);
-       - Linha curta de atributos sensoriais (*micro-copy* com 3 atributos em caixa alta separados por `•`, ex: `"ARTESANAL • SUCULENTO • CROCANTE"`);
-       - Selo de CTA (`callToAction`) dentro de faixa com acabamento gráfico rico (pincelada rústica *grunge brush stroke*, carimbo ou fita vibrante com pequeno ícone temático);
+       - Título principal quebrado combinando fontes contrastantes (display condensada robusta com leve textura + _lettering brush script_ / caligráfico dinâmico inclinado nas palavras-chave de sabor/apelo em cor de destaque + conectores pintados à mão);
+       - Linha curta de atributos sensoriais (_micro-copy_ com 3 atributos em caixa alta separados por `•`, ex: `"ARTESANAL • SUCULENTO • CROCANTE"`);
+       - Selo de CTA (`callToAction`) dentro de faixa com acabamento gráfico rico (pincelada rústica _grunge brush stroke_, carimbo ou fita vibrante com pequeno ícone temático);
        - Destaque de preço (`promoPrice` / `originalPrice`) em badge de alto impacto quando informado, ou supressão estrita de valores monetários/R$ quando vazio **mantendo 100% da agressividade promocional**.
      - **Modo `REFERENCE_DRIVEN`**: quando `isReferenceDrivenMode(input)` for `true`, instruir o `gemini-3.8-flash` a extrair 100% da paleta, iluminação, composição e tipografia da imagem de referência anexa, sem códigos HEX e sem nomes de presets externos.
    - Em `planDynamicCompositionBrief`:

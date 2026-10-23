@@ -4,11 +4,12 @@
 
 - **Protótipo Validado pelo Usuário**: [comparativo-prompt-gemini38.md](file:///home/luis/.gemini/antigravity/brain/11f34f32-0c45-4aaa-a5c9-bb4799eafce0/comparativo-prompt-gemini38.md)
 - **Macro-Ticket de Execução (Fast-Track Pós-Protótipo)**:
-  1. [01-backend-stream.md](file:///home/luis/repositories/OfertaPronta/.worktrees/prompt-engine-v2/docs/tickets/prompt-engine-v2/01-backend-stream.md) — *Clean-Slate `prompt-engine-v2`, Configuração de Modelos via `.env`, Edição Conversacional Inteligente (`IN_PLACE_EDIT` vs `RECOMPOSE_LAYOUT`) e Remoção de Legado*.
+  1. [01-backend-stream.md](file:///home/luis/repositories/OfertaPronta/.worktrees/prompt-engine-v2/docs/tickets/prompt-engine-v2/01-backend-stream.md) — _Clean-Slate `prompt-engine-v2`, Configuração de Modelos via `.env`, Edição Conversacional Inteligente (`IN_PLACE_EDIT` vs `RECOMPOSE_LAYOUT`) e Remoção de Legado_.
 - **Worktree Isolada**: `/home/luis/repositories/OfertaPronta/.worktrees/prompt-engine-v2` (branch `feat/prompt-engine-v2`).
 
 ### Problema Arquitetural Resolvido
-O motor antigo de geração de prompts (`src/server/prompt-engine/`) sofria de **diluição severa de atenção (*Attention Dilution*)** e acoplamento raso espalhado em 4 módulos (`art-direction-blueprints.ts`, `dynamic-planner.ts`, `edit-prompt-compiler.ts`, `prompt-compiler.ts`), concatenando até ~9.000 caracteres de meta-regras, códigos HEX conflitantes, listas negativas e `ZERO_TEXT_OCCLUSION_DIRECTIVE` que confundiam o renderizador de imagem (`gemini-nano-banana-2.1`). Além disso, a regeneração pós-compra utilizava regexes frágeis e mantinha sempre a `[IMAGEM BASE DO CARD]` anexada no Estágio 2, travando os pixels e impedindo recomposições reais de layout.
+
+O motor antigo de geração de prompts (`src/server/prompt-engine/`) sofria de **diluição severa de atenção (_Attention Dilution_)** e acoplamento raso espalhado em 4 módulos (`art-direction-blueprints.ts`, `dynamic-planner.ts`, `edit-prompt-compiler.ts`, `prompt-compiler.ts`), concatenando até ~9.000 caracteres de meta-regras, códigos HEX conflitantes, listas negativas e `ZERO_TEXT_OCCLUSION_DIRECTIVE` que confundiam o renderizador de imagem (`gemini-nano-banana-2.1`). Além disso, a regeneração pós-compra utilizava regexes frágeis e mantinha sempre a `[IMAGEM BASE DO CARD]` anexada no Estágio 2, travando os pixels e impedindo recomposições reais de layout.
 
 O **`prompt-engine-v2`** substitui integralmente o motor antigo por um **Módulo Profundo (`Deep Module`)** enxuto em que o Estágio 1 (`GEMINI_PROMPT_MODEL`, default `gemini-3.8-flash`) atua como **Diretor de Arte Publicitário Universal** guiado por **4 Pilares Universais + 1 Golden Few-Shot Example**, entregando ao Estágio 2 (`GEMINI_IMAGE_MODEL`, default `gemini-nano-banana-2.1`) **exclusivamente 4 parágrafos densos de descrição visual de estúdio em português** (zero meta-regras, zero regexes, zero arquétipos por segmento hardcoded).
 
@@ -17,6 +18,7 @@ O **`prompt-engine-v2`** substitui integralmente o motor antigo por um **Módulo
 ## 2. Auditoria dos 4 Pilares de Engenharia
 
 ### Pilar 1: Arquitetura & Deep Modules (`codebase-design`)
+
 - **Consolidação e Deleção de Cascas Rasas**:
   - **Deleção Completa**: `art-direction-blueprints.ts`, `dynamic-planner.ts`, `edit-prompt-compiler.ts` e `prompt-compiler.ts` são removidos.
   - **Novo Módulo Profundo (`src/server/prompt-engine/`)**:
@@ -26,18 +28,21 @@ O **`prompt-engine-v2`** substitui integralmente o motor antigo por um **Módulo
     - `index.ts`: Ponto único de exportação pública para `ai-card-generator.service.ts` e `post-payment-regeneration.service.ts`.
 
 ### Pilar 2: Integridade de Regras de Negócio
+
 - **Preservação Verbatim de Textos em Português**: O `GEMINI_PROMPT_MODEL` preserva 100% da grafia original de `businessName`, `offerTitle`, `promoPrice`, `originalPrice`, `callToAction` e `whatsapp`.
 - **Supressão Estrita de Preço em Cards Institucionais**: Quando `promoPrice` está vazio ou ausente, o briefing instrui o Diretor de Arte a criar uma peça institucional/editorial sem qualquer valor monetário ou badge de preço (proibindo `"R$ 0,00"` ou preços inventados).
 - **Regra Canvas vs. Layout Interno**: Pedidos de edição como `"quero um layout horizontal"` ou `"dividir na horizontal"` dentro de um card Feed (`4:5`) ou Story (`9:16`) alteram exclusivamente o **arranjo interno horizontal dos elementos** (faixas horizontais superior/inferior ou divisão interna) mantendo inalterada a proporção vertical do canvas (`4:5` ou `9:16`).
 - **Desbloqueio de Pixels em `RECOMPOSE_LAYOUT`**: Quando `editStrategy === "RECOMPOSE_LAYOUT"`, o `prompt-engine-v2` omite `[IMAGEM BASE DO CARD]` (`baseCardImageDataUrl`) das partes enviadas ao `GEMINI_IMAGE_MODEL` no Estágio 2, mantendo apenas `[LOGOTIPO OFICIAL]`, `[FOTO DO PRODUTO REAL]` e `[IMAGEM DE REFERÊNCIA ESTÉTICA]`.
 
 ### Pilar 3: Segurança por Design
+
 - **Isolamento Estrito Server-Only**: `src/server/prompt-engine/` e `src/config/server-env.ts` permanecem estritamente no ambiente Node.js, sem vazamento de `GEMINI_API_KEY`, `GEMINI_PROMPT_MODEL` ou `GEMINI_IMAGE_MODEL` para o bundle cliente.
 - **Validação Zod na Fronteira com LLM**: A resposta JSON do Estágio 1 no modo de edição é validada estritamente com `editPlanSchema` (`z.object({ editStrategy: z.enum(["IN_PLACE_EDIT", "RECOMPOSE_LAYOUT"]), masterPrompt: z.string().min(20) })`). Em caso de JSON malformado ou timeout, aciona fallback seguro sem derrubar a requisição do usuário.
 
 ### Pilar 4: Qualidade, Simplicidade & Costuras TDD (`solid` + `ponytail`)
+
 - **Zero Regex / Zero Segment Archetypes Hardcoded**: Nenhuma expressão regular de classificação de intenção e nenhum mapa estático de segmentos (`SEGMENT_ART_DIRECTIVES`).
-- **Costura Única de Teste (*Replace-Don't-Layer*)**: `PromptPlannerClient` e `GoogleGenAIClient` usam a assinatura mínima `{ models: { generateContent(...) } }`, permitindo testes unitários determinísticos com *fakes in-memory* em < 1s.
+- **Costura Única de Teste (_Replace-Don't-Layer_)**: `PromptPlannerClient` e `GoogleGenAIClient` usam a assinatura mínima `{ models: { generateContent(...) } }`, permitindo testes unitários determinísticos com _fakes in-memory_ em < 1s.
 
 ---
 
@@ -123,6 +128,7 @@ sequenceDiagram
 ### 4.1. Configuração de Ambiente (`src/config/server-env.ts` e `.env.example`)
 
 Em [server-env.ts](file:///home/luis/repositories/OfertaPronta/.worktrees/prompt-engine-v2/src/config/server-env.ts):
+
 ```typescript
 GEMINI_API_KEY: z.string().optional(),
 GEMINI_PROMPT_MODEL: z.string().min(1).default("gemini-3.8-flash"),
@@ -131,6 +137,7 @@ GEMINI_DYNAMIC_PLANNER_ENABLED: z.coerce.boolean().default(true),
 ```
 
 Em [.env.example](file:///home/luis/repositories/OfertaPronta/.worktrees/prompt-engine-v2/.env.example):
+
 ```dotenv
 # AI Image Generation & Art Direction (Google Gemini)
 GEMINI_API_KEY=your_gemini_api_key_here
@@ -154,10 +161,7 @@ export const DEFAULT_GEMINI_PROMPT_MODEL = "gemini-3.8-flash";
 export const DEFAULT_GEMINI_IMAGE_MODEL = "gemini-nano-banana-2.1";
 export const DEFAULT_PROMPT_ENGINE_TIMEOUT_MS = 25000;
 
-export const editStrategySchema = z.enum([
-  "IN_PLACE_EDIT",
-  "RECOMPOSE_LAYOUT",
-]);
+export const editStrategySchema = z.enum(["IN_PLACE_EDIT", "RECOMPOSE_LAYOUT"]);
 
 export type EditStrategy = z.infer<typeof editStrategySchema>;
 
@@ -279,12 +283,14 @@ export interface ResolveRegenerationInstructionsOptions {
 ## 5. Lista Exata de Arquivos a Deletar, Criar e Modificar
 
 ### Arquivos Legados a Deletar (`git rm`)
+
 1. `src/server/prompt-engine/art-direction-blueprints.ts`
 2. `src/server/prompt-engine/dynamic-planner.ts`
 3. `src/server/prompt-engine/edit-prompt-compiler.ts`
 4. `src/server/prompt-engine/prompt-compiler.ts`
 
 ### Arquivos a Criar / Reescrever do Zero
+
 1. `src/server/prompt-engine/types.ts` — Schemas Zod (`editStrategySchema`, `editPlanSchema`) e tipos enxutos do `prompt-engine-v2`.
 2. `src/server/prompt-engine/system-instructions.ts` — `UNIVERSAL_ART_DIRECTOR_SYSTEM_INSTRUCTION` (4 Pilares + Golden Few-Shot Example) e `CONVERSATIONAL_EDIT_SYSTEM_INSTRUCTION` (Classificação `IN_PLACE_EDIT` vs `RECOMPOSE_LAYOUT` + Regra Canvas vs. Layout Interno).
 3. `src/server/prompt-engine/prompt-engine.ts` — Implementação do módulo profundo (`compileAdCardPrompt`, `buildMultimodalPromptPartsAsync`, `buildFallbackMasterPrompt`, `resolveRegenerationStyleInstructions`, `isReferenceDrivenMode`, `parseDataUrl`).
@@ -292,6 +298,7 @@ export interface ResolveRegenerationInstructionsOptions {
 5. `src/server/prompt-engine/prompt-engine.test.ts` — Suíte de testes TDD cobrindo os 4 Pilares, Golden Few-Shot, `IN_PLACE_EDIT` (mantém `[IMAGEM BASE DO CARD]`), `RECOMPOSE_LAYOUT` (remove `[IMAGEM BASE DO CARD]`), Regra Canvas vs. Layout Interno e fallback resiliente.
 
 ### Arquivos Existentes a Modificar
+
 1. `src/config/server-env.ts` & `src/config/server-env.test.ts` — Adição de `GEMINI_IMAGE_MODEL` com default `"gemini-nano-banana-2.1"` e validação de `GEMINI_PROMPT_MODEL` com default `"gemini-3.8-flash"`.
 2. `.env.example` — Documentação de `GEMINI_PROMPT_MODEL` e `GEMINI_IMAGE_MODEL`.
 3. `src/features/promotions/server/services/ai-card-generator.service.ts` & `src/features/promotions/server/services/ai-card-generator.service.test.ts` — Consumo de `serverEnv.GEMINI_IMAGE_MODEL`, integração com `compileAdCardPrompt` / `buildMultimodalPromptPartsAsync` do `prompt-engine-v2` e atualização dos testes unitários sem acoplamento a templates legados.

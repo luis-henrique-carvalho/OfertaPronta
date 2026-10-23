@@ -23,12 +23,12 @@ Desenvolver os componentes visuais acessíveis e mobile-first de checkout utiliz
     - Renderiza o QR Code visual a partir da imagem Base64 retornada pela Pushin Pay.
     - Opção retrátil ou otimizada para visualização rápida no celular ou leitura por outro aparelho.
   - `payment-polling-indicator.tsx`:
-    - Indicador com animação sutil de pulso indicando *"Aguardando pagamento via Pix..."*.
+    - Indicador com animação sutil de pulso indicando _"Aguardando pagamento via Pix..."_.
     - Cronômetro regressivo com contagem de minutos e segundos restantes até a expiração (iniciando em 30 min).
-    - Botão de fallback *"Já paguei? Verificar agora"* para forçar checagem imediata.
-    - Quando o tempo esgotar (`EXPIRED`), exibe aviso contextual claro e botão proeminente *"Gerar Novo Código Pix"*.
+    - Botão de fallback _"Já paguei? Verificar agora"_ para forçar checagem imediata.
+    - Quando o tempo esgotar (`EXPIRED`), exibe aviso contextual claro e botão proeminente _"Gerar Novo Código Pix"_.
   - `order-whatsapp-recovery-card.tsx`:
-    - Campo opcional amigável: *"Receber link por WhatsApp caso feche o navegador (opcional)"*.
+    - Campo opcional amigável: _"Receber link por WhatsApp caso feche o navegador (opcional)"_.
     - Pré-preenchido caso o usuário tenha informado WhatsApp na etapa do briefing.
     - Salva alteração de forma não obstrutiva.
 

@@ -4,10 +4,11 @@
 
 **What to build:**
 Criar a experiência visual e componentes de compliance, confiança e suporte mobile-first:
+
 1. **Banner de Consentimento LGPD (`src/components/shared/cookie-consent-banner.tsx`):**
    - Banner fixo na parte inferior da tela para usuários novos.
-   - Texto objetivo: *"Usamos cookies para melhorar sua experiência e métricas de anúncios."*
-   - Botão de ação *"Entendi"* que grava no `localStorage` (`ofertapronta_cookie_consent: "accepted"`) e oculta o banner com transição fluida.
+   - Texto objetivo: _"Usamos cookies para melhorar sua experiência e métricas de anúncios."_
+   - Botão de ação _"Entendi"_ que grava no `localStorage` (`ofertapronta_cookie_consent: "accepted"`) e oculta o banner com transição fluida.
    - Montagem via shell raiz (`src/routes/__root.tsx`) de forma segura com `useEffect` para evitar mismatches de SSR.
 2. **Botão Flutuante de Suporte WhatsApp (`src/components/shared/floating-whatsapp-support.tsx`):**
    - Botão flutuante posicionado no canto inferior direito (`bottom-4 right-4`), acessível via teclado e leitor de tela (com aria-label).

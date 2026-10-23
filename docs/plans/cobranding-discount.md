@@ -7,7 +7,7 @@
 - **Spec de Produto**: [`docs/specs/cobranding-discount.md`](../specs/cobranding-discount.md)
 - **Macro-Tickets de Execução**:
   1. [`docs/tickets/cobranding-discount/01-backend-and-export-stream.md`](../tickets/cobranding-discount/01-backend-and-export-stream.md)
-  2. [`docs/tickets/cobranding-discount/02-frontend-checkout-stream.md`](../tickets/cobranding-discount/02-frontend-checkout-stream.md) *(Execução Concorrente com Stream 1)*
+  2. [`docs/tickets/cobranding-discount/02-frontend-checkout-stream.md`](../tickets/cobranding-discount/02-frontend-checkout-stream.md) _(Execução Concorrente com Stream 1)_
 
 ---
 
@@ -18,12 +18,14 @@ O **OfertaPronta** opera sob o modelo de aquisição orgânica orientada a produ
 A arquitetura foi submetida à auditoria dos **4 Pilares Universais de Engenharia**:
 
 ### 1.1. Arquitetura & Módulos Profundos (`codebase-design`)
+
 - **Fronteira Hermética e Isolamento Estrito Client/Server**: O processamento de imagem (`sharp`), a persistência PostgreSQL (`drizzle-orm`) e as credenciais (`server-env.ts`) rodam exclusivamente no Node.js. A camada cliente consome a funcionalidade estritamente via Server Functions (`createServerFn`) tipadas com Zod.
 - **Módulo Profundo `ExportEngine`**: Adiciona o método `applyCobrandingSignature(imageBuffer, options)` ocultando a complexidade de cálculo de aspect ratio (Feed 1080×1350 vs Story 1080×1920), layout de margens seguras (safe zones) e renderização vetorial SVG com alto contraste.
 - **Módulo Profundo `CampaignCatalog`**: Módulo puro e isomórfico (`src/lib/campaign-catalog.ts`), compartilhado com segurança entre cliente e servidor sem vazar segredos ou imports nativos.
 - **Módulo Profundo `PixCheckoutService`**: Orquestra a transição de cobrança e a máquina de estados Pix quando o desconto é alternado, garantindo atomicidade e cancelamento de cobranças obsoletas.
 
 ### 1.2. Integridade das Regras de Negócio
+
 - **Preços e Descontos Autoritativos do Backend**: O cliente jamais envia o valor a ser cobrado. O backend determina o preço a partir do catálogo e do percentual configurado no servidor (`COBRANDING_DISCOUNT_PERCENT = 30`).
 - **Matemática Financeira em Centavos**: Todos os cálculos utilizam centavos inteiros (`amountCents`). Para a base de 990 centavos com 30% de desconto:
   $$\text{desconto} = \text{round}(990 \times 0.3) = 297 \text{ centavos (R\$ 2,97)}$$
@@ -31,11 +33,13 @@ A arquitetura foi submetida à auditoria dos **4 Pilares Universais de Engenhari
 - **Congelamento Imutável (`Frozen Snapshot`)**: A decisão do comerciante (`cobrandingAccepted`, `cobrandingDiscountPercent`, `cobrandingCreditText`, `originalAmountCents`) é congelada na tabela `orders` e persiste de forma indelével mesmo em regenerações pós-compra.
 
 ### 1.3. Segurança por Design (`Security by Design`)
+
 - **Validação de Fronteira com Zod**: Toda entrada via RPC (`updateOrderCobrandingSchema`) é rigorosamente sanitizada (UUID v4 no `orderId` e booleano no `cobrandingAccepted`).
 - **Bloqueio de Mutação em Pedidos Pagos (`ORDER_ALREADY_PAID`)**: Rejeição imediata de qualquer tentativa de alternar o co-branding se `order.status === "PAID"`.
 - **Reconciliação e Idempotência Anti-Spoofing no Webhook Pix**: O webhook da Pushin Pay valida o secret e o identificador `txId`. Se o pagamento recebido referir-se a uma cobrança emitida anteriormente (ex: cliente pagou o QR Code de R$ 9,90 antes da alternância para R$ 6,93), o sistema honra o valor efetivamente pago e ajusta `cobrandingAccepted` de acordo com a cobrança liquidada.
 
 ### 1.4. Qualidade, Simplicidade & Costuras TDD (`SOLID` + `YAGNI`)
+
 - **Zero Bloat de Admin (YAGNI/Ponytail)**: Sem tabelas dinâmicas ou painéis administrativos complexos para cupons manuais. A promoção é governada por variáveis de ambiente simples (`COBRANDING_PROMOTION_ENABLED`, `COBRANDING_CREDIT_TEXT`, `COBRANDING_DISCOUNT_PERCENT`).
 - **Renderização 100% Determinística (Zero Gemini Text Ingestion)**: A IA multimodal do Gemini **NUNCA** é utilizada para renderizar a assinatura de marca, eliminando riscos de alucinação de texto, artefatos ou fontes deformadas. A assinatura é aplicada como camada vetorial SVG via Sharp.
 - **Costuras de Teste Limpas (Replace-Don't-Layer)**: Testes com mocks e fakes in-memory (`FakePushinPayService`), testando a superfície da interface pública sem acoplamento a implementações internas.
@@ -121,7 +125,7 @@ sequenceDiagram
 
     Service->>DB: Busca pedido por id
     DB-->>Service: order { status, amountCents, frozenSnapshot }
-    
+
     alt Pedido já está PAID
         Service-->>RPC: Erro 400: ORDER_ALREADY_PAID
         RPC-->>UI: Exibe toast amigável e bloqueia alteração
@@ -164,42 +168,42 @@ sequenceDiagram
 flowchart TD
     StartMaster["Arte Mestre Limpa (Master Buffer)
     Gerada pela IA Multimodal Gemini"]
-    
+
     BranchPreOrPost{"O Pedido foi Pago?"}
-    
+
     StartMaster --> BranchPreOrPost
-    
+
     BranchPreOrPost -->|NÃO (Prévia Gratuita)| WatermarkProc["ExportEngine.applyWatermark()
     - Padrão diagonal semitransparente
     - 'PRÉVIA OFERTAPRONTA'
     - Formato WebP otimizado (85%)"]
     WatermarkProc --> PreviewOut["previewCardImageUrl (Data URL)
     Exibida no Showcase do Checkout"]
-    
+
     BranchPreOrPost -->|SIM (Pedido PAID)| DeliveryDerive["DeliveryService.deriveAndPersistFormats()
     - formatFeedCard() -> 1080×1350 (4:5)
     - formatStoryCard() -> 1080×1920 (9:16) com barras harmônicas"]
-    
+
     DeliveryDerive --> CheckCobranding{"order.cobrandingAccepted == true?"}
-    
+
     CheckCobranding -->|NÃO (Preço Integral)| CleanExport["Exports Limpos 100% Anônimos
     - Feed 1080×1350 sem assinatura
     - Story 1080×1920 sem assinatura"]
-    
+
     CheckCobranding -->|SIM (Preço com Desconto)| CobrandingProc["ExportEngine.applyCobrandingSignature()
     Renderização Vetorial SVG via Sharp:
     - Feed: Posicionado em y=1315 (centro/rodapé)
     - Story: Posicionado em y=1840 (acima do input do Instagram)
     - Pill semitransparente com texto nítido em branco"]
-    
+
     CobrandingProc --> CobrandedExport["Exports Finais com Assinatura Elegante
     - Feed 1080×1350 com 'Design por @ofertapronta'
     - Story 1080×1920 com 'Design por @ofertapronta'"]
-    
+
     CleanExport --> PersistDB[("deliveryExports no PostgreSQL
     (feedUrl e storyUrl em PNG HD)")]
     CobrandedExport --> PersistDB
-    
+
     PersistDB --> MerchantDownload["Download do Microempresário
     na tela /pedido/$orderId"]
 ```
@@ -211,12 +215,14 @@ flowchart TD
 ### 3.1. Variáveis de Ambiente do Servidor (`src/config/server-env.ts`)
 
 Adicionar ao `serverEnvSchema`:
+
 ```typescript
 COBRANDING_PROMOTION_ENABLED: z.coerce.boolean().default(true),
 COBRANDING_CREDIT_TEXT: z.string().default("Design por @ofertapronta"),
 COBRANDING_DISCOUNT_PERCENT: z.coerce.number().int().min(1).max(90).default(30),
 ```
-*Garantia*: Segredos e flags de backend nunca são acessíveis no bundle do navegador (`client-env.ts`).
+
+_Garantia_: Segredos e flags de backend nunca são acessíveis no bundle do navegador (`client-env.ts`).
 
 ---
 
@@ -239,8 +245,13 @@ export function calculateCobrandingPrice(
   baseAmountCents: number,
   discountPercent: number = 30,
 ): CobrandingPriceCalculation {
-  const safeDiscountPercent = Math.max(1, Math.min(90, Math.round(discountPercent)));
-  const discountAmountCents = Math.round(baseAmountCents * (safeDiscountPercent / 100));
+  const safeDiscountPercent = Math.max(
+    1,
+    Math.min(90, Math.round(discountPercent)),
+  );
+  const discountAmountCents = Math.round(
+    baseAmountCents * (safeDiscountPercent / 100),
+  );
   const amountCents = Math.max(100, baseAmountCents - discountAmountCents);
 
   return {
@@ -254,19 +265,22 @@ export function calculateCobrandingPrice(
   };
 }
 ```
-*Garantia*: Testado com base `990` e `30%`, retornando rigorosamente `693` centavos, `297` centavos de economia, `"R$ 6,93"` e `"R$ 2,97"`.
+
+_Garantia_: Testado com base `990` e `30%`, retornando rigorosamente `693` centavos, `297` centavos de economia, `"R$ 6,93"` e `"R$ 2,97"`.
 
 ---
 
 ### 3.3. Schema Drizzle & Migração SQL (`src/server/db/schema/orders.ts`)
 
 Adicionar as colunas na tabela `orders`:
+
 ```typescript
 cobrandingAccepted: boolean("cobranding_accepted").notNull().default(false),
 cobrandingCreditText: text("cobranding_credit_text"),
 ```
 
 Atualizar o tipo e estrutura do `frozenSnapshot`:
+
 ```typescript
 export interface OrderFrozenSnapshot {
   // Dados de briefing existentes...
@@ -283,7 +297,7 @@ export interface OrderFrozenSnapshot {
   referenceImageDataUrl?: string | null;
   previewCardImageUrl?: string | null;
   cleanMasterImageDataUrl?: string | null;
-  
+
   // Metadados comerciais e co-branding
   planId: string;
   planName: string;
@@ -297,7 +311,8 @@ export interface OrderFrozenSnapshot {
 }
 ```
 
-*Comando de migração mandatório*:
+_Comando de migração mandatório_:
+
 ```bash
 pnpm db:generate && pnpm db:migrate
 ```
@@ -307,12 +322,15 @@ pnpm db:generate && pnpm db:migrate
 ### 3.4. Schemas Zod e Contratos RPC (`src/features/checkout/data/checkout.schemas.ts`)
 
 Adicionar schema de mutação e enriquecer o schema de saída:
+
 ```typescript
 export const updateOrderCobrandingSchema = z.object({
   orderId: z.string().uuid("orderId deve ser um UUID válido"),
   cobrandingAccepted: z.boolean(),
 });
-export type UpdateOrderCobrandingInput = z.infer<typeof updateOrderCobrandingSchema>;
+export type UpdateOrderCobrandingInput = z.infer<
+  typeof updateOrderCobrandingSchema
+>;
 
 export const checkoutDetailsOutputSchema = z.object({
   orderId: z.string(),
@@ -347,6 +365,7 @@ export const checkoutDetailsOutputSchema = z.object({
 ### 3.5. Lógica no Módulo Profundo `PixCheckoutService` (`src/features/checkout/server/services/pix-checkout.service.ts`)
 
 Implementar o método:
+
 ```typescript
 async updateOrderCobranding(
   orderId: string,
@@ -460,11 +479,13 @@ async updateOrderCobranding(
 ```
 
 #### Reconciliação no Webhook (`handleWebhookPayment`)
+
 Quando a Pushin Pay notifica pagamento de uma cobrança `charge`:
+
 1. O valor recebido `payload.value` é validado contra `charge.amountCents`.
 2. Se a cobrança paga for a de valor integral (`originalAmountCents`), garante que `orders.cobrandingAccepted` seja `false`.
 3. Se a cobrança paga for a com desconto, garante que `orders.cobrandingAccepted` seja `true`.
-Essa reconciliação garante anti-spoofing e integridade mesmo em condições de corrida entre troca de switch e pagamento instantâneo.
+   Essa reconciliação garante anti-spoofing e integridade mesmo em condições de corrida entre troca de switch e pagamento instantâneo.
 
 ---
 
@@ -553,7 +574,8 @@ export async function applyCobrandingSignature(
 }
 ```
 
-*Garantias do Design Gráfico*:
+_Garantias do Design Gráfico_:
+
 1. **Pill Translúcido Calibrado (`rgba(0, 0, 0, 0.55)`)**: Cria separação visual imediata contra fundos brancos (ofertas de encarte), pretos (hamburguerias/barbearias) ou coloridos, com borda sutil em branco translúcido.
 2. **Safe Zones Respeitadas**: No Feed (1080×1350), fica a 35px da borda inferior (não corta no carrossel do Instagram). No Story (1080×1920), fica a 85px do fundo, flutuando acima da barra de resposta ("Enviar mensagem") do Instagram.
 
@@ -562,6 +584,7 @@ export async function applyCobrandingSignature(
 ### 3.7. Integração no `DeliveryService` e `PostPaymentRegenerationService`
 
 No `DeliveryService`:
+
 - Em `deriveAndPersistFormats(order, masterDataUrl)`:
   ```typescript
   let feedBuffer = await this.formatFeed(masterBuffer);
@@ -603,9 +626,10 @@ export interface CobrandingDiscountCardProps {
 ```
 
 Elementos de UX:
+
 - **Badge Promocional**: `30% OFF` ou `Economize R$ 2,97` em destaque (verde esmeralda / primary).
-- **Headline Convidativo**: *"Ativar Desconto com Assinatura"*.
-- **Subtexto Explicativo**: *"Adicione a assinatura discreta 'Design por @ofertapronta' no rodapé do seu card e pague apenas R$ 6,93."*
+- **Headline Convidativo**: _"Ativar Desconto com Assinatura"_.
+- **Subtexto Explicativo**: _"Adicione a assinatura discreta 'Design por @ofertapronta' no rodapé do seu card e pague apenas R$ 6,93."_
 - **Switch Radix UI**: Com acessibilidade (`aria-label`), desabilitado durante `isUpdating` e feedback háptico/visual.
 
 ---
@@ -613,40 +637,46 @@ Elementos de UX:
 ### 3.9. Showcase Visual: `AdCardCheckoutShowcase` (`src/features/checkout/components/ad-card-checkout-showcase.tsx`)
 
 Adicionar props:
+
 ```typescript
 cobrandingAccepted?: boolean;
 cobrandingCreditText?: string;
 ```
+
 Quando `cobrandingAccepted === true`:
 Renderizar uma prévia visual translúcida flutuando no rodapé da imagem do card:
+
 ```tsx
-{cobrandingAccepted && (
-  <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
-    <div className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-2.5 py-0.5 shadow-sm backdrop-blur-sm">
-      <Sparkles className="size-2.5 text-primary" />
-      <span className="text-[10px] font-semibold text-white/95">
-        {cobrandingCreditText || "Design por @ofertapronta"}
-      </span>
+{
+  cobrandingAccepted && (
+    <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
+      <div className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-2.5 py-0.5 shadow-sm backdrop-blur-sm">
+        <Sparkles className="size-2.5 text-primary" />
+        <span className="text-[10px] font-semibold text-white/95">
+          {cobrandingCreditText || "Design por @ofertapronta"}
+        </span>
+      </div>
     </div>
-  </div>
-)}
+  );
+}
 ```
-*Valor para o Comerciante*: O microempresário enxerga exatamente o quão discreta e bonita é a assinatura antes de pagar, eliminando qualquer medo de que ela estrague a promoção.
+
+_Valor para o Comerciante_: O microempresário enxerga exatamente o quão discreta e bonita é a assinatura antes de pagar, eliminando qualquer medo de que ela estrague a promoção.
 
 ---
 
 ## 4. Checklist de Segurança e Qualidade de Engenharia
 
-| Invariante | Requisito Técnico | Onde é Garantido |
-|---|---|---|
-| **Zero Server Code Leaks** | Sem imports de `sharp`, `drizzle-orm` ou `server-env.ts` no cliente | `src/features/checkout/server/server-isolation.test.ts` auditado |
-| **Backend-Authoritative Pricing** | Preço calculado estritamente no servidor via `calculateCobrandingPrice` | `PixCheckoutService.updateOrderCobranding` |
-| **Imutabilidade Pós-Pagamento** | Rejeição de mutação com erro `ORDER_ALREADY_PAID` | `order.status === "PAID"` verificado antes de qualquer mutação |
-| **Anti-Spoofing & Reconciliação** | Se cliente pagar cobrança antiga de R$ 9,90, libera sem assinatura | `handleWebhookPayment` reconcilia `cobrandingAccepted` com o valor liquidado |
-| **Idempotência no Switch** | Toggle para mesmo estado não emite cobrança redundante na Pushin Pay | Checagem de `order.cobrandingAccepted === cobrandingAccepted` |
-| **Cancelamento de Cobranças Anteriores** | Cobranças pendentes obsoletas marcadas como `EXPIRED` | Transação atômica Drizzle ao alternar valor |
-| **Preservação em Regenerações** | Novas gerações de IA pós-compra mantêm assinatura se pedido foi pago com desconto | `PostPaymentRegenerationService` delega a `DeliveryService.updateExports` |
-| **Mobile-First & Acessibilidade** | Zero elementos nativos não estilizados, conformidade com `./.agents/scripts/verify.sh --shadcn` | `CobrandingDiscountCard` auditado com linter Shadcn |
+| Invariante                               | Requisito Técnico                                                                               | Onde é Garantido                                                             |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Zero Server Code Leaks**               | Sem imports de `sharp`, `drizzle-orm` ou `server-env.ts` no cliente                             | `src/features/checkout/server/server-isolation.test.ts` auditado             |
+| **Backend-Authoritative Pricing**        | Preço calculado estritamente no servidor via `calculateCobrandingPrice`                         | `PixCheckoutService.updateOrderCobranding`                                   |
+| **Imutabilidade Pós-Pagamento**          | Rejeição de mutação com erro `ORDER_ALREADY_PAID`                                               | `order.status === "PAID"` verificado antes de qualquer mutação               |
+| **Anti-Spoofing & Reconciliação**        | Se cliente pagar cobrança antiga de R$ 9,90, libera sem assinatura                              | `handleWebhookPayment` reconcilia `cobrandingAccepted` com o valor liquidado |
+| **Idempotência no Switch**               | Toggle para mesmo estado não emite cobrança redundante na Pushin Pay                            | Checagem de `order.cobrandingAccepted === cobrandingAccepted`                |
+| **Cancelamento de Cobranças Anteriores** | Cobranças pendentes obsoletas marcadas como `EXPIRED`                                           | Transação atômica Drizzle ao alternar valor                                  |
+| **Preservação em Regenerações**          | Novas gerações de IA pós-compra mantêm assinatura se pedido foi pago com desconto               | `PostPaymentRegenerationService` delega a `DeliveryService.updateExports`    |
+| **Mobile-First & Acessibilidade**        | Zero elementos nativos não estilizados, conformidade com `./.agents/scripts/verify.sh --shadcn` | `CobrandingDiscountCard` auditado com linter Shadcn                          |
 
 ---
 
@@ -677,8 +707,10 @@ flowchart LR
 ```
 
 ### 5.1. Macro-Stream 1: Backend & Export Stream (`01-backend-and-export-stream.md`)
+
 **Agente**: `backend-builder`  
 **Arquivos de Escopo**:
+
 - `src/config/server-env.ts`
 - `src/lib/campaign-catalog.ts` & `src/lib/campaign-catalog.test.ts`
 - `src/server/db/schema/orders.ts` & migração SQL em `drizzle/`
@@ -692,6 +724,7 @@ flowchart LR
 - `src/features/delivery/server/services/post-payment-regeneration.service.ts` & `post-payment-regeneration.service.test.ts`
 
 **Comandos Cirúrgicos de Validação TDD**:
+
 ```bash
 # Execuções rápidas de 1-2s durante o ciclo Red-Green-Refactor
 pnpm vitest run src/lib/campaign-catalog.test.ts
@@ -711,8 +744,10 @@ pnpm typecheck
 ---
 
 ### 5.2. Macro-Stream 2: Frontend & UX Stream (`02-frontend-checkout-stream.md`)
+
 **Agente**: `frontend-builder`  
 **Arquivos de Escopo**:
+
 - `src/features/checkout/components/cobranding-discount-card.tsx`
 - `src/features/checkout/components/cobranding-discount-card.test.tsx`
 - `src/features/checkout/components/index.ts`
@@ -722,6 +757,7 @@ pnpm typecheck
 - `src/features/checkout/views/checkout-view.test.tsx`
 
 **Comandos Cirúrgicos de Validação TDD**:
+
 ```bash
 # Execuções rápidas de componentes e views
 pnpm vitest run src/features/checkout/components/cobranding-discount-card.test.tsx
@@ -740,6 +776,7 @@ pnpm typecheck
 ## 6. Critérios de Homologação Final (Gate 3)
 
 Antes do merge final na branch `main`:
+
 1. **Pipeline Oficial Completo**: `./.agents/scripts/verify.sh` executado pelo `test-verifier` com 100% de sucesso (Shadcn + Typecheck + ESLint + Vitest + Nitro Build).
 2. **Dual Browser Audit**: Verificação visual e responsiva em Viewport Mobile (390×844) e Desktop (1440×900) na rota `/checkout/$orderId`.
 3. **Auditoria Independente**: `implementation-validator` confirmando aderência estrita à Spec, ausência de código desnecessário (`ponytail-review`) e conformidade com os princípios SOLID.

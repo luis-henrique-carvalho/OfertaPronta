@@ -4,6 +4,7 @@
 
 **What to build:**
 Criar a infraestrutura de backend/configuração e os utilitários de cliente para dados cadastrais legais e tracking de conversão de anúncios:
+
 1. Atualização do `src/config/client-env.ts` para receber variáveis opcionais tipadas com Zod: `VITE_PUBLIC_LEGAL_NAME`, `VITE_PUBLIC_LEGAL_CNPJ`, `VITE_PUBLIC_CONTACT_EMAIL`, `VITE_PUBLIC_SUPPORT_WHATSAPP`, `VITE_PUBLIC_META_PIXEL_ID`, `VITE_PUBLIC_GOOGLE_ADS_ID`.
 2. Criação do módulo `src/lib/legal-company.ts` com o perfil cadastral padronizado, fallbacks de contingência (Razão Social: "OfertaPronta Tecnologia Ltda", CNPJ: "00.000.000/0001-00", e-mail: "contato@ofertapronta.com.br") e gerador de link direto do WhatsApp com mensagem pré-formatada codificada em URI.
 3. Criação do módulo `src/lib/tracking.ts` com inicialização defensiva de scripts (Meta Pixel e Google Ads gtag) e métodos tipados `trackPageView`, `trackInitiateCheckout`, e `trackPurchase` com proteção anti-duplicação (idempotência por orderId).

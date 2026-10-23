@@ -1,126 +1,126 @@
 ---
 name: Clean Gourmet Light
 colors:
-  surface: '#fff8f3'
-  surface-dim: '#e0d9d2'
-  surface-bright: '#fff8f3'
-  surface-container-lowest: '#ffffff'
-  surface-container-low: '#faf2ec'
-  surface-container: '#f4ede6'
-  surface-container-high: '#eee7e0'
-  surface-container-highest: '#e8e1db'
-  on-surface: '#1e1b17'
-  on-surface-variant: '#5b403d'
-  inverse-surface: '#33302c'
-  inverse-on-surface: '#f7efe9'
-  outline: '#8f706c'
-  outline-variant: '#e4beba'
-  surface-tint: '#b91d20'
-  primary: '#a20513'
-  on-primary: '#ffffff'
-  primary-container: '#c62828'
-  on-primary-container: '#ffe0dd'
-  inverse-primary: '#ffb4ac'
-  secondary: '#39684f'
-  on-secondary: '#ffffff'
-  secondary-container: '#b8ebcc'
-  on-secondary-container: '#3d6c53'
-  tertiary: '#734500'
-  on-tertiary: '#ffffff'
-  tertiary-container: '#905c18'
-  on-tertiary-container: '#ffe2c6'
-  error: '#ba1a1a'
-  on-error: '#ffffff'
-  error-container: '#ffdad6'
-  on-error-container: '#93000a'
-  primary-fixed: '#ffdad6'
-  primary-fixed-dim: '#ffb4ac'
-  on-primary-fixed: '#410003'
-  on-primary-fixed-variant: '#93000e'
-  secondary-fixed: '#bbeecf'
-  secondary-fixed-dim: '#a0d2b3'
-  on-secondary-fixed: '#002112'
-  on-secondary-fixed-variant: '#204f38'
-  tertiary-fixed: '#ffddba'
-  tertiary-fixed-dim: '#fcb96d'
-  on-tertiary-fixed: '#2b1700'
-  on-tertiary-fixed-variant: '#673d00'
-  background: '#fff8f3'
-  on-background: '#1e1b17'
-  surface-variant: '#e8e1db'
+  surface: "#fff8f3"
+  surface-dim: "#e0d9d2"
+  surface-bright: "#fff8f3"
+  surface-container-lowest: "#ffffff"
+  surface-container-low: "#faf2ec"
+  surface-container: "#f4ede6"
+  surface-container-high: "#eee7e0"
+  surface-container-highest: "#e8e1db"
+  on-surface: "#1e1b17"
+  on-surface-variant: "#5b403d"
+  inverse-surface: "#33302c"
+  inverse-on-surface: "#f7efe9"
+  outline: "#8f706c"
+  outline-variant: "#e4beba"
+  surface-tint: "#b91d20"
+  primary: "#a20513"
+  on-primary: "#ffffff"
+  primary-container: "#c62828"
+  on-primary-container: "#ffe0dd"
+  inverse-primary: "#ffb4ac"
+  secondary: "#39684f"
+  on-secondary: "#ffffff"
+  secondary-container: "#b8ebcc"
+  on-secondary-container: "#3d6c53"
+  tertiary: "#734500"
+  on-tertiary: "#ffffff"
+  tertiary-container: "#905c18"
+  on-tertiary-container: "#ffe2c6"
+  error: "#ba1a1a"
+  on-error: "#ffffff"
+  error-container: "#ffdad6"
+  on-error-container: "#93000a"
+  primary-fixed: "#ffdad6"
+  primary-fixed-dim: "#ffb4ac"
+  on-primary-fixed: "#410003"
+  on-primary-fixed-variant: "#93000e"
+  secondary-fixed: "#bbeecf"
+  secondary-fixed-dim: "#a0d2b3"
+  on-secondary-fixed: "#002112"
+  on-secondary-fixed-variant: "#204f38"
+  tertiary-fixed: "#ffddba"
+  tertiary-fixed-dim: "#fcb96d"
+  on-tertiary-fixed: "#2b1700"
+  on-tertiary-fixed-variant: "#673d00"
+  background: "#fff8f3"
+  on-background: "#1e1b17"
+  surface-variant: "#e8e1db"
 typography:
   display-lg:
     fontFamily: Plus Jakarta Sans
     fontSize: 56px
-    fontWeight: '700'
+    fontWeight: "700"
     lineHeight: 64px
     letterSpacing: -0.03em
   display-lg-mobile:
     fontFamily: Plus Jakarta Sans
     fontSize: 38px
-    fontWeight: '700'
+    fontWeight: "700"
     lineHeight: 46px
     letterSpacing: -0.02em
   headline-xl:
     fontFamily: Plus Jakarta Sans
     fontSize: 40px
-    fontWeight: '600'
+    fontWeight: "600"
     lineHeight: 48px
     letterSpacing: -0.02em
   headline-xl-mobile:
     fontFamily: Plus Jakarta Sans
     fontSize: 30px
-    fontWeight: '600'
+    fontWeight: "600"
     lineHeight: 38px
     letterSpacing: -0.01em
   headline-lg:
     fontFamily: Plus Jakarta Sans
     fontSize: 32px
-    fontWeight: '600'
+    fontWeight: "600"
     lineHeight: 40px
     letterSpacing: -0.015em
   headline-md:
     fontFamily: Plus Jakarta Sans
     fontSize: 24px
-    fontWeight: '600'
+    fontWeight: "600"
     lineHeight: 32px
     letterSpacing: -0.01em
   headline-sm:
     fontFamily: Plus Jakarta Sans
     fontSize: 20px
-    fontWeight: '500'
+    fontWeight: "500"
     lineHeight: 28px
   body-lg:
     fontFamily: Plus Jakarta Sans
     fontSize: 18px
-    fontWeight: '400'
+    fontWeight: "400"
     lineHeight: 28px
   body-md:
     fontFamily: Plus Jakarta Sans
     fontSize: 15px
-    fontWeight: '400'
+    fontWeight: "400"
     lineHeight: 24px
   body-sm:
     fontFamily: Plus Jakarta Sans
     fontSize: 13px
-    fontWeight: '400'
+    fontWeight: "400"
     lineHeight: 20px
   label-lg:
     fontFamily: Plus Jakarta Sans
     fontSize: 14px
-    fontWeight: '600'
+    fontWeight: "600"
     lineHeight: 20px
     letterSpacing: 0.01em
   label-md:
     fontFamily: Plus Jakarta Sans
     fontSize: 12px
-    fontWeight: '500'
+    fontWeight: "500"
     lineHeight: 16px
     letterSpacing: 0.02em
   label-caps:
     fontFamily: Plus Jakarta Sans
     fontSize: 11px
-    fontWeight: '700'
+    fontWeight: "700"
     lineHeight: 16px
     letterSpacing: 0.08em
 rounded:
@@ -144,9 +144,10 @@ spacing:
 
 ## Brand & Style
 
-This design system embodies an airy, modern epicurean sensibility tailored for high-end culinary platforms, boutique dining spaces, and artisanal purveyors. The visual direction balances the crisp editorial restraint of Scandinavian minimalism with the tactile warmth of a sunlit French bistro. 
+This design system embodies an airy, modern epicurean sensibility tailored for high-end culinary platforms, boutique dining spaces, and artisanal purveyors. The visual direction balances the crisp editorial restraint of Scandinavian minimalism with the tactile warmth of a sunlit French bistro.
 
 Key attributes:
+
 - **Atmosphere:** Clean, sunlit, serene, and naturally appetizing. The interface steps back to let vivid food photography, organic textures, and crafted menus take center stage.
 - **Target Audience:** Discerning diners, culinary enthusiasts, and luxury lifestyle patrons who expect seamless modern utility paired with boutique charm.
 - **Tone:** Inviting without being casual; refined without being sterile. Micro-interactions should feel gentle, paced, and deliberate, mimicking the effortless grace of fine hospitality.
@@ -206,23 +207,27 @@ The design system embraces a refined hybrid shape philosophy:
 ## Components
 
 ### Buttons
+
 - **Primary:** Filled in Ripe Cherry (`#C62828`) with white text (`#FFFFFF`). Pill-shaped (`border-radius: 9999px`), `space-sm` vertical by `space-lg` horizontal padding. Hover state shifts to `#B71C1C` with an ambient glow shadow (`0 6px 18px -4px rgba(198, 40, 40, 0.35)`).
 - **Secondary / Outline:** Background transparent, border `1px solid rgba(43, 40, 36, 0.2)`, text `#2B2824`. On hover, fills with `#F6F4EF` and transitions border to `#2B2824`.
 - **Tertiary / Botanical:** Filled in Sage Green (`#4E7D63`) with white text. Reserved for dietary preferences, farm partnerships, and sustainability actions.
 
 ### Chips & Tags (Pills)
+
 - Always fully pill-shaped. Height: `28px` to `32px`.
 - **Filter Chip (Inactive):** `#F6F4EF` background, `#68625A` text, border `1px solid rgba(43, 40, 36, 0.06)`.
 - **Filter Chip (Active):** `#2B2824` background, `#FDFDFB` text.
 - **Badge / Dietary Tag:** Soft green tint (`rgba(78, 125, 99, 0.1)`) with `#2E7D32` bold text, or warm cherry tint (`rgba(198, 40, 40, 0.08)`) with `#C62828` text.
 
 ### Cards (Menu Items & Artisanal Goods)
+
 - Background: Pure White (`#FFFFFF`).
 - Border: `1px solid rgba(43, 40, 36, 0.06)`.
 - Padding: `space-lg` (24px).
 - Internal layout: Aspect ratio `4:3` or `1:1` for food photography, followed by `space-md` separation to title, ingredient descriptions in `body-sm` (`#68625A`), and bottom row anchoring price and add-to-order controls.
 
 ### Input Fields & Selectors
+
 - Background: `#FFFFFF` or `#F6F4EF`.
 - Height: `48px`.
 - Border: `1px solid rgba(43, 40, 36, 0.12)`.
@@ -230,11 +235,13 @@ The design system embraces a refined hybrid shape philosophy:
 - Focus State: Border color moves to `#C62828` with a soft outer ring: `box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.12)`.
 
 ### Checkboxes & Radio Buttons
+
 - Width/Height: `20px`.
 - Active state: `#C62828` fill with crisp white checkmark or center pip.
 - Inactive state: Border `1.5px solid rgba(43, 40, 36, 0.25)`, background `#FFFFFF`.
 
 ### Course / Tasting Menu Lists
+
 - Borderless rows separated by `1px solid rgba(43, 40, 36, 0.07)`.
 - Padding: `space-md` top and bottom.
 - Layout: Left side features the course number in `label-caps` (`#4E7D63`) above the dish title; right side anchors the price in `headline-sm` with a light dotted leader for classic bistro menus.

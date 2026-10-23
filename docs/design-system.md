@@ -2,7 +2,7 @@
 
 **Status:** Aprovado  
 **Origem:** Stitch MCP (`projects/5829296879951758760`)  
-**Design System Asset ID:** `assets/b726512b2c98469a8358b6622ace4ef0`  
+**Design System Asset ID:** `assets/b726512b2c98469a8358b6622ace4ef0`
 
 ---
 
@@ -23,6 +23,7 @@
 ## 1. Visão Geral & Estética
 
 O **Clean Gourmet Light** combina a clareza e autoridade de um aplicativo mobile moderno com o aconchego sensorial de bistrôs e culinária artesanal:
+
 - **Tema:** Light Mode Acolhedor (fundo creme/pergaminho suave, eliminando o cansaço visual do branco puro).
 - **Proposta Visual:** Minimalismo gastronômico que deixa os banners promocionais e fotos de produtos brilharem sem competição visual.
 - **Micro-interações:** Suaves e táteis, com bordas finas e sombras quentes difusas.
@@ -31,18 +32,18 @@ O **Clean Gourmet Light** combina a clareza e autoridade de um aplicativo mobile
 
 ## 2. Paleta de Cores (Tokens CSS / Tailwind)
 
-| Token Semântico | Hex Code | Aplicação / Função |
-|---|---|---|
-| `bg-background` | `#FFF8F3` | Fundo principal da aplicação (Parchment Cream) |
-| `bg-card` | `#FFFFFF` | Superfície dos cards de promoção, formulários e mockups |
-| `bg-card-subtle` | `#FAF2EC` | Fundo secundário para agrupamentos e seções internas |
-| `border-subtle` | `#E8E1DB` | Micro-bordas delicadas de 1px |
-| `primary` | `#C62828` / `#A20513` | Cor de destaque primária (Ripe Cherry / Apetite & Conversão) |
-| `primary-hover` | `#93000E` | Estado ativo/hover do CTA principal |
-| `secondary` | `#4E7D63` / `#39684F` | Verde Sálvia (Confirmação Pix, garantias e badges de frescor) |
-| `secondary-subtle` | `#EAF4EE` | Fundo de badges Pix e chips de sucesso |
-| `text-primary` | `#1E1B17` | Tipografia principal (Roasted Espresso) |
-| `text-muted` | `#68625A` / `#5B403D` | Textos secundários, legendas e metadados |
+| Token Semântico    | Hex Code              | Aplicação / Função                                            |
+| ------------------ | --------------------- | ------------------------------------------------------------- |
+| `bg-background`    | `#FFF8F3`             | Fundo principal da aplicação (Parchment Cream)                |
+| `bg-card`          | `#FFFFFF`             | Superfície dos cards de promoção, formulários e mockups       |
+| `bg-card-subtle`   | `#FAF2EC`             | Fundo secundário para agrupamentos e seções internas          |
+| `border-subtle`    | `#E8E1DB`             | Micro-bordas delicadas de 1px                                 |
+| `primary`          | `#C62828` / `#A20513` | Cor de destaque primária (Ripe Cherry / Apetite & Conversão)  |
+| `primary-hover`    | `#93000E`             | Estado ativo/hover do CTA principal                           |
+| `secondary`        | `#4E7D63` / `#39684F` | Verde Sálvia (Confirmação Pix, garantias e badges de frescor) |
+| `secondary-subtle` | `#EAF4EE`             | Fundo de badges Pix e chips de sucesso                        |
+| `text-primary`     | `#1E1B17`             | Tipografia principal (Roasted Espresso)                       |
+| `text-muted`       | `#68625A` / `#5B403D` | Textos secundários, legendas e metadados                      |
 
 ---
 

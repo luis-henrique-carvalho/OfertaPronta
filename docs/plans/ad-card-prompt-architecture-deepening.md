@@ -7,8 +7,8 @@
 - **Spec de Produto**: [`docs/specs/ad-card-prompt-architecture-deepening.md`](../specs/ad-card-prompt-architecture-deepening.md)
 - **Relatório de Pesquisa**: [`docs/research/ai-card-design-quality-and-prompt-engineering.md`](../research/ai-card-design-quality-and-prompt-engineering.md)
 - **Macro-Tickets de Execução**:
-  1. [`docs/tickets/ad-card-prompt-architecture-deepening/01-canonical-style-catalog-and-art-direction-blueprint.md`](../tickets/ad-card-prompt-architecture-deepening/01-canonical-style-catalog-and-art-direction-blueprint.md) *(Stream 1: Catálogo Canônico Unificado, Derivação em `creation-catalog.ts` e Blueprints por `LayoutVariant`)*
-  2. [`docs/tickets/ad-card-prompt-architecture-deepening/02-deep-narrative-ad-card-generator-and-sdk-seam.md`](../tickets/ad-card-prompt-architecture-deepening/02-deep-narrative-ad-card-generator-and-sdk-seam.md) *(Stream 2: Costura `imageConfig` no SDK `@google/genai` e Compilador Narrativo de 4 Camadas no `AdCardGenerator`)*
+  1. [`docs/tickets/ad-card-prompt-architecture-deepening/01-canonical-style-catalog-and-art-direction-blueprint.md`](../tickets/ad-card-prompt-architecture-deepening/01-canonical-style-catalog-and-art-direction-blueprint.md) _(Stream 1: Catálogo Canônico Unificado, Derivação em `creation-catalog.ts` e Blueprints por `LayoutVariant`)_
+  2. [`docs/tickets/ad-card-prompt-architecture-deepening/02-deep-narrative-ad-card-generator-and-sdk-seam.md`](../tickets/ad-card-prompt-architecture-deepening/02-deep-narrative-ad-card-generator-and-sdk-seam.md) _(Stream 2: Costura `imageConfig` no SDK `@google/genai` e Compilador Narrativo de 4 Camadas no `AdCardGenerator`)_
 
 ---
 
@@ -21,7 +21,7 @@ Seguindo os princípios de **Módulos Profundos (`codebase-design`)**, **SOLID**
      - `types.ts`: Interfaces canônicas (`SegmentDefinition`, `CuratedStylePreset`, `LayoutVariant`, `StyleMockupSpec`, `ArtDirectionDirective`, `CommercialGuide`).
      - `registry.ts`: Implementação profunda do registro singleton com indexação O(1), validação e fallbacks graciosos.
      - `definitions/<segment>.segment.ts`: **1 arquivo coeso e isolado por segmento** (`supermarket.segment.ts`, `fashion.segment.ts`, `beauty-salon.segment.ts`, `pizzeria.segment.ts`, `burger-shop.segment.ts`, `restaurant.segment.ts`, `local-retail.segment.ts`). Cada arquivo encapsula metadados, placeholders do wizard, diretriz cênica de IA e seus 4 presets.
-     - **Extensibilidade Custo Zero**: Adicionar novos segmentos no futuro (ex: *Pet Shop*, *Farmácia*, *Padaria*) requer apenas criar um novo arquivo em `definitions/` sem tocar em nenhum código existente!
+     - **Extensibilidade Custo Zero**: Adicionar novos segmentos no futuro (ex: _Pet Shop_, _Farmácia_, _Padaria_) requer apenas criar um novo arquivo em `definitions/` sem tocar em nenhum código existente!
    - `style-presets-catalog.ts` torna-se a fachada canônica retrocompatível consumindo `SegmentRegistry`, expondo `mapPresetToStyleVisualOption(preset)` e `LEGACY_PRESET_ID_ALIASES`.
    - `creation-catalog.ts` e `offer-brief.schema.ts` (`SEGMENT_CATALOG`) derivam seus dados diretamente do `SegmentRegistry`, garantindo 100% de sincronia entre o Wizard e o backend sem quebrar nenhum import existente.
 2. **Aprofundamento da Direção de Arte e Blueprints por `LayoutVariant`**:
@@ -149,6 +149,7 @@ sequenceDiagram
 
 1. **Tipos de Layout e Opção Visual Unificados**:
    Exportar diretamente de `style-presets-catalog.ts` (e re-exportar em `creation-catalog.ts` para manter 100% de compatibilidade com imports existentes):
+
    ```ts
    import type { BusinessSegment, CardIntent } from "./offer-brief.schema";
 
@@ -161,10 +162,7 @@ sequenceDiagram
      | "neon-urban";
 
    export type LayoutType =
-     | "bold-offer"
-     | "clean-frame"
-     | "dark-premium"
-     | "vibrant-pop";
+     "bold-offer" | "clean-frame" | "dark-premium" | "vibrant-pop";
 
    export interface StyleVisualOption {
      id: string;
@@ -182,6 +180,7 @@ sequenceDiagram
 
 2. **Blueprints Arquiteturais e Fotográficos por `LayoutVariant`**:
    Definir e exportar `LayoutVariantBlueprint` e `LAYOUT_VARIANT_BLUEPRINTS`:
+
    ```ts
    export interface LayoutVariantBlueprint {
      layoutVariant: LayoutVariant;
@@ -415,10 +414,12 @@ sequenceDiagram
        input.promoPrice && input.promoPrice.trim().length > 0,
      );
      const hasReferenceImage = Boolean(
-       input.referenceImageDataUrl && input.referenceImageDataUrl.trim().length > 0,
+       input.referenceImageDataUrl &&
+       input.referenceImageDataUrl.trim().length > 0,
      );
      const hasCustomPalette = Boolean(
-       input.customStyleInstructions && input.customStyleInstructions.trim().length > 0,
+       input.customStyleInstructions &&
+       input.customStyleInstructions.trim().length > 0,
      );
      const preset =
        getPresetById(input.businessSegment, input.stylePresetId) ??
@@ -439,11 +440,11 @@ sequenceDiagram
      - **Cabeçalho & Dados da Oferta**: Mantém `- Segmento do Negócio:`, `- Nome do Estabelecimento:`, `- Item ou Oferta Anunciada:`, `- ${priceInstructions}`, `${ctaInstruction}`, `${whatsappInstruction}`, `- ${intentDirectiveText}`.
      - **Diretrizes de Direção de Arte e Design Gráfico**: Mantém `${proportionDirectives}` (incluindo `"SAFE ZONE OBRIGATÓRIA"` e `"15% da altura no topo e 15% na base"` quando `isStory`), `- Estilo Visual do Segmento: ${segmentConfig.visualStyle}`, `- Clima e Atmosfera Geral: ${segmentConfig.atmosphere}`, `${artDirectiveText}`, e as notas multimodais (`logoNote`, `productNote`, `referenceNote`, `customInstructions`).
      - **Blueprint Narrativo Passo a Passo em 4 Camadas (`--- ARQUITETURA DE COMPOSIÇÃO EM 4 CAMADAS (STEP-BY-STEP) ---`)**:
-       - `CAMADA 1 — FUNDO FULL-BLEED & ATMOSFERA:` Descreve positivamente a composição gráfica *full-bleed edge-to-edge* preenchendo 100% do canvas até as 4 extremidades (sem molduras externas, bordas ou barras vazias), aplicando a atmosfera do segmento e a paleta cromática (cedendo prioridade às cores da `referenceImageDataUrl` ou de `customStyleInstructions` quando presentes, ou aplicando os códigos HEX exatos `bgColor: ${preset.mockup.bgColor}`, `accentColor: ${preset.mockup.accentColor}` e `textColor: ${preset.mockup.textColor}`).
+       - `CAMADA 1 — FUNDO FULL-BLEED & ATMOSFERA:` Descreve positivamente a composição gráfica _full-bleed edge-to-edge_ preenchendo 100% do canvas até as 4 extremidades (sem molduras externas, bordas ou barras vazias), aplicando a atmosfera do segmento e a paleta cromática (cedendo prioridade às cores da `referenceImageDataUrl` ou de `customStyleInstructions` quando presentes, ou aplicando os códigos HEX exatos `bgColor: ${preset.mockup.bgColor}`, `accentColor: ${preset.mockup.accentColor}` e `textColor: ${preset.mockup.textColor}`).
        - `CAMADA 2 — SUJEITO HERO & ÓPTICA FOTOGRÁFICA COMERCIAL:` Especifica o setup óptico e físico (`${blueprint.cameraAndLightingSetup}`), sombras de contato realistas na superfície de apoio e destaque absoluto ao produto/serviço anunciado (`"${input.offerTitle}"`), preservando com máxima fidelidade a `FOTO DO PRODUTO` quando anexada.
        - `CAMADA 3 — GEOMETRIA DE GRID, SAFE ZONE & TIPOGRAFIA DESCRITIVA:` Posiciona os elementos conforme o grid espacial (`${blueprint.spatialGrid}`), renderizando o título `"${input.offerTitle}"` e o estabelecimento `"${input.businessName}"` com a família tipográfica descritiva (`${blueprint.descriptiveTypography}`), incorporando o logotipo (`LOGOTIPO DA LOJA FORNECIDO`) quando anexo e respeitando estritamente a zona segura vertical central.
-       - `CAMADA 4 — ANCORAGEM DE PREÇO & RODAPÉ COMERCIAL:` Quando `hasPrice === true`, ancora o preço promocional `"${input.promoPrice}"` (`${input.originalPrice ? `com preço anterior "${input.originalPrice}" tachado menor e valor promocional "${input.promoPrice}" gigante` : `em tamanho dominante`}`) dentro do container `${blueprint.priceBadgeStyle}` destacado em `${preset.mockup.accentColor}`; quando `hasPrice === false`, aplica layout editorial institucional sem nenhum container de preço e sem `"R$ 0,00"`, finalizando com a barra de rodapé para CTA e WhatsApp.
-     - **Hierarquia Visual Obrigatória (`--- HIERARQUIA VISUAL OBRIGATÓRIA ---`)**: Mantida para compatibilidade estrita com contratos existentes, usando linguagem afirmativa *full-bleed*.
+       - `CAMADA 4 — ANCORAGEM DE PREÇO & RODAPÉ COMERCIAL:` Quando `hasPrice === true`, ancora o preço promocional `"${input.promoPrice}"` (`${input.originalPrice ? `com preço anterior "${input.originalPrice}" tachado menor e valor promocional "${input.promoPrice}" gigante`:`em tamanho dominante`}`) dentro do container `${blueprint.priceBadgeStyle}` destacado em `${preset.mockup.accentColor}`; quando `hasPrice === false`, aplica layout editorial institucional sem nenhum container de preço e sem `"R$ 0,00"`, finalizando com a barra de rodapé para CTA e WhatsApp.
+     - **Hierarquia Visual Obrigatória (`--- HIERARQUIA VISUAL OBRIGATÓRIA ---`)**: Mantida para compatibilidade estrita com contratos existentes, usando linguagem afirmativa _full-bleed_.
 
 ---
 
@@ -468,7 +469,7 @@ sequenceDiagram
 
 As duas Macro-Streams atuam em arquivos de código e de teste distintos, com contratos congelados neste plano:
 
-| Macro-Ticket | Agente Builder | Arquivos no Escopo | Comando Cirúrgico de Verificação TDD |
-|---|---|---|---|
-| **01: Catálogo Canônico Unificado e Blueprints de Direção de Arte** | `backend-builder` (ou `frontend-builder`) | - `src/features/promotions/data/style-presets-catalog.ts`<br>- `src/features/promotions/data/creation-catalog.ts`<br>- `src/features/promotions/data/offer-brief.schema.ts`<br>- `src/features/promotions/data/style-presets-catalog.test.ts`<br>- `src/features/promotions/data/creation-catalog.test.ts` | `pnpm vitest run src/features/promotions/data/style-presets-catalog.test.ts src/features/promotions/data/creation-catalog.test.ts src/features/promotions/data/offer-brief.schema.test.ts && pnpm typecheck` |
-| **02: Compilador Narrativo de 4 Camadas no `AdCardGenerator` e Costura `imageConfig` do SDK** | `backend-builder` | - `src/features/promotions/server/services/ai-card-generator.service.ts`<br>- `src/features/promotions/server/services/ai-card-generator.service.test.ts` | `pnpm vitest run src/features/promotions/server/services/ai-card-generator.service.test.ts && pnpm typecheck` |
+| Macro-Ticket                                                                                  | Agente Builder                            | Arquivos no Escopo                                                                                                                                                                                                                                                                                         | Comando Cirúrgico de Verificação TDD                                                                                                                                                                         |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **01: Catálogo Canônico Unificado e Blueprints de Direção de Arte**                           | `backend-builder` (ou `frontend-builder`) | - `src/features/promotions/data/style-presets-catalog.ts`<br>- `src/features/promotions/data/creation-catalog.ts`<br>- `src/features/promotions/data/offer-brief.schema.ts`<br>- `src/features/promotions/data/style-presets-catalog.test.ts`<br>- `src/features/promotions/data/creation-catalog.test.ts` | `pnpm vitest run src/features/promotions/data/style-presets-catalog.test.ts src/features/promotions/data/creation-catalog.test.ts src/features/promotions/data/offer-brief.schema.test.ts && pnpm typecheck` |
+| **02: Compilador Narrativo de 4 Camadas no `AdCardGenerator` e Costura `imageConfig` do SDK** | `backend-builder`                         | - `src/features/promotions/server/services/ai-card-generator.service.ts`<br>- `src/features/promotions/server/services/ai-card-generator.service.test.ts`                                                                                                                                                  | `pnpm vitest run src/features/promotions/server/services/ai-card-generator.service.test.ts && pnpm typecheck`                                                                                                |

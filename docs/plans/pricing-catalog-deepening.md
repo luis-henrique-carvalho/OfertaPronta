@@ -8,8 +8,8 @@
 - **Glossário de Domínio**: [`GLOSSARY.md`](../../GLOSSARY.md)
 - **Tickets Verticais de Execução**:
   1. [`docs/tickets/pricing-catalog-deepening/01-campaign-catalog-and-order-schema.md`](../tickets/pricing-catalog-deepening/01-campaign-catalog-and-order-schema.md)
-  2. [`docs/tickets/pricing-catalog-deepening/02-pix-checkout-dynamic-pricing-and-reconciliation.md`](../tickets/pricing-catalog-deepening/02-pix-checkout-dynamic-pricing-and-reconciliation.md) *(Blocked by: 01)*
-  3. [`docs/tickets/pricing-catalog-deepening/03-ui-dynamic-pricing-and-entitlements.md`](../tickets/pricing-catalog-deepening/03-ui-dynamic-pricing-and-entitlements.md) *(Blocked by: 01 — Paralelizável com 02)*
+  2. [`docs/tickets/pricing-catalog-deepening/02-pix-checkout-dynamic-pricing-and-reconciliation.md`](../tickets/pricing-catalog-deepening/02-pix-checkout-dynamic-pricing-and-reconciliation.md) _(Blocked by: 01)_
+  3. [`docs/tickets/pricing-catalog-deepening/03-ui-dynamic-pricing-and-entitlements.md`](../tickets/pricing-catalog-deepening/03-ui-dynamic-pricing-and-entitlements.md) _(Blocked by: 01 — Paralelizável com 02)_
 
 ---
 
@@ -216,8 +216,8 @@ Para evitar discrepâncias de espaço não-quebrável (`\u00a0` / `NBSP`) gerado
 
     export interface CampaignPriceParts {
       currencySymbol: "R$";
-      integerPart: string;      // ex.: "9"
-      decimalPart: string;      // ex.: "90"
+      integerPart: string; // ex.: "9"
+      decimalPart: string; // ex.: "90"
       formattedDecimal: string; // ex.: "9,90"
     }
 
@@ -488,6 +488,7 @@ flowchart LR
 ### Escopo Detalhado por Ticket
 
 #### Ticket 01: `01-campaign-catalog-and-order-schema.md` (`backend-builder`)
+
 - **Arquivos a criar/modificar**:
   - `[MODIFY]` `src/lib/utils.ts` (normalizar `\u00a0` para `" "` em `formatBRL`)
   - `[NEW]` `src/lib/campaign-catalog.ts`
@@ -501,6 +502,7 @@ flowchart LR
   - `pnpm vitest run src/lib/utils.test.ts src/lib/campaign-catalog.test.ts src/server/db/db.test.ts`
 
 #### Ticket 02: `02-pix-checkout-dynamic-pricing-and-reconciliation.md` (`backend-builder`)
+
 - **Arquivos a modificar**:
   - `[MODIFY]` `src/features/checkout/data/checkout.schemas.ts` (`planId` opcional com `campaignPlanIdSchema`)
   - `[MODIFY]` `src/features/checkout/server/services/pix-checkout.service.ts`
@@ -510,6 +512,7 @@ flowchart LR
   - `pnpm vitest run src/features/checkout/server/services/pix-checkout.service.test.ts src/features/checkout/server/functions/checkout.functions.test.ts src/features/checkout/server/api.webhooks.pix.test.ts src/features/checkout/server/server-isolation.test.ts`
 
 #### Ticket 03: `03-ui-dynamic-pricing-and-entitlements.md` (`frontend-builder`)
+
 - **Arquivos a modificar**:
   - `[MODIFY]` `src/features/checkout/components/order-summary-card.tsx`
   - `[MODIFY]` `src/features/checkout/components/pix-copia-cola-card.tsx`
@@ -526,4 +529,5 @@ flowchart LR
   - `./.agents/scripts/verify.sh --shadcn`
 
 #### Validação Final Concorrente (`test-verifier` + `implementation-validator`)
+
 - Executar `./.agents/scripts/verify.sh` completo (Shadcn UI + Typecheck + ESLint + Vitest + Build Nitro).

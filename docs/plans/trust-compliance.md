@@ -10,9 +10,10 @@
 
 ## 1. Visão Geral Executiva da Arquitetura
 
-O OfertaPronta opera no modelo de conversão direta sem cadastro prévio, no qual microempresários pagam R$ 9,90 via Pix por campanha de Cards Publicitários gerados por IA. 
+O OfertaPronta opera no modelo de conversão direta sem cadastro prévio, no qual microempresários pagam R$ 9,90 via Pix por campanha de Cards Publicitários gerados por IA.
 
 Para eliminar qualquer fricção de desconfiança legal, atender integralmente à LGPD e viabilizar mensuração com precisão cirúrgica de campanhas em tráfego pago (Meta Ads e Google Ads), esta feature introduz:
+
 1. **Configuração Unificada de Identidade Legal e Suporte (`legal-company.ts` & `client-env.ts`)**: Mapeamento seguro e tipado com Zod de Razão Social, CNPJ, E-mail e WhatsApp com fallbacks determinísticos.
 2. **Módulo Profundo de Tracking Isomórfico (`tracking.ts`)**: Interface pública simples (`trackPageView`, `trackInitiateCheckout`, `trackPurchase`) ocultando inicialização assíncrona, sanitização, resiliência no SSR e **idempotência de conversão via sessionStorage** (evitando disparos duplicados de compra em refresh).
 3. **Páginas Institucionais Transparentes (`/termos` e `/privacidade`)**: Construídas com primitivos do design system `shadcn/ui`, esclarecendo o modelo avulso (sem assinatura), limite de 3 regenerações de IA em 30 min e retenção segura de 7 dias.
@@ -38,7 +39,7 @@ flowchart TD
         SESS["sessionStorage<br/>(Idempotência de Compra)"]
         PIXEL["Meta Pixel (window.fbq)"]
         GTAG["Google Ads (window.gtag)"]
-        
+
         TRACK --> SESS
         TRACK -.-> PIXEL
         TRACK -.-> GTAG
@@ -49,12 +50,12 @@ flowchart TD
         BANNER["CookieConsentBanner<br/>(localStorage: ofertapronta_cookie_consent)"]
         FLOAT["FloatingWhatsappSupport<br/>(WhatsApp Contextual Link)"]
         FOOTER["LandingFooter<br/>(CNPJ, Razão Social, Links Legais)"]
-        
+
         TERMOS["routes/termos.tsx<br/>(R$ 9,90 avulso, 3 regen, 7 dias)"]
         PRIV["routes/privacidade.tsx<br/>(LGPD, Dados, Cookies)"]
         CHECKOUT["routes/checkout.$orderId.tsx"]
         PEDIDO["routes/pedido.$orderId.tsx"]
-        
+
         ROOT --> BANNER
         ROOT --> FLOAT
         FOOTER --> TERMOS
@@ -79,7 +80,7 @@ sequenceDiagram
     User->>Checkout: Acessa página de pagamento Pix
     Checkout->>Tracking: trackInitiateCheckout(orderId, 990)
     Tracking->>AdNetworks: fbq('track', 'InitiateCheckout') & gtag('event', 'begin_checkout')
-    
+
     User->>User: Paga QR Code via Pix no App do Banco
     User->>Pedido: Redirecionado para /pedido/$orderId (Status: PAID)
     Pedido->>Tracking: trackPurchase(orderId, 990, txId)
@@ -100,6 +101,7 @@ sequenceDiagram
 ## 3. Interfaces Públicas e Contratos Técnicos
 
 ### 3.1 `src/config/client-env.ts` (Atualização com Zod)
+
 ```ts
 import { z } from "zod";
 
@@ -116,6 +118,7 @@ const clientEnvSchema = z.object({
 ```
 
 ### 3.2 `src/lib/legal-company.ts` (Deep Module de Identidade Legal)
+
 ```ts
 export interface CompanyLegalProfile {
   legalName: string;
@@ -133,6 +136,7 @@ export function getCompanyLegalProfile(): CompanyLegalProfile;
 ```
 
 ### 3.3 `src/lib/tracking.ts` (Deep Module de Tracking de Conversão)
+
 ```ts
 export interface TrackingEventParams {
   orderId?: string;
@@ -143,8 +147,15 @@ export interface TrackingEventParams {
 
 export function initTrackingScripts(): void;
 export function trackPageView(pageUrl?: string): void;
-export function trackInitiateCheckout(orderId: string, amountCents: number): void;
-export function trackPurchase(orderId: string, amountCents: number, txId?: string): void;
+export function trackInitiateCheckout(
+  orderId: string,
+  amountCents: number,
+): void;
+export function trackPurchase(
+  orderId: string,
+  amountCents: number,
+  txId?: string,
+): void;
 ```
 
 ---
@@ -163,6 +174,7 @@ export function trackPurchase(orderId: string, amountCents: number, txId?: strin
 ## 5. Plano de Execução em Macro-Streams Paralelas
 
 ### Macro-Stream 1: Backend/Config & Tracking Core (`01-data-tracking-infrastructure.md`)
+
 - **Arquivos**:
   - `src/config/client-env.ts`
   - `src/lib/legal-company.ts`
@@ -177,6 +189,7 @@ export function trackPurchase(orderId: string, amountCents: number, txId?: strin
   - `pnpm typecheck`
 
 ### Macro-Stream 2: UI Pages, Banner LGPD, WhatsApp & Footer (`02-ui-pages-legal-compliance.md`)
+
 - **Arquivos**:
   - `src/components/shared/cookie-consent-banner.tsx`
   - `src/components/shared/cookie-consent-banner.test.tsx`

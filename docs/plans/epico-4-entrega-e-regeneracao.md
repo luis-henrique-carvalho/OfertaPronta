@@ -20,7 +20,7 @@ O **Épico 4** representa o ápice da jornada do comerciante no OfertaPronta: ap
 1. **Arquitetura & Módulos Profundos (`codebase-design`)**:
    - `DeliveryService` (`src/features/delivery/server/services/delivery.service.ts`): módulo profundo que encapsula a verificação de elegibilidade do pagamento (`order.status === 'PAID'`), a geração determinística dos formatos HD (Feed e Story) via `ExportEngine`, a persistência dos exports no PostgreSQL e a entrega binária segura com rastreamento de métricas (`downloadCount`, `lastDownloadedAt`).
    - `PostPaymentRegenerationService` (`src/features/delivery/server/services/post-payment-regeneration.service.ts`): módulo profundo que orquestra o refinamento da arte pela IA multimodal (`AdCardGenerator` / Gemini), assegurando a reutilização dos insumos visuais originais (foto do produto e referência), controle atômico de cotas (máx 3) e bloqueio gracioso após 30 minutos corridos pós-Pix (`paidAt + 30m`).
-   - Costura de Testes (*replace-don't-layer*): injeção direta de dependências nos construtores dos serviços (`database`, `generateAdCard`, `exportEngine`), permitindo testes unitários e de integração ultrarrápidos e determinísticos sem dependência de rede ou serviços externos.
+   - Costura de Testes (_replace-don't-layer_): injeção direta de dependências nos construtores dos serviços (`database`, `generateAdCard`, `exportEngine`), permitindo testes unitários e de integração ultrarrápidos e determinísticos sem dependência de rede ou serviços externos.
 
 2. **Integridade de Regras de Negócio & Resolução da Arte Mestre Limpa**:
    - **Fidelidade Visual Absoluta**: para evitar que o cliente pague por uma arte e receba outra diferente, o buffer limpo puro gerado pelo Gemini na prévia do Épico 2 é preservado no servidor em `drafts.cleanMasterImageDataUrl` e congelado no pedido em `orders.cleanMasterImageDataUrl`. Ao aprovar o Pix, os formatos Feed e Story são derivados instantaneamente da arte original sem re-renderização surpresa.
@@ -35,7 +35,7 @@ O **Épico 4** representa o ápice da jornada do comerciante no OfertaPronta: ap
 
 4. **Qualidade, Simplicidade & Anti-Bloat (KISS / Ponytail)**:
    - **Downloads Permanentes sem Overhead de S3 no MVP**: para o volume do MVP, os PNGs e arte mestre são persistidos como data URLs / buffers no PostgreSQL ou servidos dinamicamente pelo endpoint local de download. Elimina complexidade acidental de credenciais AWS IAM, buckets S3, políticas de CORS e URLs pré-assinadas com expiração indesejada.
-   - **Conveniência Mobile em 1 Toque**: botão *"Enviar artes para meu WhatsApp"* gera link direto `wa.me` com mensagem contendo o link permanente da rota `/pedido/$orderId`, permitindo resgatar a campanha no celular a qualquer momento.
+   - **Conveniência Mobile em 1 Toque**: botão _"Enviar artes para meu WhatsApp"_ gera link direto `wa.me` com mensagem contendo o link permanente da rota `/pedido/$orderId`, permitindo resgatar a campanha no celular a qualquer momento.
 
 ---
 
@@ -114,11 +114,11 @@ stateDiagram-v2
     ACCESS_DENIED --> PENDING_PAYMENT: Redireciona para /checkout/$orderId
 
     PENDING_PAYMENT --> PAID_DELIVERED: Webhook Pix confirma pagamento (status = PAID)
-    
+
     state PAID_DELIVERED {
         [*] --> FORMATS_DERIVED: ensureDeliveryExports() deriva Feed HD & Story HD da Arte Mestre
         FORMATS_DERIVED --> PERMANENT_DOWNLOAD_READY: exports gravados no PostgreSQL
-        
+
         state REGENERATION_WINDOW {
             [*] --> ACTIVE_WINDOW: Tempo <= paidAt + 30 min E aiRegenerationCount < 3
             ACTIVE_WINDOW --> REGENERATING: Usuário envia ajuste de texto/preço
@@ -153,7 +153,7 @@ sequenceDiagram
     Route->>RPC: getOrderDeliveryDetailsFn({ orderId })
     RPC->>DeliverySvc: ensureDeliveryExports(orderId)
     DeliverySvc->>DB: Busca order por orderId
-    
+
     alt Status != 'PAID'
         DeliverySvc-->>RPC: Erro ORDER_NOT_PAID (Redirecionar para Checkout)
         RPC-->>Route: Redirect para /checkout/$orderId
@@ -201,7 +201,7 @@ sequenceDiagram
     UI->>RPC: requestCardRegenerationFn(input)
     RPC->>RegenSvc: regenerateOrderCard(input)
     RegenSvc->>DB: Busca order e valida status == 'PAID'
-    
+
     alt aiRegenerationCount >= 3
         RegenSvc-->>RPC: Erro REGENERATION_QUOTA_EXCEEDED
         RPC-->>UI: Alerta: Limite de 3 ajustes atingido
@@ -235,7 +235,9 @@ sequenceDiagram
 ### 3.1. Alterações nos Schemas Drizzle ORM (`src/server/db/schema/`)
 
 #### 1. `drafts` (`src/server/db/schema/promotions.ts`)
+
 Adicionar a coluna para preservar a arte limpa gerada pelo Gemini antes da marca d'água:
+
 ```typescript
 export const drafts = pgTable("drafts", {
   // ... campos existentes ...
@@ -247,7 +249,9 @@ export const drafts = pgTable("drafts", {
 ```
 
 #### 2. `orders` (`src/server/db/schema/orders.ts`)
+
 Adicionar a coluna para armazenar a arte limpa oficial do pedido:
+
 ```typescript
 export const orders = pgTable("orders", {
   // ... campos existentes ...
@@ -259,7 +263,9 @@ export const orders = pgTable("orders", {
 ```
 
 #### 3. `deliveryExports` (`src/server/db/schema/delivery.ts`)
+
 Tornar `expiresAt` opcional (ou com valor sentinela perpétuo), garantindo que downloads nunca sejam bloqueados por expiração:
+
 ```typescript
 export const deliveryExports = pgTable("exports", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -273,8 +279,12 @@ export const deliveryExports = pgTable("exports", {
   expiresAt: timestamp("expires_at", { withTimezone: true }), // Tornado opcional para downloads permanentes
   downloadCount: integer("download_count").notNull().default(0),
   lastDownloadedAt: timestamp("last_downloaded_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 ```
 
@@ -291,7 +301,9 @@ export type DownloadFormat = z.infer<typeof downloadFormatEnum>;
 export const getOrderDeliveryDetailsInputSchema = z.object({
   orderId: z.string().uuid("ID de pedido inválido"),
 });
-export type GetOrderDeliveryDetailsInput = z.infer<typeof getOrderDeliveryDetailsInputSchema>;
+export type GetOrderDeliveryDetailsInput = z.infer<
+  typeof getOrderDeliveryDetailsInputSchema
+>;
 
 export const recordDownloadInputSchema = z.object({
   orderId: z.string().uuid("ID de pedido inválido"),
@@ -301,13 +313,22 @@ export type RecordDownloadInput = z.infer<typeof recordDownloadInputSchema>;
 
 export const requestRegenerationInputSchema = z.object({
   orderId: z.string().uuid("ID de pedido inválido"),
-  offerTitle: z.string().min(2, "Título deve ter pelo menos 2 caracteres").optional(),
+  offerTitle: z
+    .string()
+    .min(2, "Título deve ter pelo menos 2 caracteres")
+    .optional(),
   promoPrice: z.string().min(1, "Preço promocional é obrigatório").optional(),
   originalPrice: z.string().optional().nullable(),
   callToAction: z.string().optional().nullable(),
-  customAdjustmentPrompt: z.string().max(500, "Instrução não pode exceder 500 caracteres").optional().nullable(),
+  customAdjustmentPrompt: z
+    .string()
+    .max(500, "Instrução não pode exceder 500 caracteres")
+    .optional()
+    .nullable(),
 });
-export type RequestRegenerationInput = z.infer<typeof requestRegenerationInputSchema>;
+export type RequestRegenerationInput = z.infer<
+  typeof requestRegenerationInputSchema
+>;
 
 export const deliveryDetailsResultSchema = z.object({
   orderId: z.string().uuid(),
@@ -364,12 +385,18 @@ export class DeliveryService {
   /**
    * Registra incremento na contagem de downloads de forma atômica.
    */
-  async recordDownload(orderId: string, format: DownloadFormat): Promise<{ success: boolean; downloadCount: number }>;
+  async recordDownload(
+    orderId: string,
+    format: DownloadFormat,
+  ): Promise<{ success: boolean; downloadCount: number }>;
 
   /**
    * Recupera os bytes do PNG HD para download via endpoint HTTP com cabeçalhos de attachment.
    */
-  async getExportBinary(orderId: string, format: DownloadFormat): Promise<DeliveryBinaryResult>;
+  async getExportBinary(
+    orderId: string,
+    format: DownloadFormat,
+  ): Promise<DeliveryBinaryResult>;
 }
 ```
 
@@ -381,7 +408,9 @@ export class DeliveryService {
 export interface RegenerationDependencies {
   database?: AppDatabase;
   deliveryService?: DeliveryService;
-  generateAdCard?: (input: GenerateAdCardInput) => Promise<GenerateAdCardResult>;
+  generateAdCard?: (
+    input: GenerateAdCardInput,
+  ) => Promise<GenerateAdCardResult>;
 }
 
 export class PostPaymentRegenerationService {
@@ -391,7 +420,9 @@ export class PostPaymentRegenerationService {
    * Executa novo ciclo de síntese IA preservando insumos originais (foto e estilo)
    * e mesclando com novos dados de texto/preço/instrução, sob controle rígido de cota e prazo.
    */
-  async regenerateOrderCard(input: RequestRegenerationInput): Promise<DeliveryDetailsResult>;
+  async regenerateOrderCard(
+    input: RequestRegenerationInput,
+  ): Promise<DeliveryDetailsResult>;
 }
 ```
 
@@ -414,6 +445,7 @@ export class PostPaymentRegenerationService {
 ### Bloco de Construção Concorrente
 
 #### Builder Backend (`backend-builder`) — Tickets 01, 02 e 03
+
 1. **Ticket 01 (`01-clean-master-art-and-delivery-service.md`)**:
    - Modificar schemas Drizzle: `drafts.cleanMasterImageDataUrl`, `orders.cleanMasterImageDataUrl` e `deliveryExports.expiresAt` (opcional).
    - Ajustar `updateDraftPreviewCard` e `executeGeneratePreview` em `promotions` para salvar `cleanMasterImageDataUrl`.
@@ -431,6 +463,7 @@ export class PostPaymentRegenerationService {
    - Testar exaustivamente com TDD em `src/features/delivery/server/services/post-payment-regeneration.service.test.ts` (cota máx 3, janela 30m, preservação de foto, resiliência de falha).
 
 #### Builder Frontend (`frontend-builder`) — Ticket 04
+
 1. **Ticket 04 (`04-mobile-delivery-view-and-regeneration-ui.md`)**:
    - Criar hooks TanStack Query: `use-delivery-order.ts` e `use-card-regeneration.ts` em `src/features/delivery/hooks/`.
    - Criar componentes mobile-first em `src/features/delivery/components/`:

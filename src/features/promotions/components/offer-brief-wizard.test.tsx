@@ -1,17 +1,31 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  render,
+  render as rtlRender,
   screen,
   fireEvent,
   waitFor,
   act,
   cleanup,
 } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OfferBriefWizard } from "./offer-brief-wizard";
 import { ContextualAiLoader } from "./contextual-ai-loader";
 import { CardArtCanvas } from "./card-art-canvas";
 import { UtensilsCrossed } from "lucide-react";
+
+const render = (
+  ui: React.ReactElement,
+  options?: Parameters<typeof rtlRender>[1],
+) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return rtlRender(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+    options,
+  );
+};
 import type {
   GeneratePreviewResponse,
   SaveDraftResponse,
@@ -38,13 +52,7 @@ function createMockDraft(overrides: Partial<OfferDraft> = {}): OfferDraft {
     referenceImageDataUrl: null,
     stylePresetId: null,
     customStyleInstructions: null,
-    cleanMasterImageDataUrl: null,
     previewCardImageUrl: null,
-    previewAssetKey: null,
-    cleanMasterAssetKey: null,
-    productAssetKey: null,
-    referenceAssetKey: null,
-    logoAssetKey: null,
     aiGenerationCount: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -72,9 +80,11 @@ describe("OfferBriefWizard Component & AI Generation Flow", () => {
   const mockSuccessfulPreview = vi
     .fn()
     .mockImplementation(async (): Promise<GeneratePreviewResponse> => ({
-      success: true,
-      previewUrl: "data:image/png;base64,mockWatermarkedPng",
-      aiGenerationCount: 1,
+      status: "OK",
+      draft: createMockDraft({
+        previewCardImageUrl: "data:image/png;base64,mockWatermarkedPng",
+        aiGenerationCount: 1,
+      }),
     }));
 
   it("deve navegar da Etapa 1 para Etapa 2 e avançar para Etapa 3 gerando prévia por IA", async () => {
@@ -161,16 +171,16 @@ describe("OfferBriefWizard Component & AI Generation Flow", () => {
     });
   });
 
-  it("deve exibir banner de paywall informativo quando cota gratuita for esgotada (AI_QUOTA_EXCEEDED)", async () => {
+  it("deve navegar para Etapa 3 e exibir banner com último card e CTA quando limite for atingido (LIMIT_REACHED)", async () => {
     const mockQuotaExceeded = vi
       .fn()
       .mockImplementation(async (): Promise<GeneratePreviewResponse> => ({
-        success: false,
-        code: "AI_QUOTA_EXCEEDED",
-        message:
-          "Limite de 1 prévia gratuita por rascunho atingido. Conclua o pagamento Pix para liberar os arquivos e ter direito a até 3 regenerações.",
-        previewUrl: "data:image/png;base64,existingCard",
-        aiGenerationCount: 1,
+        status: "LIMIT_REACHED",
+        reason: "visitor",
+        lastDraft: createMockDraft({
+          previewCardImageUrl: "data:image/png;base64,existingCard",
+          aiGenerationCount: 1,
+        }),
       }));
 
     render(
@@ -192,19 +202,122 @@ describe("OfferBriefWizard Component & AI Generation Flow", () => {
       );
     });
 
-    // Deve navegar para a Etapa 3 e exibir o Banner Informativo de Paywall
+    // Deve navegar para a Etapa 3 e exibir o Banner Informativo de Paywall com CTA
     await waitFor(() => {
       expect(
         screen.getByText(/Limite da prévia gratuita atingido/i),
       ).toBeDefined();
       expect(
         screen.getByText(
-          /Você já gerou sua prévia gratuita deste rascunho\. Para gerar novas variações ou refinar com IA, conclua o pagamento Pix \(R\$ 9,90\)/i,
+          /Você já usou suas prévias grátis de hoje\. Libere este card sem marca d'água por R\$ 9,90\./i,
         ),
       ).toBeDefined();
       expect(
-        screen.getByRole("button", { name: /Pagar com Pix \(R\$ 9,90\)/i }),
+        screen.getAllByRole("button", { name: /Liberar por R\$ 9,90/i }).length,
+      ).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it("deve exibir copy de teto global quando LIMIT_REACHED tiver reason 'global'", async () => {
+    const mockGlobalLimit = vi
+      .fn()
+      .mockImplementation(async (): Promise<GeneratePreviewResponse> => ({
+        status: "LIMIT_REACHED",
+        reason: "global",
+        lastDraft: createMockDraft({
+          previewCardImageUrl: "data:image/png;base64,existingCard",
+          aiGenerationCount: 1,
+        }),
+      }));
+
+    render(
+      <OfferBriefWizard
+        saveDraftFn={mockSuccessfulSave}
+        generatePreviewFn={mockGlobalLimit}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Avançar para dados da oferta/i }),
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: /Gerar Prévia com IA/i }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", {
+          name: /Prévias grátis esgotadas por hoje/i,
+        }),
       ).toBeDefined();
+      expect(
+        screen.getByText(/Libere este card por R\$ 9,90 ou volte amanhã\./i),
+      ).toBeDefined();
+    });
+  });
+
+  it("deve exibir apenas mensagem informativa sem botão de checkout quando LIMIT_REACHED não tiver lastDraft", async () => {
+    const mockNoLastDraft = vi
+      .fn()
+      .mockImplementation(async (): Promise<GeneratePreviewResponse> => ({
+        status: "LIMIT_REACHED",
+        reason: "visitor",
+        lastDraft: null,
+      }));
+
+    render(
+      <OfferBriefWizard
+        saveDraftFn={mockSuccessfulSave}
+        generatePreviewFn={mockNoLastDraft}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Avançar para dados da oferta/i }),
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: /Gerar Prévia com IA/i }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          /Limite de 2 prévias diárias atingido para este dispositivo\/navegador/i,
+        ),
+      ).toBeDefined();
+      expect(screen.queryByTestId("btn-quota-checkout")).toBeNull();
+      expect(screen.queryByTestId("btn-preview-checkout")).toBeNull();
+    });
+  });
+
+  it("deve exibir o contador de prévias restantes no Passo 2 a partir de getPreviewQuotaFn", async () => {
+    const mockGetQuota = vi.fn().mockResolvedValue({
+      remaining: 1,
+      blockedReason: null,
+    });
+
+    render(
+      <OfferBriefWizard
+        saveDraftFn={mockSuccessfulSave}
+        generatePreviewFn={mockSuccessfulPreview}
+        getPreviewQuotaFn={mockGetQuota}
+      />,
+    );
+
+    // Passo 1 -> Passo 2
+    fireEvent.click(
+      screen.getByRole("button", { name: /Avançar para dados da oferta/i }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("quota-counter")).toBeDefined();
+      expect(screen.getByText(/1 prévia grátis restante hoje/i)).toBeDefined();
     });
   });
 
@@ -212,11 +325,10 @@ describe("OfferBriefWizard Component & AI Generation Flow", () => {
     const mockFailedGeneration = vi
       .fn()
       .mockImplementation(async (): Promise<GeneratePreviewResponse> => ({
-        success: false,
+        status: "ERROR",
         code: "AI_GENERATION_FAILED",
         message:
           "Não foi possível gerar a arte no momento. Nenhuma cota foi consumida. Por favor, tente novamente.",
-        aiGenerationCount: 0,
       }));
 
     render(

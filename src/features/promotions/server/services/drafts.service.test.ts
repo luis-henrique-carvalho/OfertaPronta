@@ -14,6 +14,14 @@ import {
 } from "../../../../server/storage";
 
 describe("Drafts Service (Deep Domain Module)", () => {
+  beforeEach(() => {
+    setStorageServiceForTesting(
+      new InMemoryStorageDriver({
+        publicUrlBase: "https://pub-test.r2.dev",
+      }),
+    );
+  });
+
   describe("Input validation schemas", () => {
     it("saveOfferDraftSchema validates valid briefing payload", () => {
       const parsed = saveOfferDraftSchema.safeParse({
@@ -30,6 +38,32 @@ describe("Drafts Service (Deep Domain Module)", () => {
         businessSegment: "invalid-segment",
       });
       expect(parsed.success).toBe(false);
+    });
+
+    it("saveOfferDraftSchema rejects forbidden server-only fields (cleanMaster*, previewCardImageUrl, previewAssetKey)", () => {
+      const forbidden1 = saveOfferDraftSchema.safeParse({
+        businessSegment: "pizzeria",
+        cleanMasterImageDataUrl: "data:image/png;base64,tamper",
+      });
+      expect(forbidden1.success).toBe(false);
+
+      const forbidden2 = saveOfferDraftSchema.safeParse({
+        businessSegment: "pizzeria",
+        cleanMasterAssetKey: "drafts/123/master.png",
+      });
+      expect(forbidden2.success).toBe(false);
+
+      const forbidden3 = saveOfferDraftSchema.safeParse({
+        businessSegment: "pizzeria",
+        previewCardImageUrl: "https://tamper.com/preview.png",
+      });
+      expect(forbidden3.success).toBe(false);
+
+      const forbidden4 = saveOfferDraftSchema.safeParse({
+        businessSegment: "pizzeria",
+        previewAssetKey: "drafts/123/preview.webp",
+      });
+      expect(forbidden4.success).toBe(false);
     });
   });
 
@@ -109,7 +143,9 @@ describe("Drafts Service (Deep Domain Module)", () => {
       expect(updated.promoPrice).toBe("R$ 49,90");
       expect(updated.stylePresetId).toBe("pizza-rustic-wood");
       expect(updated.aiGenerationCount).toBe(0);
-      expect(updated.createdAt.getTime()).toBe(initial.createdAt.getTime());
+      expect(new Date(updated.createdAt).getTime()).toBe(
+        new Date(initial.createdAt).getTime(),
+      );
     });
 
     it("persists visual images and instructions correctly", async () => {
@@ -125,15 +161,26 @@ describe("Drafts Service (Deep Domain Module)", () => {
         customStyleInstructions: "Iluminação de estúdio suave",
       });
 
-      expect(saved.productAssetKey).toBe(`drafts/${saved.id}/product.png`);
+      expect(
+        (saved as Record<string, unknown>).productAssetKey,
+      ).toBeUndefined();
+      expect(
+        (saved as Record<string, unknown>).referenceAssetKey,
+      ).toBeUndefined();
       expect(saved.productImageDataUrl).toContain(
         `/drafts/${saved.id}/product.png`,
       );
-      expect(saved.referenceAssetKey).toBe(`drafts/${saved.id}/reference.png`);
       expect(saved.referenceImageDataUrl).toContain(
         `/drafts/${saved.id}/reference.png`,
       );
       expect(saved.customStyleInstructions).toBe("Iluminação de estúdio suave");
+
+      const [imgRow] = await db
+        .select()
+        .from(drafts)
+        .where(eq(drafts.id, saved.id));
+      expect(imgRow.productAssetKey).toBe(`drafts/${saved.id}/product.png`);
+      expect(imgRow.referenceAssetKey).toBe(`drafts/${saved.id}/reference.png`);
     });
 
     it("persists cardIntent, customIntentText and logoImageDataUrl correctly", async () => {
@@ -152,7 +199,7 @@ describe("Drafts Service (Deep Domain Module)", () => {
 
       expect(created.cardIntent).toBe("new-arrival");
       expect(created.customIntentText).toBe("Chegaram as novidades da estação");
-      expect(created.logoAssetKey).toBe(`drafts/${created.id}/logo.png`);
+      expect((created as Record<string, unknown>).logoAssetKey).toBeUndefined();
       expect(created.logoImageDataUrl).toContain(
         `/drafts/${created.id}/logo.png`,
       );
@@ -163,10 +210,18 @@ describe("Drafts Service (Deep Domain Module)", () => {
       expect(fetched?.customIntentText).toBe(
         "Chegaram as novidades da estação",
       );
-      expect(fetched?.logoAssetKey).toBe(`drafts/${created.id}/logo.png`);
+      expect(
+        (fetched as Record<string, unknown> | null)?.logoAssetKey,
+      ).toBeUndefined();
       expect(fetched?.logoImageDataUrl).toContain(
         `/drafts/${created.id}/logo.png`,
       );
+
+      const [logoRow] = await db
+        .select()
+        .from(drafts)
+        .where(eq(drafts.id, created.id));
+      expect(logoRow.logoAssetKey).toBe(`drafts/${created.id}/logo.png`);
     });
 
     it("defaults cardIntent to promo and nullable fields to null when not provided", async () => {
@@ -216,7 +271,7 @@ describe("Drafts Service (Deep Domain Module)", () => {
       expect(updated.id).toBe(initial.id);
       expect(updated.cardIntent).toBe("custom");
       expect(updated.customIntentText).toBe("Comemoração de 5 anos da loja");
-      expect(updated.logoAssetKey).toBe(`drafts/${initial.id}/logo.png`);
+      expect((updated as Record<string, unknown>).logoAssetKey).toBeUndefined();
       expect(updated.logoImageDataUrl).toContain(
         `/drafts/${initial.id}/logo.png`,
       );
@@ -224,7 +279,9 @@ describe("Drafts Service (Deep Domain Module)", () => {
       const fetched = await getOfferDraft(initial.id);
       expect(fetched?.cardIntent).toBe("custom");
       expect(fetched?.customIntentText).toBe("Comemoração de 5 anos da loja");
-      expect(fetched?.logoAssetKey).toBe(`drafts/${initial.id}/logo.png`);
+      expect(
+        (fetched as Record<string, unknown> | null)?.logoAssetKey,
+      ).toBeUndefined();
       expect(fetched?.logoImageDataUrl).toContain(
         `/drafts/${initial.id}/logo.png`,
       );
@@ -325,10 +382,66 @@ describe("Drafts Service (Deep Domain Module)", () => {
 
       expect(updated).not.toBeNull();
       expect(updated?.previewCardImageUrl).toBe(previewUrl);
-      expect(updated?.cleanMasterImageDataUrl).toBe(cleanUrl);
+      // cleanMasterImageDataUrl is server-only and NOT exposed on DraftClientDto
+      expect(
+        (updated as Record<string, unknown> | null)?.cleanMasterImageDataUrl,
+      ).toBeUndefined();
 
       const fetched = await getOfferDraft(created.id);
-      expect(fetched?.cleanMasterImageDataUrl).toBe(cleanUrl);
+      expect(fetched?.previewCardImageUrl).toBe(previewUrl);
+      expect(
+        (fetched as Record<string, unknown> | null)?.cleanMasterImageDataUrl,
+      ).toBeUndefined();
+
+      // Verify that database row has the cleanMasterImageDataUrl stored safely
+      const [row] = await db
+        .select()
+        .from(drafts)
+        .where(eq(drafts.id, created.id));
+      expect(row.cleanMasterImageDataUrl).toBe(cleanUrl);
+    });
+
+    it("preserves cleanMaster and preview assets when auto-saving an updated draft", async () => {
+      const created = await saveOfferDraft({
+        businessSegment: "burger-shop",
+        businessName: "Burger King",
+        offerTitle: "Whopper",
+        promoPrice: "R$ 29,90",
+      });
+
+      const previewUrl = "https://pub-test.r2.dev/drafts/test/preview.webp";
+      const cleanUrl = "data:image/png;base64,masterImage";
+      await updateDraftPreviewCard(
+        created.id,
+        previewUrl,
+        undefined,
+        cleanUrl,
+        "drafts/test/preview.webp",
+        "drafts/test/master.png",
+      );
+
+      // Now auto-save briefing updates
+      const autoSaved = await saveOfferDraft({
+        id: created.id,
+        businessSegment: "burger-shop",
+        businessName: "Burger King Updated",
+        offerTitle: "Whopper Duplo",
+        promoPrice: "R$ 34,90",
+      });
+
+      expect(autoSaved.businessName).toBe("Burger King Updated");
+      expect(autoSaved.offerTitle).toBe("Whopper Duplo");
+
+      // Verify DB row still retains cleanMaster and preview columns
+      const [row] = await db
+        .select()
+        .from(drafts)
+        .where(eq(drafts.id, created.id));
+      expect(row.cleanMasterImageDataUrl).toBe(cleanUrl);
+      expect(row.cleanMasterAssetKey).toBe("drafts/test/master.png");
+      expect(row.previewCardImageUrl).toBe(previewUrl);
+      expect(row.previewAssetKey).toBe("drafts/test/preview.webp");
+      expect(row.aiGenerationCount).toBe(1);
     });
   });
 
@@ -356,12 +469,16 @@ describe("Drafts Service (Deep Domain Module)", () => {
         logoImageDataUrl: pngData,
       });
 
-      // 1. Asset keys gravados no PostgreSQL
-      expect(saved.productAssetKey).toBe(`drafts/${saved.id}/product.png`);
-      expect(saved.referenceAssetKey).toBe(`drafts/${saved.id}/reference.png`);
-      expect(saved.logoAssetKey).toBe(`drafts/${saved.id}/logo.png`);
+      // 1. DTO seguro para o cliente omite as chaves internas
+      expect(
+        (saved as Record<string, unknown>).productAssetKey,
+      ).toBeUndefined();
+      expect(
+        (saved as Record<string, unknown>).referenceAssetKey,
+      ).toBeUndefined();
+      expect((saved as Record<string, unknown>).logoAssetKey).toBeUndefined();
 
-      // 2. Coluna no banco PostgreSQL mantida como NULL para eliminar TOAST bloat
+      // 2. Coluna no banco PostgreSQL mantida como NULL para eliminar TOAST bloat e chaves gravadas no DB
       const [dbRow] = await db
         .select()
         .from(drafts)
@@ -371,6 +488,8 @@ describe("Drafts Service (Deep Domain Module)", () => {
       expect(dbRow.referenceImageDataUrl).toBeNull();
       expect(dbRow.logoImageDataUrl).toBeNull();
       expect(dbRow.productAssetKey).toBe(`drafts/${saved.id}/product.png`);
+      expect(dbRow.referenceAssetKey).toBe(`drafts/${saved.id}/reference.png`);
+      expect(dbRow.logoAssetKey).toBe(`drafts/${saved.id}/logo.png`);
 
       // 3. Binários gravados no storage sob drafts/{draftId}/...
       const storedProduct = await storageDriver.getAsset(
@@ -404,7 +523,7 @@ describe("Drafts Service (Deep Domain Module)", () => {
         productImageDataUrl: pngData,
       });
 
-      const initialAssetKey = initial.productAssetKey!;
+      const initialAssetKey = `drafts/${initial.id}/product.png`;
       expect(await storageDriver.getAsset(initialAssetKey)).not.toBeNull();
 
       // Usuário remove a foto passando null
@@ -417,7 +536,9 @@ describe("Drafts Service (Deep Domain Module)", () => {
         productImageDataUrl: null,
       });
 
-      expect(updated.productAssetKey).toBeNull();
+      expect(
+        (updated as Record<string, unknown>).productAssetKey,
+      ).toBeUndefined();
       expect(updated.productImageDataUrl).toBeNull();
 
       // Asset deve ter sido removido do storage
@@ -449,7 +570,15 @@ describe("Drafts Service (Deep Domain Module)", () => {
 
       const fetched = await getOfferDraft(legacyId);
       expect(fetched?.productImageDataUrl).toBe(legacyData);
-      expect(fetched?.productAssetKey).toBeNull();
+      expect(
+        (fetched as Record<string, unknown> | null)?.productAssetKey,
+      ).toBeUndefined();
+
+      const [legacyRow] = await db
+        .select()
+        .from(drafts)
+        .where(eq(drafts.id, legacyId));
+      expect(legacyRow.productAssetKey).toBeNull();
     });
   });
 });

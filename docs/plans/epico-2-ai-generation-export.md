@@ -12,6 +12,7 @@
 O **Épico 2** implementa o núcleo gerador do OfertaPronta, transformando o rascunho preenchido pelo microempresário (`Draft`) em um Card Publicitário completo (`Ad Card`) de alta conversão visual, combinando briefing textual, foto do produto e imagem de referência em proporção 4:5 (Feed) e 9:16 (Story).
 
 ### Invariantes e Pilares Técnicos
+
 1. **Módulos Profundos com Superfície Mínima (`codebase-design`)**:
    - `ExportEngine` (`src/server/export-engine/`): Oculta todas as transformações de matrizes de pixels, redimensionamento estrito (1080×1350 e 1080×1920), desfoque gaussiano de extensão e aplicação indelével de marca d'água SVG.
    - `AdCardGenerator` (`src/features/promotions/server/services/ai-card-generator.service.ts`): Oculta a engenharia de prompts por segmento comercial, formatação multimodal de imagens em base64 (`inlineData`), chamadas ao SDK `@google/genai` e tradução de erros de API/segurança em exceções de domínio.
@@ -104,7 +105,7 @@ sequenceDiagram
         RPC->>Generator: generateAdCardImage(draft)
         activate Generator
         Generator->>Gemini: generateContent({ model, promptParts, imageConfig })
-        
+
         alt Falha na API Gemini (RateLimit / Timeout / Bloqueio)
             Gemini-->>Generator: Error
             Generator-->>RPC: throws AdCardGenerationError
@@ -137,17 +138,17 @@ sequenceDiagram
 ```mermaid
 stateDiagram-v2
     [*] --> DRAFT_CREATED: saveDraft() [aiGenerationCount = 0]
-    
+
     DRAFT_CREATED --> GENERATING_AI: generatePreviewFn(draftId)
-    
+
     GENERATING_AI --> DRAFT_CREATED: Erro Transitório / Timeout [aiGenerationCount = 0]\n(Permite retry sem custo)
-    
+
     GENERATING_AI --> PREVIEW_PROTECTED: Sucesso Gemini + Watermark Sharp\n[aiGenerationCount = 1]
-    
+
     PREVIEW_PROTECTED --> QUOTA_BLOCKED: Nova tentativa em DRAFT_CREATED\ncom aiGenerationCount >= 1
-    
+
     QUOTA_BLOCKED --> PREVIEW_PROTECTED: Mantém visualização da prévia existente\ne redireciona para Checkout Pix (R$ 9,90)
-    
+
     PREVIEW_PROTECTED --> [*]: Checkout Pix Concluído (Épico 3)
 ```
 
@@ -266,7 +267,11 @@ export type GeneratePreviewResponse =
     }
   | {
       success: false;
-      code: "AI_QUOTA_EXCEEDED" | "AI_NOT_CONFIGURED" | "AI_GENERATION_FAILED" | "NOT_FOUND";
+      code:
+        | "AI_QUOTA_EXCEEDED"
+        | "AI_NOT_CONFIGURED"
+        | "AI_GENERATION_FAILED"
+        | "NOT_FOUND";
       message: string;
       previewUrl?: string | null;
       aiGenerationCount?: number;
@@ -297,7 +302,7 @@ export type GeneratePreviewResponse =
 2. **`AdCardGenerator` (`src/features/promotions/server/services/ai-card-generator.service.test.ts`)**:
    - Testa a construção de prompts para cada um dos 6 segmentos comerciais.
    - Testa a inclusão de partes `inlineData` para imagem de produto e referência estética.
-   - Testa o tratamento de erros e tradução de códigos de erro (`AI_SAFETY_BLOCKED`, `AI_NOT_CONFIGURED`, etc.) com Fake Gemini Client (*replace-don't-layer*).
+   - Testa o tratamento de erros e tradução de códigos de erro (`AI_SAFETY_BLOCKED`, `AI_NOT_CONFIGURED`, etc.) com Fake Gemini Client (_replace-don't-layer_).
 3. **`generatePreviewFn` (`src/features/promotions/server/functions/generator.functions.test.ts`)**:
    - Rascunho com cota 0 gera card, atualiza banco e incrementa contador para 1.
    - Rascunho com cota 1 é bloqueado com `AI_QUOTA_EXCEEDED` sem invocar a IA.
@@ -318,9 +323,9 @@ Ordem de Execução:
 [Ticket 02: AdCardGenerator] (backend-builder)┘
 ```
 
-| Ticket | Responsável | Arquivos Criados / Modificados | Comandos de Verificação |
-|---|---|---|---|
-| **01** | `backend-builder` | `src/server/export-engine/index.ts`<br>`src/server/export-engine/image-processor.ts`<br>`src/server/export-engine/export-engine.test.ts` | `pnpm add sharp && pnpm add -D @types/sharp`<br>`pnpm test src/server/export-engine` |
-| **02** | `backend-builder` | `src/features/promotions/server/services/ai-card-generator.service.ts`<br>`src/features/promotions/server/services/ai-card-generator.service.test.ts`<br>`src/config/server-env.ts` | `pnpm add @google/genai`<br>`pnpm test src/features/promotions/server/services` |
-| **03** | `backend-builder` | `src/features/promotions/server/functions/generator.functions.ts`<br>`src/features/promotions/server/functions/generator.functions.test.ts`<br>`src/features/promotions/server/index.ts` | `pnpm test src/features/promotions/server/functions`<br>`pnpm typecheck` |
-| **04** | `frontend-builder` | `src/features/promotions/hooks/use-offer-brief-draft.ts`<br>`src/features/promotions/components/offer-brief-wizard.tsx`<br>`src/features/promotions/components/live-card-preview.tsx`<br>`src/features/promotions/components/card-art-canvas.tsx`<br>`src/features/promotions/components/offer-brief-wizard.test.tsx` | `./.agents/scripts/verify.sh --quick` |
+| Ticket | Responsável        | Arquivos Criados / Modificados                                                                                                                                                                                                                                                                                        | Comandos de Verificação                                                              |
+| ------ | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **01** | `backend-builder`  | `src/server/export-engine/index.ts`<br>`src/server/export-engine/image-processor.ts`<br>`src/server/export-engine/export-engine.test.ts`                                                                                                                                                                              | `pnpm add sharp && pnpm add -D @types/sharp`<br>`pnpm test src/server/export-engine` |
+| **02** | `backend-builder`  | `src/features/promotions/server/services/ai-card-generator.service.ts`<br>`src/features/promotions/server/services/ai-card-generator.service.test.ts`<br>`src/config/server-env.ts`                                                                                                                                   | `pnpm add @google/genai`<br>`pnpm test src/features/promotions/server/services`      |
+| **03** | `backend-builder`  | `src/features/promotions/server/functions/generator.functions.ts`<br>`src/features/promotions/server/functions/generator.functions.test.ts`<br>`src/features/promotions/server/index.ts`                                                                                                                              | `pnpm test src/features/promotions/server/functions`<br>`pnpm typecheck`             |
+| **04** | `frontend-builder` | `src/features/promotions/hooks/use-offer-brief-draft.ts`<br>`src/features/promotions/components/offer-brief-wizard.tsx`<br>`src/features/promotions/components/live-card-preview.tsx`<br>`src/features/promotions/components/card-art-canvas.tsx`<br>`src/features/promotions/components/offer-brief-wizard.test.tsx` | `./.agents/scripts/verify.sh --quick`                                                |

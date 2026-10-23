@@ -13,12 +13,13 @@ O **OfertaPronta** permite que microempresários criem Cards Publicitários prof
 No **Passo 3 (Insumos Visuais)**, o comerciante tem a opção de enviar um **Print de Referência (`referenceImageDataUrl`)** de um anúncio que gostou (por exemplo, um post minimalista com fundo claro e tipografia elegante) para que a IA replique esse estilo.
 
 ### O Problema ("Attention Bleeding" / Conflito Semântico)
-1. **Frontend**: Ao avançar para o **Passo 4 (Visual do Card)**, o sistema selecionava por padrão o primeiro preset de catálogo do segmento (ex: *"Dark Burger & Fumaça"* no ramo de hamburgueria, com fundo preto carvão, ardósia rústica e fumaça densa).
+
+1. **Frontend**: Ao avançar para o **Passo 4 (Visual do Card)**, o sistema selecionava por padrão o primeiro preset de catálogo do segmento (ex: _"Dark Burger & Fumaça"_ no ramo de hamburgueria, com fundo preto carvão, ardósia rústica e fumaça densa).
 2. **Backend**: No Deep Module `AdCardGenerator` (`ai-card-generator.service.ts`), o compilador de prompt injetava todas as diretrizes rígidas, paleta HEX (#000000, #E11D48), variantes de layout (`retail-burst` / `dark-luxury`) e a narrativa cênica do preset padrão.
 3. **Impacto na IA**: O modelo multimodal Gemini recebia simultaneamente duas ordens conflitantes:
-   - *"Copie o estilo do print anexo"* (que podia ser branco/minimalista).
-   - *"Aplique o estilo Dark Burger com fumaça, ardósia escura, fonte Didone e cores #000000 e #E11D48"*.
-   Essa sobreposição gerava **"attention bleeding"** no espaço latente da IA, fazendo com que a imagem gerada ignorasse o print do usuário ou criasse uma colagem visualmente inconsistente.
+   - _"Copie o estilo do print anexo"_ (que podia ser branco/minimalista).
+   - _"Aplique o estilo Dark Burger com fumaça, ardósia escura, fonte Didone e cores #000000 e #E11D48"_.
+     Essa sobreposição gerava **"attention bleeding"** no espaço latente da IA, fazendo com que a imagem gerada ignorasse o print do usuário ou criasse uma colagem visualmente inconsistente.
 
 ---
 

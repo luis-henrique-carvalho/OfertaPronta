@@ -7,6 +7,7 @@ A tela de entrega atual (`/pedido/$orderId`) apresenta sobrecarga de informaçã
 Este plano consolida a **Opção A (Card Hero Integrado + Chips Rápidos)** escolhida pelo usuário, alinhando a experiência visual e a ergonomia mobile-first ao padrão dos micro-passos da criação (`/criar`).
 
 ### Principais Mudanças de UX/UI:
+
 1. **Header Discreto**: Substituir o cartão gigante `DeliveryHeaderStatus` por uma barra de status discreta e elegante (`✅ Pagamento Confirmado • [Título]`).
 2. **Hero Card Unificado (`AdCardUnifiedDeliveryHero`)**:
    - Abas integradas: `Feed (1080×1350)` | `Story (1080×1920)`.
@@ -31,14 +32,14 @@ Este plano consolida a **Opção A (Card Hero Integrado + Chips Rápidos)** esco
 flowchart TD
     ROUTE["/pedido/$orderId"] --> LOADER["getOrderDeliveryDetailsFn"]
     LOADER --> VIEW["OrderDeliveryView"]
-    
+
     subgraph VIEW_STRUCTURE ["Nova Estrutura da View (Mobile-First)"]
         HEADER["CompactDeliveryStatus (Barra Discreta)"]
         HERO["AdCardUnifiedDeliveryHero\n• Tabs Feed/Story\n• Preview HD\n• Baixar Formato Ativo\n• WhatsApp / Copiar Link"]
         REGEN["AiRegenerationQuickPanel\n• Status da Cota (X de 3) & Timer\n• Chips de Intenção (Preço | Título | Cores | Livre)\n• Micro-Input focado\n• Botão Gerar Novo Card"]
         EXPIRED["FriendlyExpiredNotice\n• Status positivo das artes\n• Botão Criar Nova Oferta"]
     end
-    
+
     VIEW --> HEADER
     VIEW --> HERO
     VIEW --> REGEN
@@ -50,6 +51,7 @@ flowchart TD
 ## 3. Contratos de Dados (Isomorfismo & Schemas Zod)
 
 ### 3.1. Extensão de `RequestRegenerationInput` em `delivery.schemas.ts`:
+
 ```typescript
 export const requestRegenerationInputSchema = z.object({
   orderId: z.string().uuid("ID de pedido inválido"),
@@ -64,6 +66,7 @@ export const requestRegenerationInputSchema = z.object({
 ```
 
 ### 3.2. Mapeamento no `PostPaymentRegenerationService`:
+
 Se `colorPalette` ou `stylePresetId` forem fornecidos, o serviço combina as instruções com o estilo já congelado no snapshot da campanha, garantindo que o Gemini regenere a arte respeitando o novo estilo visual solicitado.
 
 ---

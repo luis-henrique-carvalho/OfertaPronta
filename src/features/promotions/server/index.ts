@@ -17,12 +17,17 @@ export type {
 export {
   generatePreviewFn,
   generatePreviewInputSchema,
+  generatePreviewOutputSchema,
+  getPreviewQuotaFn,
+  getPreviewQuotaOutputSchema,
 } from "./functions/generator.functions";
 
 export type {
   GeneratePreviewInput,
+  GeneratePreviewOutput,
   GeneratePreviewResponse,
   GeneratePreviewDependencies,
+  GetPreviewQuotaOutput,
 } from "./functions/generator.functions";
 
 export {

@@ -12,6 +12,7 @@ Microempresários de diversos segmentos (supermercados, cabeleireiros, barbearia
 O microempresário precisa que uma Inteligência Artificial profissional compreenda o seu briefing comercial (nome da loja, item anunciado, preços e contato), combine harmonicamente com a foto real do seu produto e/ou uma referência estética que ele admira, e produza em segundos um **Card Publicitário (`Ad Card`) completo**, profissional e pronto para postar nas redes sociais.
 
 Por outro lado, o modelo de negócio da plataforma requer viabilidade econômica:
+
 1. Uma **prévia gratuita** deve permitir ao microempresário atestar a qualidade visual do card antes de pagar.
 2. Essa prévia deve ser protegida de forma indelével por uma **marca d'água** server-side para evitar o uso comercial sem pagamento.
 3. A cota gratuita deve ser estritamente controlada (**exatamente 1 geração gratuita por rascunho**) para evitar custos abusivos de GPU/API antes da confirmação do Pix (R$ 9,90).
@@ -166,7 +167,7 @@ O Épico 2 implementa o motor central de geração e processamento do OfertaPron
 
 1. **Testes Baseados em Limites da Interface Pública (TDD Red-Green):**
    - **`ExportEngine`:** Testes em `src/server/export-engine/export-engine.test.ts`. Testa o redimensionamento para 1080×1350, a presença de marca d'água via composição Sharp e a geração de Story 1080×1920 utilizando buffers de teste válidos em memória (sem dependências externas de rede).
-   - **`AdCardGenerator`:** Testes em `src/features/promotions/server/services/ai-card-generator.service.test.ts`. Testa a montagem do prompt para diferentes segmentos, fusão de imagens em base64 e tratamento de erros injetando um cliente Gemini fake/in-memory (*replace-don't-layer*).
+   - **`AdCardGenerator`:** Testes em `src/features/promotions/server/services/ai-card-generator.service.test.ts`. Testa a montagem do prompt para diferentes segmentos, fusão de imagens em base64 e tratamento de erros injetando um cliente Gemini fake/in-memory (_replace-don't-layer_).
    - **`generatePreviewFn` & Quota Service:** Testes em `src/features/promotions/server/functions/generator.functions.test.ts`. Testa o fluxo completo:
      - Rascunho com `aiGenerationCount = 0` gera prévia com sucesso e incrementa cota para 1.
      - Rascunho com `aiGenerationCount = 1` é bloqueado com código `AI_QUOTA_EXCEEDED` sem chamar a IA.

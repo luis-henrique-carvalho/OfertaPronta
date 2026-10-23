@@ -7,6 +7,7 @@
 ---
 
 ## 1. Contexto e Objetivo
+
 Eliminar resquícios de prompts hardcoded (`SEGMENT_AUTHOR_PROFILES`, templates de 4 camadas legados e templates estáticos gigantes de edição) em `src/server/prompt-engine/`.
 Tornar o `gemini-3.8-flash` 100% responsável pela autoria dos Master Prompts tanto no fluxo de criação quanto no fluxo de regeneração/edição.
 
@@ -38,6 +39,7 @@ Tornar o `gemini-3.8-flash` 100% responsável pela autoria dos Master Prompts ta
 ---
 
 ## 3. Critérios de Aceite
+
 - [x] `SEGMENT_AUTHOR_PROFILES` completamente removido de `dynamic-planner.ts`.
 - [x] `gemini-3.8-flash` é autor do master prompt tanto na criação inicial quanto na regeneração `RECOMPOSE`.
 - [x] Fallback determinístico síncrono mantido de forma concisa e limpa (sem bloat).

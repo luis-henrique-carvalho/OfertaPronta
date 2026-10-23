@@ -60,12 +60,8 @@
           "name": "campaigns_draft_id_drafts_id_fk",
           "tableFrom": "campaigns",
           "tableTo": "drafts",
-          "columnsFrom": [
-            "draft_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["draft_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -268,12 +264,8 @@
           "name": "orders_campaign_id_campaigns_id_fk",
           "tableFrom": "orders",
           "tableTo": "campaigns",
-          "columnsFrom": [
-            "campaign_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["campaign_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -372,12 +364,8 @@
           "name": "payment_charges_order_id_orders_id_fk",
           "tableFrom": "payment_charges",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -387,9 +375,7 @@
         "payment_charges_tx_id_unique": {
           "name": "payment_charges_tx_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tx_id"
-          ]
+          "columns": ["tx_id"]
         }
       },
       "policies": {},
@@ -477,12 +463,8 @@
           "name": "exports_order_id_orders_id_fk",
           "tableFrom": "exports",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

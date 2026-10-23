@@ -13,6 +13,7 @@
 O **OfertaPronta** é uma plataforma web mobile-first de geração de Cards Publicitários por IA construída sobre **TanStack Start** (React 19 + TanStack Router + Vite/Nitro).
 
 Atualmente, o subsistema de backend utiliza chamadas ad-hoc a `console.warn` e `console.error` espalhadas por múltiplos módulos (`generator.functions.ts`, `ai-card-generator.service.ts`, `api.webhooks.pix.ts`). Essas chamadas:
+
 1. **Não possuem correlação distribuída**: Impossível rastrear um fluxo do início ao fim via `requestId`.
 2. **Não possuem estruturação nem observabilidade**: Dificulta ingestão em plataformas de agregação de logs (Datadog, CloudWatch, Better Stack) e polui o terminal local em desenvolvimento.
 3. **Apresentam riscos de segurança**:
@@ -21,6 +22,7 @@ Atualmente, o subsistema de backend utiliza chamadas ad-hoc a `console.warn` e `
    - Ausência de proteção CSRF global contra ataques Cross-Site Request Forgery direcionados às Server Functions RPC do TanStack Start.
 
 ### Metas Arquiteturais
+
 - **Módulo Profundo `src/server/logger`**: Interface pública concisa (`createServerLogger`, `logger`), escondendo toda a complexidade de `AsyncLocalStorage` (`node:async_hooks`), formatação dual (JSON em produção vs legível colorizado em dev/test), mascaramento automático de segredos e serialização segura de erros.
 - **Zero Server Code Leaks**: Garantia estrita de que nenhum arquivo do logger, módulo nativo do Node.js (`node:async_hooks`, etc.) ou segredo atinja o bundle JavaScript do navegador.
 - **Orquestração Global no TanStack Start (`src/start.ts`)**: Registro do `requestLoggingMiddleware` e `createCsrfMiddleware({ filter: (ctx) => ctx.handlerType === 'serverFn' })` via `createStart`.
@@ -56,7 +58,7 @@ flowchart TD
             Async_Storage["AsyncLocalStorage (node:async_hooks)"]
             Formatters["Formatters (JSON Prod / Pretty Dev)"]
             Masking["Secret Redactor (authorization, tokens, secrets)"]
-            
+
             Logger_Interface --> Async_Storage
             Logger_Interface --> Formatters
             Formatters --> Masking
@@ -116,7 +118,7 @@ sequenceDiagram
     LogMw->>LogMw: Extrai/Gera x-request-id (UUID ou Header)
     LogMw->>ALS: run({ requestId, pathname, method, timestamp })
     activate ALS
-    
+
     LogMw->>Logger: log.info("Request started", { method, pathname })
     Logger->>Stdout: [JSON / Pretty] "Request started" com requestId
 
@@ -139,11 +141,13 @@ sequenceDiagram
 ## 3. Especificação do Módulo Profundo `src/server/logger/`
 
 O módulo profundo segue rigorosamente a filosofia de **Deep Modules** e **Ponytail**:
+
 - **Interface pequena e concisa**: O chamador precisa conhecer apenas `createServerLogger(moduleName)` e os métodos `.info()`, `.warn()`, `.error()`, `.debug()`.
 - **Implementação substancial e oculta**: Oculta manipulação de `node:async_hooks`, detecção de ambiente (`process.env.NODE_ENV`), formatação dual, sanitização de objetos aninhados e mascaramento de segredos.
 - **Zero dependências externas adicionais**: Sem instalação de bibliotecas pesadas (Pino/Winston) que adicionam complexidade operacional e risco de quebra no Vite Nitro SSR. Uso da biblioteca padrão do Node.js (`node:async_hooks`, `node:crypto`).
 
 ### 3.1. Estrutura de Arquivos
+
 ```
 src/server/logger/
 ├── index.ts                   # Ponto único de export público (createServerLogger, logger, tipos)
@@ -199,6 +203,7 @@ export const logger: Logger; // Instância raiz
 ### 3.4. Mascaramento de Segredos e Formatação Dual (`src/server/logger/formatters.ts`)
 
 #### Regras de Mascaramento (Redaction):
+
 - Campos mascarados recursivamente em qualquer objeto ou header:
   - `authorization` -> `Bearer ***`
   - `x-webhook-secret`, `webhooksecret`, `secret` -> `***`
@@ -209,6 +214,7 @@ export const logger: Logger; // Instância raiz
   - Extrai `name`, `message`, `stack`, `cause` e códigos de erro sem perder rastreamento.
 
 #### Formatação:
+
 - **`production`**: Saída JSON linear em linha única (`JSON.stringify`), incluindo `timestamp` ISO 8601, `level`, `module`, `message`, `requestId`, `context`, `error`.
 - **`development` e `test`**: Saída legível com cores ANSI e prefixo padronizado:
   - `[12:34:56.789] INFO [checkout.pix] (req_abc123) Mensagem do log { txId: "..." }`
@@ -220,7 +226,8 @@ export const logger: Logger; // Instância raiz
   ```typescript
   export const requestLoggingMiddleware = createMiddleware().server(
     async ({ next, request }) => {
-      const requestId = request.headers.get("x-request-id") || crypto.randomUUID();
+      const requestId =
+        request.headers.get("x-request-id") || crypto.randomUUID();
       const url = new URL(request.url);
       const startTime = Date.now();
 
@@ -250,14 +257,18 @@ export const logger: Logger; // Instância raiz
           return response;
         } catch (error) {
           const durationMs = Date.now() - startTime;
-          logger.error(`Request failed: ${request.method} ${url.pathname}`, error, {
-            requestId,
-            durationMs,
-          });
+          logger.error(
+            `Request failed: ${request.method} ${url.pathname}`,
+            error,
+            {
+              requestId,
+              durationMs,
+            },
+          );
           throw error;
         }
       });
-    }
+    },
   );
   ```
 
@@ -266,7 +277,9 @@ export const logger: Logger; // Instância raiz
 ## 4. Orquestração Global e Segurança em `src/start.ts`
 
 ### 4.1. Configuração do `createStart`
+
 Criação do arquivo central `src/start.ts` descoberto automaticamente pelo compilador do TanStack Start:
+
 ```typescript
 import { createStart, createCsrfMiddleware } from "@tanstack/react-start";
 import { requestLoggingMiddleware } from "~/server/logger/middleware";
@@ -282,6 +295,7 @@ export const startInstance = createStart(() => ({
 ```
 
 ### 4.2. Invariante de Segurança CSRF:
+
 - **Server Functions RPC (`ctx.handlerType === 'serverFn'`)**: Protegidas ativamente contra requisições cross-site forjadas via validação automática de cabeçalhos de origem (`Origin` / `Referer`) embutida no `createCsrfMiddleware`.
 - **Rotas de Webhook e APIs Externas (`/api/webhooks/pix`)**: Isentas da validação CSRF (pois são chamadas machine-to-machine de servidores externos que não enviam origin de browser).
 
@@ -292,20 +306,24 @@ export const startInstance = createStart(() => ({
 ### 5.1. Vulnerabilidades Atuais e Correções:
 
 1. **Vazamento de Headers Sensíveis em Texto Puro**:
-   - *Atual*: `console.warn('[Webhook Pix] 📋 Headers:', JSON.stringify(headers));` (expõe tokens de autorização e o segredo `x-webhook-secret` nos logs).
-   - *Correção*: Substituir por logger estruturado que mascara automaticamente headers sensíveis:
+   - _Atual_: `console.warn('[Webhook Pix] 📋 Headers:', JSON.stringify(headers));` (expõe tokens de autorização e o segredo `x-webhook-secret` nos logs).
+   - _Correção_: Substituir por logger estruturado que mascara automaticamente headers sensíveis:
      ```typescript
      const log = createServerLogger("routes.api.webhooks.pix");
-     log.info("Webhook Pix recebido", { method, url, headers: sanitizeHeaders(headers) });
+     log.info("Webhook Pix recebido", {
+       method,
+       url,
+       headers: sanitizeHeaders(headers),
+     });
      ```
 
 2. **CORS Excessivamente Permissivo no Handler OPTIONS**:
-   - *Atual*:
+   - _Atual_:
      ```typescript
      "Access-Control-Allow-Origin": "*",
      "Access-Control-Allow-Headers": "*"
      ```
-   - *Correção*: Restringir estritamente. Webhooks machine-to-machine não exigem CORS de navegadores arbitrários. Caso necessário para preflight de gateway parceiro:
+   - _Correção_: Restringir estritamente. Webhooks machine-to-machine não exigem CORS de navegadores arbitrários. Caso necessário para preflight de gateway parceiro:
      ```typescript
      headers: {
        Allow: "GET, POST, HEAD, OPTIONS",
@@ -322,13 +340,13 @@ export const startInstance = createStart(() => ({
 
 ## 6. Substituição Sistemática em Serviços do Servidor
 
-| Arquivo | Logger a Instanciar | Escopo de Substituição |
-|---|---|---|
-| `src/features/promotions/server/functions/generator.functions.ts` | `createServerLogger("promotions.generator")` | Substituir 12 ocorrências de `console.warn` e `console.error` no fluxo de síntese de IA e cota de prévia. |
-| `src/features/promotions/server/services/ai-card-generator.service.ts` | `createServerLogger("promotions.ai-card-generator")` | Substituir 5 ocorrências de `console.warn` e `console.error` na chamada ao SDK Google Gemini. |
-| `src/features/checkout/server/services/pix-checkout.service.ts` | `createServerLogger("checkout.pix-checkout")` | Adicionar logs estruturados para: criação de pedido, congelamento de snapshot, processamento de webhook idempotente e reconciliação ativa. |
-| `src/features/checkout/server/services/pushin-pay.service.ts` | `createServerLogger("checkout.pushin-pay")` | Adicionar logs estruturados para: emissão de cobrança Pix, consulta de status e tratamento de erros de gateway (com dados sensíveis ocultos). |
-| `src/server/export-engine/image-processor.ts` | `createServerLogger("export-engine.image-processor")` | Adicionar logs de debug/info para redimensionamento e composição harmônica via Sharp. |
+| Arquivo                                                                | Logger a Instanciar                                   | Escopo de Substituição                                                                                                                        |
+| ---------------------------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/features/promotions/server/functions/generator.functions.ts`      | `createServerLogger("promotions.generator")`          | Substituir 12 ocorrências de `console.warn` e `console.error` no fluxo de síntese de IA e cota de prévia.                                     |
+| `src/features/promotions/server/services/ai-card-generator.service.ts` | `createServerLogger("promotions.ai-card-generator")`  | Substituir 5 ocorrências de `console.warn` e `console.error` na chamada ao SDK Google Gemini.                                                 |
+| `src/features/checkout/server/services/pix-checkout.service.ts`        | `createServerLogger("checkout.pix-checkout")`         | Adicionar logs estruturados para: criação de pedido, congelamento de snapshot, processamento de webhook idempotente e reconciliação ativa.    |
+| `src/features/checkout/server/services/pushin-pay.service.ts`          | `createServerLogger("checkout.pushin-pay")`           | Adicionar logs estruturados para: emissão de cobrança Pix, consulta de status e tratamento de erros de gateway (com dados sensíveis ocultos). |
+| `src/server/export-engine/image-processor.ts`                          | `createServerLogger("export-engine.image-processor")` | Adicionar logs de debug/info para redimensionamento e composição harmônica via Sharp.                                                         |
 
 ---
 
@@ -370,6 +388,7 @@ A implementação seguirá o ciclo **TDD Red → Green → Refactor**:
 ## 9. Lista de Arquivos a Criar e Modificar
 
 ### Novos Arquivos `[NEW]`
+
 1. `src/server/logger/index.ts`
 2. `src/server/logger/async-context.ts`
 3. `src/server/logger/formatters.ts`
@@ -379,6 +398,7 @@ A implementação seguirá o ciclo **TDD Red → Green → Refactor**:
 7. `src/start.ts`
 
 ### Arquivos a Modificar `[MODIFY]`
+
 1. `src/routes/api.webhooks.pix.ts` (substituição de logs, mascaramento de headers, saneamento de CORS)
 2. `src/features/promotions/server/functions/generator.functions.ts` (substituição de `console.*` por `createServerLogger`)
 3. `src/features/promotions/server/services/ai-card-generator.service.ts` (substituição de `console.*` por `createServerLogger`)

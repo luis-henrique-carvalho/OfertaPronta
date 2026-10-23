@@ -3,6 +3,8 @@ import { z } from "zod";
 import {
   saveOfferDraftSchema,
   type SaveOfferDraftInput,
+  draftClientDtoSchema,
+  type DraftClientDto,
 } from "../../data/offer-brief.schema";
 import {
   saveOfferDraft,
@@ -10,17 +12,17 @@ import {
   type OfferDraft,
 } from "../services/drafts.service";
 
-export type { OfferDraft };
+export type { OfferDraft, DraftClientDto };
 
 export interface SaveDraftResponse {
   success: boolean;
   draftId: string;
-  draft: OfferDraft;
+  draft: DraftClientDto;
 }
 
 export interface GetDraftResponse {
   success: boolean;
-  draft: OfferDraft | null;
+  draft: DraftClientDto | null;
 }
 
 export const getDraftInputSchema = z.object({
@@ -45,7 +47,7 @@ export const saveDraftFn = createServerFn({ method: "POST" })
       return {
         success: true,
         draftId: draft.id,
-        draft,
+        draft: draftClientDtoSchema.parse(draft),
       };
     },
   );
@@ -67,7 +69,7 @@ export const getDraftFn = createServerFn({ method: "GET" })
       const draft = await getOfferDraft(data.draftId);
       return {
         success: true,
-        draft,
+        draft: draft ? draftClientDtoSchema.parse(draft) : null,
       };
     },
   );

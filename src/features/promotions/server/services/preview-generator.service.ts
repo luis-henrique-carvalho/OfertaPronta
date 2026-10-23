@@ -7,11 +7,17 @@ import {
   type CardIntent,
   generatePreviewInputSchema,
   type GeneratePreviewInput,
+  generatePreviewOutputSchema,
+  type GeneratePreviewOutput,
+  draftClientDtoSchema,
+  type DraftClientDto,
 } from "../../data/offer-brief.schema";
 import {
-  getOfferDraft,
+  getDraftRow,
+  formatDraftForClient,
   updateDraftPreviewCard,
   type OfferDraft,
+  type DraftRow,
 } from "./drafts.service";
 import {
   generateAdCardImage,
@@ -27,39 +33,21 @@ import {
 } from "@/server/export-engine";
 import type { AppDatabase } from "@/server/db";
 import { getStorageService, type StorageService } from "@/server/storage";
+import {
+  reservePreview,
+  settlePreview,
+  findLastPreviewDraftId,
+} from "./free-preview-quota.service";
 
 const log = createServerLogger("promotions.generator");
 
-export { generatePreviewInputSchema };
-export type { GeneratePreviewInput };
+export { generatePreviewInputSchema, generatePreviewOutputSchema };
+export type { GeneratePreviewInput, GeneratePreviewOutput };
 
-export type GeneratePreviewResponse =
-  | {
-      success: true;
-      previewUrl: string;
-      aiGenerationCount: 1;
-    }
-  | {
-      success: false;
-      code: "AI_QUOTA_EXCEEDED";
-      message: string;
-      previewUrl?: string | null;
-      aiGenerationCount?: number;
-    }
-  | {
-      success: false;
-      code: "AI_GENERATION_FAILED";
-      message: string;
-      aiGenerationCount: 0;
-    }
-  | {
-      success: false;
-      code: "NOT_FOUND";
-      message: string;
-    };
+export type GeneratePreviewResponse = GeneratePreviewOutput;
 
 export interface GeneratePreviewDependencies {
-  getDraft?: (draftId: string) => Promise<OfferDraft | null>;
+  getDraft?: (draftId: string) => Promise<DraftRow | OfferDraft | null>;
   generateAdCard?: (
     input: GenerateAdCardInput,
   ) => Promise<GenerateAdCardResult>;
@@ -70,11 +58,21 @@ export interface GeneratePreviewDependencies {
     cleanMasterDataUrl?: string | null,
     previewAssetKey?: string | null,
     cleanMasterAssetKey?: string | null,
-  ) => Promise<OfferDraft | null>;
+  ) => Promise<DraftRow | OfferDraft | null>;
   storageService?: StorageService;
   database?: AppDatabase;
   geminiClient?: GoogleGenAIClient;
-  // Suporte de compatibilidade para testes legados com mock de watermark
+  quota?: {
+    reservePreview: typeof reservePreview;
+    settlePreview: typeof settlePreview;
+    findLastPreviewDraftId: typeof findLastPreviewDraftId;
+  };
+  identity?: {
+    visitorId: string;
+    ipHash: string;
+  };
+  now?: Date;
+  // Suporte de compatibilidade para testes com mock de watermark
   watermark?: (
     buffer: Buffer,
   ) => Promise<
@@ -99,9 +97,63 @@ function resolveWatermarkedBuffer(
     : Buffer.from(watermarkResult.dataUrl, "base64");
 }
 
+function createTestExportEngine(
+  deps: GeneratePreviewDependencies,
+  storageService: StorageService,
+): ExportEngine {
+  return {
+    exportPreviewCard: async (input: ExportPreviewCardInput) => {
+      const wmResult = await deps.watermark!(input.rawImageBuffer);
+      const watermarkedBuffer = resolveWatermarkedBuffer(wmResult);
+      const timestamp = Date.now();
+      const previewAssetKey = `drafts/${input.draftId}/preview.webp`;
+      const cleanMasterAssetKey = `drafts/${input.draftId}/private-master-${timestamp}.png`;
+      const [pUpload] = await Promise.all([
+        storageService.uploadAsset({
+          key: previewAssetKey,
+          buffer: watermarkedBuffer,
+          contentType: "image/webp",
+          isPublic: true,
+        }),
+        storageService.uploadAsset({
+          key: cleanMasterAssetKey,
+          buffer: input.rawImageBuffer,
+          contentType: input.mimeType || "image/png",
+          isPublic: false,
+        }),
+      ]);
+      return {
+        previewUrl: pUpload.url,
+        previewAssetKey,
+        cleanMasterAssetKey,
+        watermarkedBuffer,
+      };
+    },
+    exportFinalCampaign: async () => {
+      throw new Error("Not implemented in test adapter");
+    },
+    saveCleanMaster: async () => {
+      throw new Error("Not implemented in test adapter");
+    },
+  };
+}
+
+function resolveExportEngine(
+  deps: GeneratePreviewDependencies,
+  storageService: StorageService,
+): ExportEngine {
+  if (deps.exportEngine) {
+    return deps.exportEngine;
+  }
+  if (deps.watermark) {
+    return createTestExportEngine(deps, storageService);
+  }
+  return getExportEngine({ storageService });
+}
+
 function resolveDependencies(deps: GeneratePreviewDependencies) {
   const getDraft =
-    deps.getDraft ?? ((id: string) => getOfferDraft(id, deps.database));
+    deps.getDraft ?? ((id: string) => getDraftRow(id, deps.database));
 
   const generateAdCard =
     deps.generateAdCard ??
@@ -109,46 +161,7 @@ function resolveDependencies(deps: GeneratePreviewDependencies) {
       generateAdCardImage(cardInput, deps.geminiClient));
 
   const storageService = deps.storageService ?? getStorageService();
-
-  const exportEngine: ExportEngine =
-    deps.exportEngine ??
-    (deps.watermark
-      ? {
-          exportPreviewCard: async (input: ExportPreviewCardInput) => {
-            const wmResult = await deps.watermark!(input.rawImageBuffer);
-            const watermarkedBuffer = resolveWatermarkedBuffer(wmResult);
-            const timestamp = Date.now();
-            const previewAssetKey = `drafts/${input.draftId}/preview.webp`;
-            const cleanMasterAssetKey = `drafts/${input.draftId}/private-master-${timestamp}.png`;
-            const [pUpload] = await Promise.all([
-              storageService.uploadAsset({
-                key: previewAssetKey,
-                buffer: watermarkedBuffer,
-                contentType: "image/webp",
-                isPublic: true,
-              }),
-              storageService.uploadAsset({
-                key: cleanMasterAssetKey,
-                buffer: input.rawImageBuffer,
-                contentType: input.mimeType || "image/png",
-                isPublic: false,
-              }),
-            ]);
-            return {
-              previewUrl: pUpload.url,
-              previewAssetKey,
-              cleanMasterAssetKey,
-              watermarkedBuffer,
-            };
-          },
-          exportFinalCampaign: async () => {
-            throw new Error("Not implemented in test adapter");
-          },
-          saveCleanMaster: async () => {
-            throw new Error("Not implemented in test adapter");
-          },
-        }
-      : getExportEngine({ storageService }));
+  const exportEngine = resolveExportEngine(deps, storageService);
 
   const updateDraft =
     deps.updateDraftPreview ??
@@ -169,22 +182,34 @@ function resolveDependencies(deps: GeneratePreviewDependencies) {
         storageService,
       ));
 
+  const quota = deps.quota ?? {
+    reservePreview,
+    settlePreview,
+    findLastPreviewDraftId,
+  };
+
+  const identity = deps.identity ?? {
+    visitorId: "default-dev-visitor",
+    ipHash: "default-dev-ip-hash",
+  };
+
   return {
     getDraft,
     generateAdCard,
     exportEngine,
     updateDraft,
     storageService,
+    quota,
+    identity,
   };
 }
 
 /**
  * Carrega buffers de insumos visuais persistidos no StorageService
  * e os formata como Data URLs transparentes para o compilador multimodal Gemini.
- * Suporta retrocompatibilidade transparente com registros legados em Base64.
  */
 export async function resolveDraftVisualInputs(
-  draft: OfferDraft,
+  draft: DraftRow | OfferDraft,
   storageService: StorageService,
 ): Promise<{
   productImageDataUrl?: string;
@@ -195,22 +220,24 @@ export async function resolveDraftVisualInputs(
   let referenceImageDataUrl = draft.referenceImageDataUrl || undefined;
   let logoImageDataUrl = draft.logoImageDataUrl || undefined;
 
-  if (draft.productAssetKey) {
-    const asset = await storageService.getAsset(draft.productAssetKey);
+  const rawDraft = draft as Record<string, unknown>;
+
+  if (typeof rawDraft.productAssetKey === "string") {
+    const asset = await storageService.getAsset(rawDraft.productAssetKey);
     if (asset) {
       productImageDataUrl = `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`;
     }
   }
 
-  if (draft.referenceAssetKey) {
-    const asset = await storageService.getAsset(draft.referenceAssetKey);
+  if (typeof rawDraft.referenceAssetKey === "string") {
+    const asset = await storageService.getAsset(rawDraft.referenceAssetKey);
     if (asset) {
       referenceImageDataUrl = `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`;
     }
   }
 
-  if (draft.logoAssetKey) {
-    const asset = await storageService.getAsset(draft.logoAssetKey);
+  if (typeof rawDraft.logoAssetKey === "string") {
+    const asset = await storageService.getAsset(rawDraft.logoAssetKey);
     if (asset) {
       logoImageDataUrl = `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`;
     }
@@ -224,7 +251,7 @@ export async function resolveDraftVisualInputs(
 }
 
 export function buildAdCardInput(
-  draft: OfferDraft,
+  draft: DraftRow | OfferDraft,
   visualInputs?: {
     productImageDataUrl?: string;
     referenceImageDataUrl?: string;
@@ -270,7 +297,7 @@ export function buildAdCardInput(
  * e persistência ao ExportEngine profundo.
  */
 async function generateAndWatermarkAdCard(
-  draft: OfferDraft,
+  draft: DraftRow | OfferDraft,
   generateAdCard: (input: GenerateAdCardInput) => Promise<GenerateAdCardResult>,
   exportEngine: ExportEngine,
   storageService: StorageService,
@@ -278,12 +305,11 @@ async function generateAndWatermarkAdCard(
   | {
       success: true;
       previewUrl: string;
-      dataUrl: string;
       cleanMasterDataUrl: string;
       previewAssetKey: string;
       cleanMasterAssetKey: string;
     }
-  | { success: false; response: GeneratePreviewResponse }
+  | { success: false }
 > {
   try {
     log.info("Chamando sintetizador de IA (AdCardGenerator)...", {
@@ -319,7 +345,6 @@ async function generateAndWatermarkAdCard(
     return {
       success: true,
       previewUrl: exportResult.previewUrl,
-      dataUrl: `data:image/webp;base64,${exportResult.watermarkedBuffer.toString("base64")}`,
       cleanMasterDataUrl,
       previewAssetKey: exportResult.previewAssetKey,
       cleanMasterAssetKey: exportResult.cleanMasterAssetKey,
@@ -328,45 +353,204 @@ async function generateAndWatermarkAdCard(
     log.error("FALHA na síntese ou aplicação de marca d'água", err, {
       draftId: draft.id,
     });
-    return {
-      success: false,
-      response: {
-        success: false,
-        code: "AI_GENERATION_FAILED",
-        message:
-          "Não foi possível gerar a arte no momento. Nenhuma cota foi consumida. Por favor, tente novamente.",
-        aiGenerationCount: 0,
-      },
-    };
+    return { success: false };
   }
 }
 
-function validateDraftQuota(draft: OfferDraft): GeneratePreviewResponse | null {
-  if (draft.aiGenerationCount >= 1) {
-    log.warn("Cota de prévia gratuita excedida para draftId", {
+function toClientDto(
+  draft: DraftRow | OfferDraft,
+  storageService: StorageService,
+): DraftClientDto {
+  if ("productAssetKey" in (draft as Record<string, unknown>)) {
+    return formatDraftForClient(draft as DraftRow, storageService);
+  }
+  return draft as DraftClientDto;
+}
+
+interface QuotaReservationContext {
+  quota: {
+    reservePreview: typeof reservePreview;
+    findLastPreviewDraftId: typeof findLastPreviewDraftId;
+  };
+  identity: {
+    visitorId: string;
+    ipHash: string;
+  };
+  now: Date;
+  database?: AppDatabase;
+  storageService: StorageService;
+  getDraft: (draftId: string) => Promise<DraftRow | OfferDraft | null>;
+}
+
+async function handleQuotaReservation(
+  draft: DraftRow | OfferDraft,
+  ctx: QuotaReservationContext,
+): Promise<
+  | { ok: true; reservationId: string }
+  | { ok: false; response: GeneratePreviewOutput }
+> {
+  const reservation = await ctx.quota.reservePreview(
+    {
+      visitorId: ctx.identity.visitorId,
+      ipHash: ctx.identity.ipHash,
       draftId: draft.id,
-      aiGenerationCount: draft.aiGenerationCount,
+      now: ctx.now,
+    },
+    ctx.database,
+  );
+
+  if (reservation.ok) {
+    return { ok: true, reservationId: reservation.reservationId };
+  }
+
+  log.warn("Cota de prévia gratuita atingida", {
+    reason: reservation.reason,
+    visitorId: ctx.identity.visitorId,
+  });
+
+  let lastDraft: DraftClientDto | null = null;
+  const lastDraftId = await ctx.quota.findLastPreviewDraftId(
+    { visitorId: ctx.identity.visitorId },
+    ctx.database,
+  );
+
+  if (lastDraftId) {
+    const lastRow = await ctx.getDraft(lastDraftId);
+    if (lastRow) {
+      lastDraft = draftClientDtoSchema.parse(
+        toClientDto(lastRow, ctx.storageService),
+      );
+    }
+  }
+
+  return {
+    ok: false,
+    response: {
+      status: "LIMIT_REACHED",
+      reason: reservation.reason,
+      lastDraft,
+    },
+  };
+}
+
+interface GenerateAndPersistContext {
+  draft: DraftRow | OfferDraft;
+  reservationId: string;
+  generateAdCard: (input: GenerateAdCardInput) => Promise<GenerateAdCardResult>;
+  exportEngine: ExportEngine;
+  updateDraft: (
+    draftId: string,
+    previewUrl: string,
+    cleanMasterDataUrl?: string | null,
+    previewAssetKey?: string | null,
+    cleanMasterAssetKey?: string | null,
+  ) => Promise<DraftRow | OfferDraft | null>;
+  storageService: StorageService;
+  quota: {
+    settlePreview: typeof settlePreview;
+  };
+  now: Date;
+  database?: AppDatabase;
+}
+
+async function generateAndPersistPreview(
+  ctx: GenerateAndPersistContext,
+): Promise<GeneratePreviewOutput> {
+  const {
+    draft,
+    reservationId,
+    generateAdCard,
+    exportEngine,
+    updateDraft,
+    storageService,
+    quota,
+    now,
+    database,
+  } = ctx;
+
+  try {
+    const generated = await generateAndWatermarkAdCard(
+      draft,
+      generateAdCard,
+      exportEngine,
+      storageService,
+    );
+
+    if (!generated.success) {
+      await quota.settlePreview(reservationId, "FAILED", now, database);
+      return {
+        status: "ERROR",
+        code: "AI_GENERATION_FAILED",
+        message:
+          "Não foi possível gerar a arte no momento. Nenhuma cota foi consumida. Por favor, tente novamente.",
+      };
+    }
+
+    log.info("Persistindo prévia e atualizando cota no PostgreSQL...", {
+      draftId: draft.id,
+      previewAssetKey: generated.previewAssetKey,
+      cleanMasterAssetKey: generated.cleanMasterAssetKey,
     });
+
+    const updatedDraft = await updateDraft(
+      draft.id,
+      generated.previewUrl,
+      generated.cleanMasterDataUrl,
+      generated.previewAssetKey,
+      generated.cleanMasterAssetKey,
+    );
+
+    if (!updatedDraft) {
+      log.warn("Falha na atualização atômica de cota do rascunho", {
+        draftId: draft.id,
+      });
+      await quota.settlePreview(reservationId, "FAILED", now, database);
+      return {
+        status: "ERROR",
+        code: "AI_GENERATION_FAILED",
+        message:
+          "Não foi possível atualizar o rascunho com a prévia gerada. Tente novamente.",
+      };
+    }
+
+    await quota.settlePreview(reservationId, "CONSUMED", now, database);
+
+    log.info("Geração de prévia concluída com sucesso para draftId", {
+      draftId: draft.id,
+    });
+
+    const finalDto = toClientDto(updatedDraft, storageService);
     return {
-      success: false,
-      code: "AI_QUOTA_EXCEEDED",
+      status: "OK",
+      draft: draftClientDtoSchema.parse(finalDto),
+    };
+  } catch (err: unknown) {
+    log.error("Exceção imprevista durante síntese de prévia", err, {
+      draftId: draft.id,
+      reservationId,
+    });
+    await quota.settlePreview(reservationId, "FAILED", now, database);
+    return {
+      status: "ERROR",
+      code: "AI_GENERATION_FAILED",
       message:
-        "Limite de 1 prévia gratuita por rascunho atingido. Conclua o pagamento Pix para liberar os arquivos e ter direito a até 3 regenerações.",
-      previewUrl: draft.previewCardImageUrl,
-      aiGenerationCount: draft.aiGenerationCount,
+        "Não foi possível gerar a arte no momento. Nenhuma cota foi consumida. Por favor, tente novamente.",
     };
   }
-  return null;
 }
 
 /**
  * Executa a orquestração de geração de prévia protegida por marca d'água
- * com controle rígido de cota gratuita (exatamente 1 por rascunho).
+ * com controle rígido de cota gratuita (Deep Module FreePreviewQuota).
+ * Regras:
+ * 1. Rascunho com aiGenerationCount >= 1 retorna LIMIT_REACHED(reason: visitor) sem consumir ledger.
+ * 2. Cota reservada atômica ANTES do Gemini.
+ * 3. Sucesso settle CONSUMED; falha settle FAILED.
  */
 export async function executeGeneratePreview(
   input: GeneratePreviewInput,
   deps: GeneratePreviewDependencies = {},
-): Promise<GeneratePreviewResponse> {
+): Promise<GeneratePreviewOutput> {
   const validated = generatePreviewInputSchema.parse(input);
   log.info("Iniciando geração de prévia para draftId", {
     draftId: validated.draftId,
@@ -378,7 +562,11 @@ export async function executeGeneratePreview(
     exportEngine,
     updateDraft,
     storageService,
+    quota,
+    identity,
   } = resolveDependencies(deps);
+
+  const now = deps.now ?? new Date();
 
   const draft = await getDraft(validated.draftId);
   if (!draft) {
@@ -386,7 +574,7 @@ export async function executeGeneratePreview(
       draftId: validated.draftId,
     });
     return {
-      success: false,
+      status: "ERROR",
       code: "NOT_FOUND",
       message: "Rascunho não encontrado.",
     };
@@ -400,53 +588,45 @@ export async function executeGeneratePreview(
     aiGenerationCount: draft.aiGenerationCount,
   });
 
-  const quotaError = validateDraftQuota(draft);
-  if (quotaError) {
-    return quotaError;
-  }
-
-  const generated = await generateAndWatermarkAdCard(
-    draft,
-    generateAdCard,
-    exportEngine,
-    storageService,
-  );
-  if (!generated.success) {
-    return generated.response;
-  }
-
-  log.info("Persistindo prévia e atualizando cota no PostgreSQL...", {
-    draftId: draft.id,
-    previewAssetKey: generated.previewAssetKey,
-    cleanMasterAssetKey: generated.cleanMasterAssetKey,
-  });
-  const updatedDraft = await updateDraft(
-    draft.id,
-    generated.previewUrl,
-    generated.cleanMasterDataUrl,
-    generated.previewAssetKey,
-    generated.cleanMasterAssetKey,
-  );
-  if (!updatedDraft) {
-    log.warn("Falha na atualização atômica de cota", {
-      draftId: draft.id,
-    });
+  // Regra P0: Se o draft já teve prévia gerada, retorna LIMIT_REACHED com o próprio draft sem tocar no ledger
+  if (draft.aiGenerationCount >= 1) {
+    log.warn(
+      "Rascunho já possui prévia gerada. Retornando LIMIT_REACHED sem consumir ledger.",
+      {
+        draftId: draft.id,
+        aiGenerationCount: draft.aiGenerationCount,
+      },
+    );
+    const clientDto = toClientDto(draft, storageService);
     return {
-      success: false,
-      code: "AI_QUOTA_EXCEEDED",
-      message:
-        "Limite de 1 prévia gratuita por rascunho atingido. Conclua o pagamento Pix para liberar os arquivos e ter direito a até 3 regenerações.",
-      previewUrl: draft.previewCardImageUrl,
-      aiGenerationCount: 1,
+      status: "LIMIT_REACHED",
+      reason: "visitor",
+      lastDraft: draftClientDtoSchema.parse(clientDto),
     };
   }
 
-  log.info("Concluído com sucesso para draftId", {
-    draftId: draft.id,
+  const reservationResult = await handleQuotaReservation(draft, {
+    quota,
+    identity,
+    now,
+    database: deps.database,
+    storageService,
+    getDraft,
   });
-  return {
-    success: true,
-    previewUrl: generated.previewUrl,
-    aiGenerationCount: 1,
-  };
+
+  if (!reservationResult.ok) {
+    return reservationResult.response;
+  }
+
+  return generateAndPersistPreview({
+    draft,
+    reservationId: reservationResult.reservationId,
+    generateAdCard,
+    exportEngine,
+    updateDraft,
+    storageService,
+    quota,
+    now,
+    database: deps.database,
+  });
 }

@@ -6,6 +6,7 @@
 Criar a Server Function TanStack Start `generatePreviewFn` (`src/features/promotions/server/functions/generator.functions.ts`) que conecta a requisição do usuário aos módulos profundos `AdCardGenerator` e `ExportEngine`. A Server Function deve aplicar rigorosamente a regra de negócio da cota gratuita (exatamente 1 geração gratuita por rascunho) com atualização atômica no banco de dados e garantia de que falhas transitórias de IA não consumam a cota do microempresário.
 
 **Blocked by:**
+
 - [`docs/tickets/epico-2-ai-generation-export/01-export-engine-watermark-and-formatting.md`](./01-export-engine-watermark-and-formatting.md)
 - [`docs/tickets/epico-2-ai-generation-export/02-ad-card-generator-gemini-multimodal.md`](./02-ad-card-generator-gemini-multimodal.md)
 

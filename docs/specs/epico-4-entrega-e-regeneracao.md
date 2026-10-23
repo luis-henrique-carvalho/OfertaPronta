@@ -10,9 +10,10 @@
 Após ter preenchido o Briefing da Oferta (Épico 1), validado a arte gerada pela IA na prévia gratuita protegida por marca d'água (Épico 2) e realizado o pagamento de R$ 9,90 via Pix dinâmico (Épico 3), o microempresário chega ao momento crucial da sua jornada no OfertaPronta: **o recebimento imediato e definitivo da sua campanha finalizada pronta para publicação**.
 
 Entretanto, pequenos comerciantes e prestadores de serviços locais (donos de supermercado, salões de beleza, barbearias, pizzarias, hamburguerias e restaurantes) operam em um contexto com desafios específicos:
-1. **Frustração por Espera ou Discrepância Visual**: O cliente pagou por *aquela* arte específica que ele visualizou e aprovou na prévia. Se o sistema regerasse a arte do zero pós-pagamento, o modelo de IA criaria uma variação diferente, frustrando a expectativa do comprador. A entrega deve disponibilizar instantaneamente a exata arte aprovada em alta resolução sem marca d'água.
+
+1. **Frustração por Espera ou Discrepância Visual**: O cliente pagou por _aquela_ arte específica que ele visualizou e aprovou na prévia. Se o sistema regerasse a arte do zero pós-pagamento, o modelo de IA criaria uma variação diferente, frustrando a expectativa do comprador. A entrega deve disponibilizar instantaneamente a exata arte aprovada em alta resolução sem marca d'água.
 2. **Dificuldade de Download e Acesso Permanente em Dispositivos Móveis**: Comerciantes frequentemente precisam salvar as artes na hora ou reencontrar o link dias ou semanas depois para reutilizar em anúncios. Os links de download devem ser **permanentes (sem expiração de prazo)**, permitindo que o microempresário acesse e baixe suas artes quando quiser.
-3. **Necessidade de Ajustes Rápidos Pós-Compra sem Nova Cobrança**: É frequente o microempresário notar um detalhe que deseja refinar após pagar (ex.: *"gostaria que o preço ficasse ainda mais em destaque"*, *"esqueci de colocar que aceitamos cartões"*, *"quero testar um fundo um pouco mais escuro"*). Ele tem direito a até 3 regenerações/ajustes por IA incluídas no seu pedido, mas isso precisa ocorrer sob regras claras de prazo (janela de 30 minutos pós-pagamento) e escopo focado para proteger a viabilidade econômica do produto.
+3. **Necessidade de Ajustes Rápidos Pós-Compra sem Nova Cobrança**: É frequente o microempresário notar um detalhe que deseja refinar após pagar (ex.: _"gostaria que o preço ficasse ainda mais em destaque"_, _"esqueci de colocar que aceitamos cartões"_, _"quero testar um fundo um pouco mais escuro"_). Ele tem direito a até 3 regenerações/ajustes por IA incluídas no seu pedido, mas isso precisa ocorrer sob regras claras de prazo (janela de 30 minutos pós-pagamento) e escopo focado para proteger a viabilidade econômica do produto.
 4. **Conveniência de Envio Direto para WhatsApp**: No celular, o comerciante quer ter certeza de que não perderá o acesso caso a aba feche. Um botão direto "Enviar artes para meu WhatsApp" via link `wa.me` garante que ele guarde o link da campanha na sua própria conversa do WhatsApp com 1 toque.
 
 ---
@@ -27,7 +28,7 @@ O Épico 4 implementa a experiência completa de **Entrega e Regeneração de Ca
 flowchart TD
     A["Confirmação do Pix no Checkout (Épico 3)"] -->|"Redirecionamento automático"| B["Navega para /pedido/$orderId"]
     B --> C["Tela de Entrega do Pedido"]
-    
+
     subgraph "Visualização & Entrega Imediata"
         C --> D["Banner de Celebração: Pedido Confirmado"]
         C --> E["Visualizador da Arte em Alta Resolução (Toggle Feed / Story)"]
@@ -67,14 +68,14 @@ flowchart TD
 3. **Motor de Regeneração com IA Pós-Compra (`src/features/delivery/server/services/post-payment-regeneration.service.ts`)**:
    - **Regra de Cota**: Exatamente até 3 regenerações por pedido pago (`aiRegenerationCount < 3`).
    - **Regra de Janela de Tempo**: Disponível exclusivamente dentro dos primeiros **30 minutos corridos** após a compensação do Pix (`paidAt + 30 min`). Após 30 minutos, o painel de regeneração entra em estado expirado de forma graciosa, preservando os botões de download dos arquivos existentes permanentemente.
-   - **Escopo do Refinamento**: O microempresário pode refinar textos da oferta, preços promocionais e adicionar instruções livres para a IA (ex.: *"destaque mais a data de validade"*, *"coloque um tom mais premium no fundo"*), mantendo as fotos originais do produto e referência já enviadas.
+   - **Escopo do Refinamento**: O microempresário pode refinar textos da oferta, preços promocionais e adicionar instruções livres para a IA (ex.: _"destaque mais a data de validade"_, _"coloque um tom mais premium no fundo"_), mantendo as fotos originais do produto e referência já enviadas.
    - **Atualização Atômica**: Cada regeneração consome 1 crédito de cota, recalcula a arte mestre limpa e os formatos Feed e Story, e atualiza o histórico do pedido.
 
 4. **Interface de Entrega Mobile-First (`/pedido/$orderId`)**:
-   - **Design Emocional**: Feedback de celebração (*"Pagamento confirmado! Seu card publicitário está pronto para brilhar"*).
+   - **Design Emocional**: Feedback de celebração (_"Pagamento confirmado! Seu card publicitário está pronto para brilhar"_).
    - **Alternador de Formatos (Feed vs Story)**: Abas suaves permitindo pré-visualizar a arte final exatamente como ficará no Feed (4:5) ou no Story (9:16).
    - **Downloads Claros em Alta Resolução**: Botões individuais de download em PNG HD ("Baixar Feed (1080×1350)" e "Baixar Story (1080×1920)").
-   - **Atalho de Envio para WhatsApp**: Botão de conveniência *"Enviar artes para meu WhatsApp"* que abre o WhatsApp (`wa.me`) com mensagem pronta contendo o link do pedido, permitindo salvar a campanha na conversa do comerciante em 1 toque.
+   - **Atalho de Envio para WhatsApp**: Botão de conveniência _"Enviar artes para meu WhatsApp"_ que abre o WhatsApp (`wa.me`) com mensagem pronta contendo o link do pedido, permitindo salvar a campanha na conversa do comerciante em 1 toque.
 
 ---
 
@@ -83,11 +84,11 @@ flowchart TD
 ### Happy Paths
 
 1. **Como microempresário que acabou de pagar o Pix**, quero ser direcionado instantaneamente para a tela do meu pedido (`/pedido/$orderId`) e visualizar imediatamente meu Card Publicitário em alta resolução sem nenhuma marca d'água.
-2. **Como microempresário no celular**, quero tocar em *"Enviar artes para meu WhatsApp"* e ter uma mensagem pré-preenchida no WhatsApp com o link direto da minha campanha pronta, para guardar e acessar quando quiser.
-3. **Como microempresário visualizando o card entregue**, quero poder alternar entre as abas *"Feed (1080×1350)"* e *"Story (1080×1920)"* para verificar como a composição visual se adapta a cada proporção antes de baixar.
-4. **Como microempresário no computador ou celular**, quero poder clicar em *"Baixar Feed (1080×1350)"* e *"Baixar Story (1080×1920)"* para salvar diretamente os arquivos PNG nítidos no meu aparelho.
+2. **Como microempresário no celular**, quero tocar em _"Enviar artes para meu WhatsApp"_ e ter uma mensagem pré-preenchida no WhatsApp com o link direto da minha campanha pronta, para guardar e acessar quando quiser.
+3. **Como microempresário visualizando o card entregue**, quero poder alternar entre as abas _"Feed (1080×1350)"_ e _"Story (1080×1920)"_ para verificar como a composição visual se adapta a cada proporção antes de baixar.
+4. **Como microempresário no computador ou celular**, quero poder clicar em _"Baixar Feed (1080×1350)"_ e _"Baixar Story (1080×1920)"_ para salvar diretamente os arquivos PNG nítidos no meu aparelho.
 5. **Como microempresário que precisa de um pequeno ajuste**, quero poder abrir o painel de refinamento em até 30 minutos pós-compra, alterar o preço ou pedir para a IA destacar um elemento, e gerar uma nova versão sem pagar nada a mais.
-6. **Como microempresário que solicitou um ajuste**, quero ver a contagem da minha cota atualizada em tempo real (ex.: *"Você ainda tem 2 de 3 ajustes disponíveis"*) e a nova arte refletida na tela imediatamente.
+6. **Como microempresário que solicitou um ajuste**, quero ver a contagem da minha cota atualizada em tempo real (ex.: _"Você ainda tem 2 de 3 ajustes disponíveis"_) e a nova arte refletida na tela imediatamente.
 7. **Como microempresário que precisa da arte semanas depois**, quero poder acessar novamente a URL `/pedido/$orderId` a qualquer momento e baixar minhas imagens sem bloqueio de prazo de expiração.
 
 ### Edge Cases, Falhas e Segurança
@@ -160,6 +161,7 @@ src/
 ### 3. Interface Pública dos Módulos Profundos
 
 #### `DeliveryService` (`src/features/delivery/server/services/delivery.service.ts`)
+
 ```typescript
 export interface DeliveryDetailsResult {
   orderId: string;
@@ -182,12 +184,19 @@ export interface DeliveryDetailsResult {
 export interface DeliveryService {
   ensureDeliveryExports(orderId: string): Promise<DeliveryDetailsResult>;
   getDeliveryDetails(orderId: string): Promise<DeliveryDetailsResult>;
-  recordDownload(orderId: string, format: "feed" | "story"): Promise<{ success: boolean }>;
-  getExportBinary(orderId: string, format: "feed" | "story"): Promise<{ buffer: Buffer; contentType: string; filename: string }>;
+  recordDownload(
+    orderId: string,
+    format: "feed" | "story",
+  ): Promise<{ success: boolean }>;
+  getExportBinary(
+    orderId: string,
+    format: "feed" | "story",
+  ): Promise<{ buffer: Buffer; contentType: string; filename: string }>;
 }
 ```
 
 #### `PostPaymentRegenerationService` (`src/features/delivery/server/services/post-payment-regeneration.service.ts`)
+
 ```typescript
 export interface RegenerationInput {
   orderId: string;

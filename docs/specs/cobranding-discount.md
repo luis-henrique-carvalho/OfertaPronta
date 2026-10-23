@@ -8,6 +8,7 @@
 Microempresários de comércio local (supermercados, salões, barbearias, pizzarias, hamburguerias, restaurantes) são extremamente sensíveis a preço no momento da conversão final e buscam maximizar o retorno de cada centavo investido na criação dos seus anúncios. Ao mesmo tempo, o **OfertaPronta** precisa acelerar sua aquisição orgânica de clientes sem depender exclusivamente de tráfego pago, alavancando os próprios cards gerados pela ferramenta como vitrines de atração para outros comerciantes que visualizam as peças nas redes sociais e no WhatsApp (Product-Led Growth - PLG).
 
 Atualmente:
+
 1. O checkout possui apenas o preço padrão da Campanha Avulsa (R$ 9,90), sem uma alavanca promocional com contrapartida de crescimento viral.
 2. Os cards publicitários em alta resolução exportados após a compra saem 100% anônimos, perdendo a oportunidade de alcançar outros empresários locais que visualizam o anúncio publicado no Feed e nos Stories do Instagram.
 3. Não há mecanismo para o comerciante optar livremente por um desconto em troca de apoiar a divulgação da ferramenta com uma assinatura sutil e profissional.
@@ -17,6 +18,7 @@ Atualmente:
 Introduzir a funcionalidade de **Desconto de Co-Branding / Assinatura de Marca** na tela de Checkout Pix (`checkout.$orderId.tsx`).
 
 O comerciante visualiza um card promocional opcional e transparente:
+
 - **Proposta:** Ao ativar o switch de co-branding, o comerciante recebe um desconto imediato (padrão de 30%, reduzindo o valor de R$ 9,90 para **R$ 6,93**, com economia visível de R$ 2,97).
 - **Contrapartida:** A arte final (nos formatos Feed 1080×1350 e Story 1080×1920) recebe uma assinatura discreta, elegante e profissional no canto inferior: `"Design por @ofertapronta"` (ou texto configurado no servidor).
 - **Recálculo Reativo do Pix:** Ao acionar o toggle, o backend recalcula o valor da cobrança Pix de forma atômica e autoritativa, emitindo uma nova cobrança instantânea na Pushin Pay e atualizando o QR Code e o código Copia e Cola na tela do comerciante em tempo real.
@@ -31,63 +33,65 @@ O comerciante visualiza um card promocional opcional e transparente:
 ### Happy Paths (Jornada Principal)
 
 1. **Visualização da Oferta de Co-Branding no Checkout:**
-   - *Como um* **Microempresário (`Merchant`)** na tela de checkout Pix,
-   - *quero* visualizar com clareza a opção de obter 30% de desconto em troca da inclusão de uma assinatura discreta no rodapé do meu card,
-   - *para que* eu possa avaliar a economia financeira antes de realizar o pagamento.
+   - _Como um_ **Microempresário (`Merchant`)** na tela de checkout Pix,
+   - _quero_ visualizar com clareza a opção de obter 30% de desconto em troca da inclusão de uma assinatura discreta no rodapé do meu card,
+   - _para que_ eu possa avaliar a economia financeira antes de realizar o pagamento.
 
 2. **Ativação do Desconto e Atualização Dinâmica do Pix:**
-   - *Como um* **Microempresário (`Merchant`)**,
-   - *quero* ativar o botão/switch de co-branding e ver o valor do pedido ser reduzido imediatamente de R$ 9,90 para R$ 6,93 no Resumo do Pedido, no QR Code Pix e no código Copia e Cola,
-   - *para que* eu pague exatamente o valor promocional com total comodidade.
+   - _Como um_ **Microempresário (`Merchant`)**,
+   - _quero_ ativar o botão/switch de co-branding e ver o valor do pedido ser reduzido imediatamente de R$ 9,90 para R$ 6,93 no Resumo do Pedido, no QR Code Pix e no código Copia e Cola,
+   - _para que_ eu pague exatamente o valor promocional com total comodidade.
 
 3. **Prévia Visual da Assinatura no Showcase:**
-   - *Como um* **Microempresário (`Merchant`)**,
-   - *quero* que o card de visualização do anúncio (`AdCardCheckoutShowcase`) exiba uma indicação visual sutil de onde e como a assinatura `"Design por @ofertapronta"` será posicionada,
-   - *para que* eu tenha certeza de que ela não irá cobrir o preço, telefone ou informações críticas da minha oferta.
+   - _Como um_ **Microempresário (`Merchant`)**,
+   - _quero_ que o card de visualização do anúncio (`AdCardCheckoutShowcase`) exiba uma indicação visual sutil de onde e como a assinatura `"Design por @ofertapronta"` será posicionada,
+   - _para que_ eu tenha certeza de que ela não irá cobrir o preço, telefone ou informações críticas da minha oferta.
 
 4. **Desativação do Desconto (Reversão para Preço Normal):**
-   - *Como um* **Microempresário (`Merchant`)**,
-   - *quero* poder desativar o switch de co-branding a qualquer momento antes do pagamento caso decida que prefiro minha arte 100% limpa,
-   - *para que* o sistema restaure a cobrança original de R$ 9,90 com novo QR Code e código Copia e Cola.
+   - _Como um_ **Microempresário (`Merchant`)**,
+   - _quero_ poder desativar o switch de co-branding a qualquer momento antes do pagamento caso decida que prefiro minha arte 100% limpa,
+   - _para que_ o sistema restaure a cobrança original de R$ 9,90 com novo QR Code e código Copia e Cola.
 
 5. **Exportação dos Arquivos com Assinatura após Pagamento com Desconto:**
-   - *Como um* **Microempresário (`Merchant`)** que pagou o pedido com desconto de co-branding ativado,
-   - *quero* baixar meus arquivos em alta resolução (Feed 1080×1350 e Story 1080×1920) contendo a assinatura vetorial limpa no rodapé,
-   - *para que* eu possa postar o anúncio nas minhas redes sociais e no WhatsApp.
+   - _Como um_ **Microempresário (`Merchant`)** que pagou o pedido com desconto de co-branding ativado,
+   - _quero_ baixar meus arquivos em alta resolução (Feed 1080×1350 e Story 1080×1920) contendo a assinatura vetorial limpa no rodapé,
+   - _para que_ eu possa postar o anúncio nas minhas redes sociais e no WhatsApp.
 
 6. **Exportação dos Arquivos Sem Assinatura após Pagamento Normal:**
-   - *Como um* **Microempresário (`Merchant`)** que optou por não ativar o desconto de co-branding,
-   - *quero* receber meus arquivos finais 100% livres de qualquer assinatura ou marca do OfertaPronta,
-   - *para que* minha arte seja estritamente personalizada para o meu negócio.
+   - _Como um_ **Microempresário (`Merchant`)** que optou por não ativar o desconto de co-branding,
+   - _quero_ receber meus arquivos finais 100% livres de qualquer assinatura ou marca do OfertaPronta,
+   - _para que_ minha arte seja estritamente personalizada para o meu negócio.
 
 ### Edge Cases, Concorrência e Resiliência
 
 7. **Preservação do Co-Branding em Regenerações Pós-Pagamento:**
-   - *Como o* **Sistema de Entrega (`PostPaymentRegenerationService`)**,
-   - *quero* verificar o status de `order.cobrandingAccepted` ao derivar novos formatos gerados pelas regenerações permitidas por IA,
-   - *para que* novas artes geradas pós-compra continuem recebendo a assinatura de marca contratada pelo desconto.
+   - _Como o_ **Sistema de Entrega (`PostPaymentRegenerationService`)**,
+   - _quero_ verificar o status de `order.cobrandingAccepted` ao derivar novos formatos gerados pelas regenerações permitidas por IA,
+   - _para que_ novas artes geradas pós-compra continuem recebendo a assinatura de marca contratada pelo desconto.
 
 8. **Reemissão de Cobrança Pix Expirada:**
-   - *Como um* **Microempresário (`Merchant`)** cujo Pix expirou (>30 minutos),
-   - *quero* que a reemissão do Pix mantenha o mesmo valor promocional de R$ 6,93 (se o desconto estava ativo no pedido),
-   - *para que* eu não perca o desconto já configurado.
+   - _Como um_ **Microempresário (`Merchant`)** cujo Pix expirou (>30 minutos),
+   - _quero_ que a reemissão do Pix mantenha o mesmo valor promocional de R$ 6,93 (se o desconto estava ativo no pedido),
+   - _para que_ eu não perca o desconto já configurado.
 
 9. **Bloqueio de Alteração em Pedido Já Pago:**
-   - *Como o* **Módulo de Checkout (`PixCheckoutService`)**,
-   - *quero* rejeitar qualquer tentativa de alterar a opção de co-branding se o pedido já estiver com status `PAID`,
-   - *para que* o valor acordado e a composição visual do pedido permaneçam imutáveis.
+   - _Como o_ **Módulo de Checkout (`PixCheckoutService`)**,
+   - _quero_ rejeitar qualquer tentativa de alterar a opção de co-branding se o pedido já estiver com status `PAID`,
+   - _para que_ o valor acordado e a composição visual do pedido permaneçam imutáveis.
 
 10. **Desativação Global pelo Administrador via `.env`:**
-    - *Como o* **Administrador do Sistema**,
-    - *quero* desativar a promoção definindo `COBRANDING_PROMOTION_ENABLED=false` no `.env`,
-    - *para que* nenhum novo checkout exiba o card de desconto, enquanto pedidos anteriores já criados ou pagos mantenham sua integridade histórica no banco.
+    - _Como o_ **Administrador do Sistema**,
+    - _quero_ desativar a promoção definindo `COBRANDING_PROMOTION_ENABLED=false` no `.env`,
+    - _para que_ nenhum novo checkout exiba o card de desconto, enquanto pedidos anteriores já criados ou pagos mantenham sua integridade histórica no banco.
 
 ---
 
 ## Implementation Decisions
 
 ### 1. Configurações de Ambiente (`src/config/server-env.ts`)
+
 Adicionar variáveis de configuração server-only validadas via Zod:
+
 ```typescript
 COBRANDING_PROMOTION_ENABLED: z.coerce.boolean().default(true),
 COBRANDING_CREDIT_TEXT: z.string().default("Design por @ofertapronta"),
@@ -95,6 +99,7 @@ COBRANDING_DISCOUNT_PERCENT: z.coerce.number().int().min(1).max(90).default(30),
 ```
 
 ### 2. Módulo de Catálogo e Precificação (`src/lib/campaign-catalog.ts`)
+
 - Estender o `CampaignCatalog` com utilitários puros de cálculo e resolução de co-branding:
   ```typescript
   export interface CobrandingPriceCalculation {
@@ -117,6 +122,7 @@ COBRANDING_DISCOUNT_PERCENT: z.coerce.number().int().min(1).max(90).default(30),
   - Preço final com desconto: `990 - 297 = 693` centavos (R$ 6,93).
 
 ### 3. Schema Drizzle (`src/server/db/schema/orders.ts`)
+
 - Adicionar colunas transacionais na tabela `orders`:
   ```typescript
   cobrandingAccepted: boolean("cobranding_accepted").notNull().default(false),
@@ -129,13 +135,16 @@ COBRANDING_DISCOUNT_PERCENT: z.coerce.number().int().min(1).max(90).default(30),
   - `originalAmountCents: number`
 
 ### 4. Contratos RPC e Server Functions (`src/features/checkout/`)
+
 - Adicionar schema e tipo em `src/features/checkout/data/checkout.schemas.ts`:
   ```typescript
   export const updateOrderCobrandingSchema = z.object({
     orderId: z.string().uuid("orderId deve ser um UUID válido"),
     cobrandingAccepted: z.boolean(),
   });
-  export type UpdateOrderCobrandingInput = z.infer<typeof updateOrderCobrandingSchema>;
+  export type UpdateOrderCobrandingInput = z.infer<
+    typeof updateOrderCobrandingSchema
+  >;
   ```
 - Enriquecer `checkoutDetailsOutputSchema`:
   - `cobrandingAccepted: z.boolean().default(false)`
@@ -147,6 +156,7 @@ COBRANDING_DISCOUNT_PERCENT: z.coerce.number().int().min(1).max(90).default(30),
   - `updateOrderCobrandingFn`: método `POST`, recebe `UpdateOrderCobrandingInput` e retorna `CheckoutDetailsResult`.
 
 ### 5. Lógica de Checkout (`src/features/checkout/server/services/pix-checkout.service.ts`)
+
 - Implementar o método `updateOrderCobranding(orderId: string, cobrandingAccepted: boolean)`:
   1. Localiza o pedido no banco. Se não existir, erro 404.
   2. Valida status: se `order.status === "PAID"`, lança erro `ORDER_ALREADY_PAID`.
@@ -166,6 +176,7 @@ COBRANDING_DISCOUNT_PERCENT: z.coerce.number().int().min(1).max(90).default(30),
   8. Retorna o `CheckoutDetailsResult` completo atualizado para o frontend.
 
 ### 6. Processamento Visual no Módulo Profundo `ExportEngine` (`src/server/export-engine/`)
+
 - Adicionar interface e função em `image-processor.ts`:
   ```typescript
   export interface CobrandingOptions {
@@ -192,6 +203,7 @@ COBRANDING_DISCOUNT_PERCENT: z.coerce.number().int().min(1).max(90).default(30),
     - Cor: Branco com opacidade de 80% (`rgba(255, 255, 255, 0.85)`) com drop shadow escuro sutil (`filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.75))"`) ou container pill semitransparente (`background: rgba(0, 0, 0, 0.45)` com cantos arredondados de 12px e padding horizontal de 14px e vertical de 6px), garantindo legibilidade perfeita independente de a arte ter fundo preto, branco ou colorido.
 
 ### 7. Integração no `DeliveryService` e `PostPaymentRegenerationService`
+
 - Em `DeliveryService.deriveAndPersistFormats`:
   - Se `order.cobrandingAccepted === true` e houver `creditText`:
     - Aplica `applyCobrandingSignature` nos buffers gerados de Feed e Story antes de persistir em `deliveryExports`.
@@ -199,6 +211,7 @@ COBRANDING_DISCOUNT_PERCENT: z.coerce.number().int().min(1).max(90).default(30),
   - Respeita `order.cobrandingAccepted` ao entregar a nova versão regenerada com IA, aplicando a mesma assinatura na arte final.
 
 ### 8. Frontend Mobile-First na Tela de Checkout (`src/features/checkout/`)
+
 - Criar o componente `CobrandingDiscountCard` (`src/features/checkout/components/cobranding-discount-card.tsx`):
   - Design system mobile-first com shadcn/ui (`Card`, `Switch`, `Badge`, `Typography`).
   - Badge em destaque: `"Economize R$ 2,97"` ou `"30% OFF"`.

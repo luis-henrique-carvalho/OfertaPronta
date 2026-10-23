@@ -27,7 +27,7 @@ O **Épico 3** implementa a camada de conversão e pagamento do OfertaPronta, tr
    - Modificações posteriores no rascunho de origem não afetam o pedido pago nem a futura entrega em alta resolução do Épico 4.
 
 3. **Módulos Profundos e Isolamento Estrito Client/Server (`codebase-design`)**:
-   - `PushinPayService` (`src/features/checkout/server/services/pushin-pay.service.ts`): módulo profundo que encapsula a comunicação HTTP com a API da Pushin Pay, autenticação Bearer token, timeout, parsing de respostas e mapeamento de erros em exceções de domínio. Possui costura para injeção de `fetchFn` para testes determinísticos sem rede (*replace-don't-layer*).
+   - `PushinPayService` (`src/features/checkout/server/services/pushin-pay.service.ts`): módulo profundo que encapsula a comunicação HTTP com a API da Pushin Pay, autenticação Bearer token, timeout, parsing de respostas e mapeamento de erros em exceções de domínio. Possui costura para injeção de `fetchFn` para testes determinísticos sem rede (_replace-don't-layer_).
    - `PixCheckoutService` (`src/features/checkout/server/services/pix-checkout.service.ts`): módulo profundo que orquestra a máquina de estados transacional, persistência com Drizzle ORM, congelamento do snapshot, emissão/reemissão de cobranças, reconciliação ativa e idempotência estrita de webhooks.
    - Zero Server Leaks: `src/features/checkout/server/index.ts` expõe **exclusivamente** Server Functions (`createServerFn`), schemas Zod e DTOs tipados. Código de banco de dados ou chamadas externas nunca vazam para o bundle do browser.
 
@@ -313,8 +313,13 @@ Adicionar ao schema Zod de backend os parâmetros de configuração do gateway P
 
 ```typescript
 export const serverEnvSchema = z.object({
-  DATABASE_URL: z.string().min(1).default("postgresql://postgres:postgres@localhost:5432/ofertapronta"),
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  DATABASE_URL: z
+    .string()
+    .min(1)
+    .default("postgresql://postgres:postgres@localhost:5432/ofertapronta"),
+  NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
   GEMINI_API_KEY: z.string().optional(),
   // [NOVAS VARIÁVEIS PUSHIN PAY]
@@ -331,7 +336,7 @@ export const serverEnvSchema = z.object({
 
 ### 4.1. `PushinPayService` (`pushin-pay.service.ts`)
 
-Módulo profundo que encapsula o cliente HTTP com a Pushin Pay. Suporta injeção de dependência via parâmetro de construtor/fábrica para função `fetchFn` customizada (*replace-don't-layer*), permitindo testes de unidade 100% isolados da internet.
+Módulo profundo que encapsula o cliente HTTP com a Pushin Pay. Suporta injeção de dependência via parâmetro de construtor/fábrica para função `fetchFn` customizada (_replace-don't-layer_), permitindo testes de unidade 100% isolados da internet.
 
 ```typescript
 // src/features/checkout/server/services/pushin-pay.service.ts
@@ -363,7 +368,11 @@ export interface PushinPayServiceConfig {
 }
 
 export class PushinPayError extends Error {
-  constructor(message: string, public readonly statusCode?: number, public readonly rawError?: unknown) {
+  constructor(
+    message: string,
+    public readonly statusCode?: number,
+    public readonly rawError?: unknown,
+  ) {
     super(message);
     this.name = "PushinPayError";
   }
@@ -376,7 +385,11 @@ export class PushinPayService {
 
   constructor(config: PushinPayServiceConfig = {}) {
     this.token = config.token || process.env.PUSHIN_PAY_TOKEN || "";
-    this.baseUrl = (config.baseUrl || process.env.PUSHIN_PAY_BASE_URL || "https://api.pushinpay.com.br").replace(/\/$/, "");
+    this.baseUrl = (
+      config.baseUrl ||
+      process.env.PUSHIN_PAY_BASE_URL ||
+      "https://api.pushinpay.com.br"
+    ).replace(/\/$/, "");
     this.fetchFn = config.fetchFn || globalThis.fetch;
   }
 
@@ -384,11 +397,15 @@ export class PushinPayService {
    * Emite uma cobrança Pix Cash-In de R$ 9,90 (990 centavos).
    * Retorna txId, linha EMV copia-e-cola e imagem do QR code em Base64.
    */
-  async createCashInCharge(input: CreatePixChargeInput): Promise<PixChargeResult> {
+  async createCashInCharge(
+    input: CreatePixChargeInput,
+  ): Promise<PixChargeResult> {
     // Se não houver token configurado e estiver em teste/dev sem token, permite mock controlado
     if (!this.token) {
       if (process.env.NODE_ENV === "test") {
-        throw new PushinPayError("PUSHIN_PAY_TOKEN não configurado no ambiente de teste");
+        throw new PushinPayError(
+          "PUSHIN_PAY_TOKEN não configurado no ambiente de teste",
+        );
       }
     }
 
@@ -401,15 +418,18 @@ export class PushinPayService {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Authorization": `Bearer ${this.token}`,
+        Accept: "application/json",
+        Authorization: `Bearer ${this.token}`,
       },
       body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new PushinPayError(`Falha ao criar cobrança Pix na Pushin Pay: HTTP ${response.status} - ${errorText}`, response.status);
+      throw new PushinPayError(
+        `Falha ao criar cobrança Pix na Pushin Pay: HTTP ${response.status} - ${errorText}`,
+        response.status,
+      );
     }
 
     const data = await response.json();
@@ -432,17 +452,23 @@ export class PushinPayService {
    * Utilizado para reconciliação ativa caso o webhook atrase.
    */
   async getTransactionStatus(txId: string): Promise<TransactionStatusResult> {
-    const response = await this.fetchFn(`${this.baseUrl}/api/transactions/${txId}`, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "Authorization": `Bearer ${this.token}`,
+    const response = await this.fetchFn(
+      `${this.baseUrl}/api/transactions/${txId}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${this.token}`,
+        },
       },
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new PushinPayError(`Erro ao consultar transação ${txId}: HTTP ${response.status} - ${errorText}`, response.status);
+      throw new PushinPayError(
+        `Erro ao consultar transação ${txId}: HTTP ${response.status} - ${errorText}`,
+        response.status,
+      );
     }
 
     const data = await response.json();
@@ -497,14 +523,16 @@ export interface PushinPayWebhookPayload {
 export class PixCheckoutService {
   constructor(
     private readonly pushinPay: PushinPayService = new PushinPayService(),
-    private readonly database = db
+    private readonly database = db,
   ) {}
 
   /**
    * Inicia o checkout: valida rascunho com prévia, congela o snapshot,
    * emite cobrança Pix de R$ 9,90 e grava Order e PaymentCharge atomicamente.
    */
-  async initiateCheckout(input: InitiateCheckoutInput): Promise<{ orderId: string }> {
+  async initiateCheckout(
+    input: InitiateCheckoutInput,
+  ): Promise<{ orderId: string }> {
     // 1. Carrega rascunho e valida prévia
     const draft = await this.database.query.drafts.findFirst({
       where: eq(drafts.id, input.draftId),
@@ -515,15 +543,20 @@ export class PixCheckoutService {
     }
 
     if (!draft.previewCardImageUrl) {
-      throw new Error("Não é possível iniciar o checkout sem antes gerar a prévia do card com IA");
+      throw new Error(
+        "Não é possível iniciar o checkout sem antes gerar a prévia do card com IA",
+      );
     }
 
     // 2. Se já existir um pedido PENDING com cobrança ativa válida para este draft, reaproveita
     const existingOrder = await this.database.query.orders.findFirst({
-      where: and(eq(orders.draftId, input.draftId), eq(orders.status, "PENDING")),
+      where: and(
+        eq(orders.draftId, input.draftId),
+        eq(orders.status, "PENDING"),
+      ),
       with: {
         // busca cobrança associada
-      }
+      },
     });
 
     // 3. Monta Frozen Snapshot imutável
@@ -624,7 +657,7 @@ export class PixCheckoutService {
    */
   async handleWebhookPayment(
     payload: PushinPayWebhookPayload,
-    secretHeader?: string
+    secretHeader?: string,
   ): Promise<{ processed: boolean; orderId?: string; alreadyPaid?: boolean }> {
     // 1. Opcional: valida secret configurado
     const expectedSecret = process.env.PUSHIN_PAY_WEBHOOK_SECRET;
@@ -638,7 +671,9 @@ export class PixCheckoutService {
     });
 
     if (!charge) {
-      throw new Error(`Cobrança com txId ${payload.id} não encontrada no banco`);
+      throw new Error(
+        `Cobrança com txId ${payload.id} não encontrada no banco`,
+      );
     }
 
     // 3. IDEMPOTÊNCIA: Se já estiver paga, encerra com sucesso sem mutação redundante
@@ -650,7 +685,9 @@ export class PixCheckoutService {
     if (payload.status === "paid") {
       // Validação estrita de valor recebido (anti-spoofing)
       if (Number(payload.value) !== 990) {
-        throw new Error(`Valor recebido (${payload.value}) divergente do esperado (990 centavos)`);
+        throw new Error(
+          `Valor recebido (${payload.value}) divergente do esperado (990 centavos)`,
+        );
       }
 
       const now = payload.paid_at ? new Date(payload.paid_at) : new Date();
@@ -686,7 +723,9 @@ export class PixCheckoutService {
    * Consulta o status do pagamento para polling em tempo real.
    * Se o status local ainda for PENDING, efetua reconciliação ativa com a Pushin Pay.
    */
-  async checkPaymentStatus(orderId: string): Promise<{ status: string; isPaid: boolean }> {
+  async checkPaymentStatus(
+    orderId: string,
+  ): Promise<{ status: string; isPaid: boolean }> {
     const order = await this.database.query.orders.findFirst({
       where: eq(orders.id, orderId),
     });
@@ -743,7 +782,9 @@ export class PixCheckoutService {
   /**
    * Reemite cobrança Pix caso a anterior tenha expirado (>30 minutos).
    */
-  async regenerateExpiredCharge(orderId: string): Promise<CheckoutDetailsResult> {
+  async regenerateExpiredCharge(
+    orderId: string,
+  ): Promise<CheckoutDetailsResult> {
     const order = await this.database.query.orders.findFirst({
       where: eq(orders.id, orderId),
     });
@@ -766,7 +807,12 @@ export class PixCheckoutService {
       await tx
         .update(paymentCharges)
         .set({ status: "EXPIRED", updatedAt: new Date() })
-        .where(and(eq(paymentCharges.orderId, orderId), eq(paymentCharges.status, "PENDING")));
+        .where(
+          and(
+            eq(paymentCharges.orderId, orderId),
+            eq(paymentCharges.status, "PENDING"),
+          ),
+        );
 
       // Insere a nova cobrança válida
       await tx.insert(paymentCharges).values({
@@ -793,7 +839,10 @@ export class PixCheckoutService {
   /**
    * Atualiza o WhatsApp de contato do cliente no pedido para resgate futuro do link.
    */
-  async updateCustomerWhatsapp(orderId: string, whatsapp: string): Promise<void> {
+  async updateCustomerWhatsapp(
+    orderId: string,
+    whatsapp: string,
+  ): Promise<void> {
     await this.database
       .update(orders)
       .set({ customerWhatsapp: whatsapp, updatedAt: new Date() })
@@ -873,7 +922,8 @@ import {
 export const initiateCheckoutFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => initiateCheckoutSchema.parse(input))
   .handler(async ({ data }) => {
-    const { PixCheckoutService } = await import("../services/pix-checkout.service");
+    const { PixCheckoutService } =
+      await import("../services/pix-checkout.service");
     const service = new PixCheckoutService();
     return service.initiateCheckout(data);
   });
@@ -881,7 +931,8 @@ export const initiateCheckoutFn = createServerFn({ method: "POST" })
 export const getOrderCheckoutDetailsFn = createServerFn({ method: "GET" })
   .validator((input: unknown) => orderIdSchema.parse(input))
   .handler(async ({ data }) => {
-    const { PixCheckoutService } = await import("../services/pix-checkout.service");
+    const { PixCheckoutService } =
+      await import("../services/pix-checkout.service");
     const service = new PixCheckoutService();
     return service.getCheckoutDetails(data.orderId);
   });
@@ -889,7 +940,8 @@ export const getOrderCheckoutDetailsFn = createServerFn({ method: "GET" })
 export const checkPaymentStatusFn = createServerFn({ method: "GET" })
   .validator((input: unknown) => orderIdSchema.parse(input))
   .handler(async ({ data }) => {
-    const { PixCheckoutService } = await import("../services/pix-checkout.service");
+    const { PixCheckoutService } =
+      await import("../services/pix-checkout.service");
     const service = new PixCheckoutService();
     return service.checkPaymentStatus(data.orderId);
   });
@@ -897,7 +949,8 @@ export const checkPaymentStatusFn = createServerFn({ method: "GET" })
 export const updateOrderWhatsappFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => updateOrderWhatsappSchema.parse(input))
   .handler(async ({ data }) => {
-    const { PixCheckoutService } = await import("../services/pix-checkout.service");
+    const { PixCheckoutService } =
+      await import("../services/pix-checkout.service");
     const service = new PixCheckoutService();
     await service.updateCustomerWhatsapp(data.orderId, data.whatsapp);
     return { success: true };
@@ -906,7 +959,8 @@ export const updateOrderWhatsappFn = createServerFn({ method: "POST" })
 export const regenerateExpiredChargeFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => orderIdSchema.parse(input))
   .handler(async ({ data }) => {
-    const { PixCheckoutService } = await import("../services/pix-checkout.service");
+    const { PixCheckoutService } =
+      await import("../services/pix-checkout.service");
     const service = new PixCheckoutService();
     return service.regenerateExpiredCharge(data.orderId);
   });
@@ -951,18 +1005,28 @@ export const Route = createFileRoute("/api/webhooks/pix")({
 
           if (!parsedPayload.success) {
             return Response.json(
-              { error: "Payload do webhook malformado", details: parsedPayload.error.format() },
-              { status: 400 }
+              {
+                error: "Payload do webhook malformado",
+                details: parsedPayload.error.format(),
+              },
+              { status: 400 },
             );
           }
 
-          const secretHeader = request.headers.get("x-webhook-secret") || undefined;
+          const secretHeader =
+            request.headers.get("x-webhook-secret") || undefined;
           const service = new PixCheckoutService();
-          const result = await service.handleWebhookPayment(parsedPayload.data, secretHeader);
+          const result = await service.handleWebhookPayment(
+            parsedPayload.data,
+            secretHeader,
+          );
 
           return Response.json({ success: true, ...result }, { status: 200 });
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Erro desconhecido ao processar webhook";
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Erro desconhecido ao processar webhook";
           return Response.json({ error: message }, { status: 400 });
         }
       },
@@ -1006,10 +1070,15 @@ export function useOrderPolling({
       }
       return response;
     },
-    enabled: enabled && initialStatus !== "PAID" && initialStatus !== "CANCELLED",
+    enabled:
+      enabled && initialStatus !== "PAID" && initialStatus !== "CANCELLED",
     refetchInterval: (query) => {
       const data = query.state.data;
-      if (data?.isPaid || data?.status === "PAID" || data?.status === "CANCELLED") {
+      if (
+        data?.isPaid ||
+        data?.status === "PAID" ||
+        data?.status === "CANCELLED"
+      ) {
         return false; // Interrompe o polling imediatamente
       }
       return 3000; // Polling a cada 3s
@@ -1027,28 +1096,29 @@ export function useOrderPolling({
 
 2. **`pix-copia-cola-card.tsx`**:
    - Código EMV Copia e Cola dentro de container legível com truncate suave.
-   - Botão de destaque touch-friendly *"Copiar Código Pix"* com ícone `Copy`/`Check` e feedback de cópia com `navigator.clipboard`.
+   - Botão de destaque touch-friendly _"Copiar Código Pix"_ com ícone `Copy`/`Check` e feedback de cópia com `navigator.clipboard`.
 
 3. **`pix-qr-code-card.tsx`**:
    - Renderiza a imagem do QR Code em Base64 retornada pela Pushin Pay.
    - Container com cantos arredondados, fundo branco para máxima legibilidade óptica em scan e instruções acessíveis.
 
 4. **`payment-polling-indicator.tsx`**:
-   - Indicador com animação suave de pulso (*"Aguardando confirmação do banco..."*).
+   - Indicador com animação suave de pulso (_"Aguardando confirmação do banco..."_).
    - Cronômetro regressivo com contagem visual decrescente (30:00 -> 00:00).
-   - Botão de contingência: *"Já paguei? Verificar agora"*.
-   - Estado `EXPIRED`: aviso claro de expiração e botão proeminente *"Gerar Novo Código Pix"*.
+   - Botão de contingência: _"Já paguei? Verificar agora"_.
+   - Estado `EXPIRED`: aviso claro de expiração e botão proeminente _"Gerar Novo Código Pix"_.
 
 5. **`order-whatsapp-recovery-card.tsx`**:
-   - Campo acessível com `Input` shadcn/ui: *"Receber link por WhatsApp caso feche o navegador (opcional)"*.
+   - Campo acessível com `Input` shadcn/ui: _"Receber link por WhatsApp caso feche o navegador (opcional)"_.
    - Pré-preenchido com o WhatsApp cadastrado no rascunho.
    - Salva via `updateOrderWhatsappFn` ao perder o foco ou clicar em confirmar.
 
 ### 6.3. Conexão na Etapa 3 do Wizard de Criação
 
 Atualização de `src/features/promotions/components/preview-checkout-action-card.tsx` e `offer-brief-wizard.tsx`:
+
 - Substituir o placeholder `alert(...)` por chamada à Server Function `initiateCheckoutFn({ data: { draftId } })`.
-- Feedback no botão: *"Gerando Cobrança Pix..."* com spinner.
+- Feedback no botão: _"Gerando Cobrança Pix..."_ com spinner.
 - Navegação automática do router para `/checkout/$orderId`.
 
 ---
@@ -1057,18 +1127,19 @@ Atualização de `src/features/promotions/components/preview-checkout-action-car
 
 ### 7.1. Matriz de Testes
 
-| Arquivo de Teste | Camada | Objetivo do Teste |
-|---|---|---|
-| `pushin-pay.service.test.ts` | Backend / Unidade | Emissão de Cash-In com fake fetch determinístico, parsing de QR Code Base64 e Copia e Cola, consulta de status e tratamento de erros de API. |
-| `pix-checkout.service.test.ts` | Backend / Integração | Criação de pedido com `frozenSnapshot` imutável, máquina de estados, transição para `PAID`, idempotência estrita de webhooks e rejeição de valores divergentes. |
-| `server-isolation.test.ts` | Arquitetura / Limites | Garante que `features/checkout/server/index.ts` expõe apenas Server Functions e schemas, sem vazamento de módulos Node.js para o browser. |
-| `checkout.functions.test.ts` | Fronteira RPC | Validação Zod estrita de inputs e outputs das Server Functions. |
-| `use-order-polling.test.ts` | Frontend / Hook | Ciclo de polling de 3 segundos com TanStack Query, parada imediata ao receber `PAID` e disparo do callback `onPaymentConfirmed`. |
-| `checkout-view.test.tsx` | Frontend / UI | Renderização dos estados `PENDING`, `EXPIRED`, cópia do Pix e redirecionamento no status `PAID`. |
+| Arquivo de Teste               | Camada                | Objetivo do Teste                                                                                                                                               |
+| ------------------------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pushin-pay.service.test.ts`   | Backend / Unidade     | Emissão de Cash-In com fake fetch determinístico, parsing de QR Code Base64 e Copia e Cola, consulta de status e tratamento de erros de API.                    |
+| `pix-checkout.service.test.ts` | Backend / Integração  | Criação de pedido com `frozenSnapshot` imutável, máquina de estados, transição para `PAID`, idempotência estrita de webhooks e rejeição de valores divergentes. |
+| `server-isolation.test.ts`     | Arquitetura / Limites | Garante que `features/checkout/server/index.ts` expõe apenas Server Functions e schemas, sem vazamento de módulos Node.js para o browser.                       |
+| `checkout.functions.test.ts`   | Fronteira RPC         | Validação Zod estrita de inputs e outputs das Server Functions.                                                                                                 |
+| `use-order-polling.test.ts`    | Frontend / Hook       | Ciclo de polling de 3 segundos com TanStack Query, parada imediata ao receber `PAID` e disparo do callback `onPaymentConfirmed`.                                |
+| `checkout-view.test.tsx`       | Frontend / UI         | Renderização dos estados `PENDING`, `EXPIRED`, cópia do Pix e redirecionamento no status `PAID`.                                                                |
 
 ### 7.2. Pipeline de Verificação Oficial
 
 Todos os testes e verificações devem passar sem ressalvas no pipeline do projeto:
+
 ```bash
 # Executa check de conformidade Shadcn UI + Typecheck + ESLint + Vitest
 ./.agents/scripts/verify.sh --quick

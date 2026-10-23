@@ -18,12 +18,14 @@ Refazer o módulo profundo `src/server/prompt-engine/` do zero (`prompt-engine-v
 ## 2. Arquivos no Escopo do Builder
 
 ### Deletar (`rm` / `git rm`)
+
 - `src/server/prompt-engine/art-direction-blueprints.ts`
 - `src/server/prompt-engine/dynamic-planner.ts`
 - `src/server/prompt-engine/edit-prompt-compiler.ts`
 - `src/server/prompt-engine/prompt-compiler.ts`
 
 ### Criar / Reescrever
+
 - `src/server/prompt-engine/types.ts`
 - `src/server/prompt-engine/system-instructions.ts`
 - `src/server/prompt-engine/prompt-engine.ts`
@@ -31,6 +33,7 @@ Refazer o módulo profundo `src/server/prompt-engine/` do zero (`prompt-engine-v
 - `src/server/prompt-engine/prompt-engine.test.ts`
 
 ### Modificar
+
 - `src/config/server-env.ts`
 - `src/config/server-env.test.ts`
 - `.env.example`
@@ -43,6 +46,7 @@ Refazer o módulo profundo `src/server/prompt-engine/` do zero (`prompt-engine-v
 ## 3. Especificação Técnica Detalhada
 
 ### 3.1. Variáveis de Ambiente (`src/config/server-env.ts` & `.env.example`)
+
 1. Em `src/config/server-env.ts`, garantir no `serverEnvSchema`:
    - `GEMINI_PROMPT_MODEL: z.string().min(1).default("gemini-3.8-flash")`
    - `GEMINI_IMAGE_MODEL: z.string().min(1).default("gemini-nano-banana-2.1")`
@@ -50,6 +54,7 @@ Refazer o módulo profundo `src/server/prompt-engine/` do zero (`prompt-engine-v
 3. Em `.env.example`, documentar `GEMINI_PROMPT_MODEL="gemini-3.8-flash"` e `GEMINI_IMAGE_MODEL="gemini-nano-banana-2.1"`.
 
 ### 3.2. System Instructions Universais (`src/server/prompt-engine/system-instructions.ts`)
+
 1. **Zero Segmentos Hardcoded e Zero Regex**: Não criar mapas por segmento (`SEGMENT_ART_DIRECTIVES` ou `segment-archetypes.ts`) nem expressões regulares de classificação (`RECOMPOSE_INTENT_REGEX`).
 2. **`GOLDEN_FEW_SHOT_MASTER_PROMPT`**: Exportar a constante contendo exatamente os 4 parágrafos validados no protótipo:
    - Parágrafo 1: `"Fotografia publicitária gastronômica comercial para social media em proporção vertical 4:5, sem divisão estanque de tela, apresentando uma cena única tridimensional contínua e imersiva de steakhouse artesanal..."`
@@ -70,6 +75,7 @@ Refazer o módulo profundo `src/server/prompt-engine/` do zero (`prompt-engine-v
    - Incluir a **Regra Inegociável Canvas vs. Layout Interno**: pedidos como `"quero um layout horizontal"`, `"dividir na horizontal"` ou mudanças estruturais dentro de um card Feed (`4:5`) ou Story (`9:16`) referem-se exclusivamente ao **arranjo interno horizontal dos elementos** (faixas horizontais superior/inferior ou divisão lado a lado dentro do canvas vertical), NUNCA a mudar o aspect ratio para widescreen `16:9`.
 
 ### 3.3. Módulo Profundo (`src/server/prompt-engine/prompt-engine.ts`)
+
 1. **`compileAdCardPrompt(input: PromptEngineInput, options?: PromptEngineOptions): Promise<PromptEngineCompileResult>`**:
    - Identifica se está em **Modo Edição Conversacional** (`Boolean(input.baseCardImageDataUrl)`).
    - Se `options?.client` estiver presente e `options?.enableDynamicPlanner !== false`:
@@ -92,6 +98,7 @@ Refazer o módulo profundo `src/server/prompt-engine/` do zero (`prompt-engine-v
    - Utilitários puros exportados pelo módulo.
 
 ### 3.4. Integração com `ai-card-generator.service.ts` e `post-payment-regeneration.service.ts`
+
 1. Em `src/features/promotions/server/services/ai-card-generator.service.ts`:
    - Ler o modelo de imagem dinamicamente de `serverEnv.GEMINI_IMAGE_MODEL` (mantendo `export const GEMINI_IMAGE_MODEL = serverEnv.GEMINI_IMAGE_MODEL;` para compatibilidade).
    - Chamar `compileAdCardPrompt` / `buildMultimodalPromptPartsAsync` do `@/server/prompt-engine`.

@@ -156,7 +156,7 @@ stateDiagram-v2
         [*] --> SelectIntent
         SelectIntent: 6 Objetivos (Promoção, Novidade, Data, Inauguração, Aviso, Outro)
         SelectIntent --> FillDetails: Nome da Loja + Mensagem Principal
-        
+
         state FillDetails {
             PromoIntent: Preço OBRIGATÓRIO (se intent === promo)
             NonPromoIntent: Preço OCULTO (new-arrival, special-date, announcement, schedule)
@@ -198,7 +198,7 @@ stateDiagram-v2
 
     GeneratingPreview --> Step4_StyleAndPalette: Falha de IA (Exibe erro, mantém rascunho, cota preservada)
     GeneratingPreview --> InitiatingCheckout: Síntese e Marca d'Água concluídas com sucesso
-    
+
     state InitiatingCheckout {
         [*] --> CallInitiateCheckoutFn
         CallInitiateCheckoutFn: Congela frozenSnapshot com novos campos
@@ -233,7 +233,7 @@ sequenceDiagram
     Comerciante->>Wizard: Toca em "Gerar Meu Card" no Passo 4
     Wizard->>Hook: generateCardAndInitiateCheckout()
     Hook->>Loader: Abre modal (Fase 1: "Briefing & Insumos")
-    
+
     Hook->>RPC_Draft: saveDraftFn({ data: draftPayloadWithNewFields })
     RPC_Draft->>DB: Upsert em drafts (cardIntent, customIntentText, logoImageDataUrl)
     DB-->>RPC_Draft: draft salvo (draftId)
@@ -415,8 +415,14 @@ export const offerBriefSchema = z
     targetAspectRatio: z.enum(CARD_ASPECT_RATIOS).default("feed"),
     cardIntent: z.enum(CARD_INTENTS).default("promo"),
     customIntentText: z.string().trim().optional(),
-    businessName: z.string().trim().min(1, "Nome do estabelecimento é obrigatório"),
-    offerTitle: z.string().trim().min(1, "Título ou mensagem da oferta é obrigatório"),
+    businessName: z
+      .string()
+      .trim()
+      .min(1, "Nome do estabelecimento é obrigatório"),
+    offerTitle: z
+      .string()
+      .trim()
+      .min(1, "Título ou mensagem da oferta é obrigatório"),
     promoPrice: z.string().trim().optional(),
     originalPrice: z.string().trim().optional(),
     callToAction: z.string().trim().optional(),
@@ -429,7 +435,10 @@ export const offerBriefSchema = z
   })
   .superRefine((data, ctx) => {
     // 1. Preço obrigatório exclusivamente se intent === "promo"
-    if (data.cardIntent === "promo" && (!data.promoPrice || data.promoPrice.trim().length === 0)) {
+    if (
+      data.cardIntent === "promo" &&
+      (!data.promoPrice || data.promoPrice.trim().length === 0)
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["promoPrice"],
@@ -438,7 +447,10 @@ export const offerBriefSchema = z
     }
 
     // 2. Se intent === "custom", texto do objetivo personalizado é obrigatório
-    if (data.cardIntent === "custom" && (!data.customIntentText || data.customIntentText.trim().length === 0)) {
+    if (
+      data.cardIntent === "custom" &&
+      (!data.customIntentText || data.customIntentText.trim().length === 0)
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["customIntentText"],
@@ -477,6 +489,7 @@ export interface GenerateAdCardInput {
 ```
 
 #### Tratamento Multimodal de Logotipo & Preço:
+
 1. **Logotipo da Loja**:
    ```typescript
    if (input.logoImageDataUrl) {
@@ -488,12 +501,12 @@ export interface GenerateAdCardInput {
    }
    ```
 2. **Diretiva de Objetivo (`cardIntent`)**:
-   - `promo`: *"Foco absoluto em apelo promocional marcante, senso de oportunidade e alto contraste no preço."*
-   - `new-arrival`: *"Foco editorial em sofisticação, novidade e apresentação impecável de coleção ou lançamento ('Chegou Novidade!', 'Nova Coleção')."*
-   - `special-date`: *"Foco em atmosfera temática e emotiva da data comemorativa anunciada."*
-   - `announcement`: *"Foco em clareza institucional, impacto visual de evento/inauguração e destaque para data/local."*
-   - `schedule`: *"Foco em legibilidade máxima da mensagem informativa de horário de atendimento ou feriado."*
-   - `custom`: *"Foco na mensagem personalizada informada pelo cliente: [customIntentText]."*
+   - `promo`: _"Foco absoluto em apelo promocional marcante, senso de oportunidade e alto contraste no preço."_
+   - `new-arrival`: _"Foco editorial em sofisticação, novidade e apresentação impecável de coleção ou lançamento ('Chegou Novidade!', 'Nova Coleção')."_
+   - `special-date`: _"Foco em atmosfera temática e emotiva da data comemorativa anunciada."_
+   - `announcement`: _"Foco em clareza institucional, impacto visual de evento/inauguração e destaque para data/local."_
+   - `schedule`: _"Foco em legibilidade máxima da mensagem informativa de horário de atendimento ou feriado."_
+   - `custom`: _"Foco na mensagem personalizada informada pelo cliente: [customIntentText]."_
 3. **Ausência de Preço**:
    - Quando `!input.promoPrice || input.promoPrice.trim().length === 0`:
      ```text
@@ -562,7 +575,8 @@ async function generateCardAndInitiateCheckout(): Promise<
       success: false,
       error: {
         code: "CHECKOUT_INIT_FAILED",
-        message: err instanceof Error ? err.message : "Falha ao criar cobrança Pix",
+        message:
+          err instanceof Error ? err.message : "Falha ao criar cobrança Pix",
       },
     };
   }
@@ -603,6 +617,7 @@ flowchart LR
 ```
 
 ### Ticket 01 — Schemas de Banco, Zod e Snapshot Congelado com Preço Condicional
+
 - **Ator**: `backend-builder`
 - **Arquivos a Modificar/Criar**:
   - `src/server/db/schema/promotions.ts` (adicionar `cardIntent`, `customIntentText`, `logoImageDataUrl` em `drafts`).
@@ -618,6 +633,7 @@ flowchart LR
 ---
 
 ### Ticket 02 — Prompting Multimodal Gemini com Logotipo, Objetivos e Preço Opcional
+
 - **Ator**: `backend-builder`
 - **Arquivos a Modificar/Criar**:
   - `src/features/promotions/server/services/ai-card-generator.service.ts` (estender `GenerateAdCardInput`, injeção multimodal de logo, diretrizes por `cardIntent`, supressão de preço quando vazio e diretriz de arte para `fashion`).
@@ -629,6 +645,7 @@ flowchart LR
 ---
 
 ### Ticket 03 — Catálogo Isomórfico Extensível e Componentes de Mini-Posts
+
 - **Ator**: `frontend-builder`
 - **Arquivos a Modificar/Criar**:
   - `src/features/promotions/data/creation-catalog.ts` (catálogo oficial consolidado com 7 segmentos, 6 intents, 42 estilos com layouts types e `QUICK_BRAND_PALETTES`).
@@ -643,6 +660,7 @@ flowchart LR
 ---
 
 ### Ticket 04 — Hook de Estado e Orquestração de Geração com Redirecionamento ao Checkout
+
 - **Ator**: `frontend-builder` (ou fullstack)
 - **Arquivos a Modificar/Criar**:
   - `src/features/promotions/hooks/use-offer-brief-draft.ts` (gerenciamento dos novos estados, método `validateStep2()`, orquestração `generateCardAndInitiateCheckout()`, resiliência a erros e quota).
@@ -653,6 +671,7 @@ flowchart LR
 ---
 
 ### Ticket 05 — Componentes do Wizard em Micro-Passos, Rodapé Fixo e Integração na Rota `/criar`
+
 - **Ator**: `frontend-builder`
 - **Arquivos a Modificar/Criar**:
   - `src/features/promotions/components/wizard/step1-segment-select.tsx`

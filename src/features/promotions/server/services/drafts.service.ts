@@ -4,6 +4,10 @@ import { drafts, type Draft } from "../../../../server/db/schema/promotions";
 import {
   saveOfferDraftSchema,
   type SaveOfferDraftInput,
+  type DraftClientDto,
+  type BusinessSegment,
+  type CardAspectRatio,
+  type CardIntent,
 } from "../../data/offer-brief.schema";
 import {
   getStorageService,
@@ -13,7 +17,8 @@ import { createServerLogger } from "../../../../server/logger";
 
 const log = createServerLogger("promotions.drafts.service");
 
-export type OfferDraft = Draft;
+export type OfferDraft = DraftClientDto;
+export type DraftRow = Draft;
 
 function parseDataUrl(
   dataUrl: string,
@@ -100,12 +105,13 @@ async function processVisualAsset(
 /**
  * Resolve transparência de URLs para o frontend (Step3VisualAssets):
  * Se as colunas de chaves leves estiverem preenchidas, resolve as URLs públicas via StorageService.
- * Registros legados sem chave de storage têm suas Data URLs originais preservadas.
+ * Monta explicitamente o DTO seguro para o cliente (allowlist estrita P0),
+ * nunca expondo cleanMaster* nem chaves de storage internas.
  */
 export function formatDraftForClient(
   draft: Draft,
   storageService: StorageService = getStorageService(),
-): OfferDraft {
+): DraftClientDto {
   const resolvedProduct = draft.productAssetKey
     ? storageService.getPublicUrl(draft.productAssetKey)
     : draft.productImageDataUrl;
@@ -119,10 +125,26 @@ export function formatDraftForClient(
     : draft.logoImageDataUrl;
 
   return {
-    ...draft,
-    productImageDataUrl: resolvedProduct,
-    referenceImageDataUrl: resolvedReference,
-    logoImageDataUrl: resolvedLogo,
+    id: draft.id,
+    businessSegment: draft.businessSegment as BusinessSegment,
+    targetAspectRatio: draft.targetAspectRatio as CardAspectRatio,
+    businessName: draft.businessName,
+    offerTitle: draft.offerTitle,
+    promoPrice: draft.promoPrice,
+    originalPrice: draft.originalPrice ?? null,
+    callToAction: draft.callToAction ?? null,
+    whatsapp: draft.whatsapp ?? null,
+    stylePresetId: draft.stylePresetId ?? null,
+    customStyleInstructions: draft.customStyleInstructions ?? null,
+    cardIntent: (draft.cardIntent ?? "promo") as CardIntent,
+    customIntentText: draft.customIntentText ?? null,
+    productImageDataUrl: resolvedProduct ?? null,
+    referenceImageDataUrl: resolvedReference ?? null,
+    logoImageDataUrl: resolvedLogo ?? null,
+    previewCardImageUrl: draft.previewCardImageUrl ?? null,
+    aiGenerationCount: draft.aiGenerationCount,
+    createdAt: draft.createdAt,
+    updatedAt: draft.updatedAt,
   };
 }
 
@@ -154,12 +176,8 @@ function buildDraftRowValues(
     logoAssetKey: assets.logo.assetKey,
     stylePresetId: validated.stylePresetId ?? null,
     customStyleInstructions: validated.customStyleInstructions ?? null,
-    cleanMasterImageDataUrl: validated.cleanMasterImageDataUrl ?? null,
-    previewCardImageUrl: validated.previewCardImageUrl ?? null,
     cardIntent: validated.cardIntent ?? "promo",
     customIntentText: validated.customIntentText ?? null,
-    previewAssetKey: validated.previewAssetKey ?? null,
-    cleanMasterAssetKey: validated.cleanMasterAssetKey ?? null,
     updatedAt: now,
   };
 }
@@ -233,6 +251,10 @@ export async function saveOfferDraft(
     .insert(drafts)
     .values({
       ...rowValues,
+      cleanMasterImageDataUrl: null,
+      cleanMasterAssetKey: null,
+      previewCardImageUrl: null,
+      previewAssetKey: null,
       aiGenerationCount: 0,
       createdAt: now,
     })
@@ -246,13 +268,12 @@ export async function saveOfferDraft(
 }
 
 /**
- * Busca um rascunho de briefing pelo ID e formata para o cliente com transparência.
+ * Busca o registro cru de Draft no banco (server-only / uso interno dos serviços).
  */
-export async function getOfferDraft(
+export async function getDraftRow(
   id: string,
   database: AppDatabase = db,
-  storageService: StorageService = getStorageService(),
-): Promise<OfferDraft | null> {
+): Promise<Draft | null> {
   if (!id || id.trim().length === 0) {
     return null;
   }
@@ -263,11 +284,23 @@ export async function getOfferDraft(
     .where(eq(drafts.id, id))
     .limit(1);
 
-  if (!rows[0]) {
+  return rows[0] ?? null;
+}
+
+/**
+ * Busca um rascunho de briefing pelo ID e formata para o cliente com transparência.
+ */
+export async function getOfferDraft(
+  id: string,
+  database: AppDatabase = db,
+  storageService: StorageService = getStorageService(),
+): Promise<OfferDraft | null> {
+  const row = await getDraftRow(id, database);
+  if (!row) {
     return null;
   }
 
-  return formatDraftForClient(rows[0], storageService);
+  return formatDraftForClient(row, storageService);
 }
 
 /**

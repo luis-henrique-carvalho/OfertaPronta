@@ -7,14 +7,14 @@
 
 ## Problem Statement
 
-O OfertaPronta avançou na integração inicial com o Cloudflare R2 para armazenamento de cards gerados por IA, porém uma auditoria arquitetural nos quatro pilares de engenharia revelou vazamentos de abstração, acoplamento desnecessário e risco de inchaço (*bloat*) no banco de dados PostgreSQL:
+O OfertaPronta avançou na integração inicial com o Cloudflare R2 para armazenamento de cards gerados por IA, porém uma auditoria arquitetural nos quatro pilares de engenharia revelou vazamentos de abstração, acoplamento desnecessário e risco de inchaço (_bloat_) no banco de dados PostgreSQL:
 
 1. **Vazamento de Abstração e Verificação Frágil de Strings (`storage.local.fake`):**
    O `InMemoryStorageDriver` atualmente retorna URLs contendo o domínio simulado `https://storage.local.fake/...`, que não é resolúvel por navegadores nem renderizável em tags `<img />`. Para contornar isso, o `DeliveryService` introduziu condicionais frágeis (`isFakeStorage = feedUpload.url.includes("storage.local.fake")`) para forçar redirecionamento via endpoint local de download. Essa verificação é um vazamento evidente de detalhes de implementação do driver para a camada de serviço.
 2. **Falta de Fail-Fast no Driver Cloudflare R2:**
    O `CloudflareR2StorageDriver` aceita `publicUrl` como opcional. Quando não fornecido, gera URLs no formato `https://${accountId}.r2.cloudflarestorage.com/${bucketName}/${key}`, que são privadas/não autenticadas no R2 e falham ao serem acessadas por clientes externos, sem acusar erro em tempo de inicialização.
 3. **Módulo de Exportação Raso (`ExportEngine`):**
-   O módulo `ExportEngine` atual funciona apenas como coleção de funções utilitárias do Sharp (`formatFeedCard`, `formatStoryCard`, `applyWatermark`, `applyCobrandingSignature`). Os chamadores (`DeliveryService`, `PreviewGeneratorService`) são obrigados a orquestrar manualmente transformações visuais, formatação de chaves canônicas (`deliveries/{orderId}/feed.png`, `previews/{draftId}/{timestamp}.png`), chamadas ao `StorageService`, e concatenação de sufixos de cache-busting (`?v=timestamp`), violando o princípio de *Deep Modules* (módulos profundos com interface concisa e implementação substancial).
+   O módulo `ExportEngine` atual funciona apenas como coleção de funções utilitárias do Sharp (`formatFeedCard`, `formatStoryCard`, `applyWatermark`, `applyCobrandingSignature`). Os chamadores (`DeliveryService`, `PreviewGeneratorService`) são obrigados a orquestrar manualmente transformações visuais, formatação de chaves canônicas (`deliveries/{orderId}/feed.png`, `previews/{draftId}/{timestamp}.png`), chamadas ao `StorageService`, e concatenação de sufixos de cache-busting (`?v=timestamp`), violando o princípio de _Deep Modules_ (módulos profundos com interface concisa e implementação substancial).
 4. **Assimetria na Regeneração Pós-Pagamento:**
    Na geração inicial da prévia, a arte mestre é armazenada no `StorageService` sob `masters/{draftId}/{timestamp}.png` e registrada em `cleanMasterAssetKey`. No entanto, na regeneração pós-compra em `PostPaymentRegenerationService`, a nova arte mestre gerada pela IA é gravada apenas como Base64 no snapshot do pedido, sem persistência no `StorageService` e sem atualização da coluna `cleanMasterAssetKey`, criando inconsistência de dados.
 5. **Inchaço Crítico de TOAST no PostgreSQL por Insumos do Usuário:**
@@ -28,7 +28,7 @@ Aprofundar a arquitetura de armazenamento e exportação em três etapas complem
 
 1. **Vedar a Costura de Armazenamento (`StorageService`):**
    - Garantir que **todos** os adaptadores (`CloudflareR2StorageDriver` e `InMemoryStorageDriver`) retornem URLs válidas e imediatamente consumíveis por navegadores e elementos `<img />`. O `InMemoryStorageDriver` passa a retornar Data URLs autocontidas (`data:${contentType};base64,...`) ou URLs base resolúveis, eliminando completamente a necessidade de checagem por `storage.local.fake`.
-   - Adicionar validação *fail-fast* no construtor do `CloudflareR2StorageDriver`: caso seja instanciado sem `publicUrl` (`R2_PUBLIC_URL`), lança erro operacional imediato impedindo inicializações silenciosamente corrompidas.
+   - Adicionar validação _fail-fast_ no construtor do `CloudflareR2StorageDriver`: caso seja instanciado sem `publicUrl` (`R2_PUBLIC_URL`), lança erro operacional imediato impedindo inicializações silenciosamente corrompidas.
    - Corrigir a assimetria na regeneração pós-pagamento: a nova arte mestre gerada pela IA é obrigatoriamente persistida no `StorageService` sob chave canônica e o campo `orders.cleanMasterAssetKey` é atualizado atomicamente no banco.
 
 2. **Consolidar o Módulo Profundo de Exportação (`ExportEngine`):**
@@ -50,17 +50,20 @@ Aprofundar a arquitetura de armazenamento e exportação em três etapas complem
 ## User Stories
 
 ### Armazenamento Confiável & Integridade da Costura (StorageService)
+
 1. Como microempresário visualizando a prévia do meu card publicitário no celular, quero que a imagem carregue imediatamente sem erros de domínio inválido ou links quebrados, para que eu possa avaliar o card com segurança antes do Pix.
 2. Como cliente navegando na tela de entrega `/pedido/$orderId`, quero visualizar e baixar minhas artes nos formatos Feed e Story com URLs públicas funcionais e cache atualizado, para que eu não visualize artes antigas em cache após solicitar uma alteração.
 3. Como desenvolvedor rodando a suíte de testes locais com Vitest, quero que o `InMemoryStorageDriver` retorne URLs válidas para `<img />` (Data URLs base64) sem exigir conexões reais de rede ou condicionais especiais de `storage.local.fake`, mantendo a suíte de testes verde em menos de 2 segundos.
 4. Como engenheiro de DevOps implantando o OfertaPronta em produção, quero que o servidor falhe imediatamente na inicialização caso `R2_PUBLIC_URL` não esteja configurada no ambiente com `STORAGE_DRIVER=r2`, para evitar deploys com URLs quebradas em produção.
 
 ### Módulo Profundo ExportEngine & Regeneração Pós-Pagamento
+
 5. Como microempresário que solicitou um ajuste de preço ou texto pós-compra (regeneração com IA), quero que a minha nova arte mestre seja salva com segurança e que os formatos Feed e Story sejam atualizados instantaneamente, para que meus downloads reflitam com fidelidade o novo card aprovado.
 6. Como cliente que contratou o plano com desconto e aceitou o co-branding, quero que a marca d'água de crédito sutil do OfertaPronta seja aplicada de forma idêntica tanto na entrega inicial quanto em quaisquer regenerações subsequentes.
 7. Como engenheiro de software mantendo o `DeliveryService`, quero invocar uma única função `exportEngine.exportFinalCampaign(...)` passando apenas o buffer mestre e dados de co-branding, sem me preocupar com dimensões Sharp, layouts de pastas no S3 ou concatenação manual de timestamps de cache.
 
 ### Ingestão Leve de Insumos & Performance do Banco (Drafts Intake)
+
 8. Como microempresário com conexão 4G lenta enviando fotos do meu celular (produto, referência e logo) no Passo 3, quero que o envio ocorra sem travamentos na interface e sem estourar o limite de payload do servidor.
 9. Como microempresário que decidiu remover uma foto enviada por engano no Passo 3, quero tocar em "Remover" e ter a certeza de que aquele insumo foi desvinculado do meu rascunho, para que a IA não utilize a foto antiga na composição final.
 10. Como administrador do banco de dados, quero que os registros de rascunhos em `drafts` ocupem menos de 2 KB cada no PostgreSQL em vez de 10 MB, para que as consultas, migrações e rotinas de backup permaneçam ultrarrápidas à medida que a plataforma escala.
@@ -73,6 +76,7 @@ Aprofundar a arquitetura de armazenamento e exportação em três etapas complem
 ### 1. Sealing do Módulo Profundo `StorageService` (`src/server/storage/`)
 
 - **Interface Pública Estrita:**
+
   ```typescript
   export interface AssetUploadOptions {
     key: string;
@@ -106,7 +110,7 @@ Aprofundar a arquitetura de armazenamento e exportação em três etapas complem
   - O método `uploadAsset` retorna a URL canônica gerada por `getPublicUrl(key)`.
 
 - **Comportamento do `CloudflareR2StorageDriver`:**
-  - Validação no construtor (*Fail-Fast*):
+  - Validação no construtor (_Fail-Fast_):
     ```typescript
     if (!options.publicUrl || options.publicUrl.trim().length === 0) {
       throw new Error(
@@ -120,6 +124,7 @@ Aprofundar a arquitetura de armazenamento e exportação em três etapas complem
 ### 2. Módulo Profundo `ExportEngine` (`src/server/export-engine/`)
 
 - **Superfície da Interface Pública:**
+
   ```typescript
   export interface ExportPreviewCardInput {
     draftId: string;
@@ -167,9 +172,15 @@ Aprofundar a arquitetura de armazenamento e exportação em três etapas complem
   }
 
   export interface ExportEngine {
-    exportPreviewCard(input: ExportPreviewCardInput): Promise<ExportPreviewCardResult>;
-    exportFinalCampaign(input: ExportFinalCampaignInput): Promise<ExportFinalCampaignResult>;
-    saveCleanMaster(input: SaveCleanMasterInput): Promise<SaveCleanMasterResult>;
+    exportPreviewCard(
+      input: ExportPreviewCardInput,
+    ): Promise<ExportPreviewCardResult>;
+    exportFinalCampaign(
+      input: ExportFinalCampaignInput,
+    ): Promise<ExportFinalCampaignResult>;
+    saveCleanMaster(
+      input: SaveCleanMasterInput,
+    ): Promise<SaveCleanMasterResult>;
   }
   ```
 
@@ -227,7 +238,7 @@ Aprofundar a arquitetura de armazenamento e exportação em três etapas complem
 1. **Princípio dos Módulos Profundos e Testes nas Costuras Públicas:**
    - Testar o comportamento observável externamente nas fronteiras públicas de `StorageService`, `ExportEngine`, `drafts.service.ts` e `DeliveryService`.
    - Proibido testar métodos privados ou inspecionar detalhes internos de implementação (como buffers intermediários do Sharp ou estado interno do S3Client).
-2. **Substituição sem Camadas Hipotéticas (*Replace-Don't-Layer*):**
+2. **Substituição sem Camadas Hipotéticas (_Replace-Don't-Layer_):**
    - Utilizar o `InMemoryStorageDriver` como fake real nos testes unitários e de integração, eliminando mocks do Vitest para APIs externas de armazenamento.
 3. **Casos de Teste Mandatórios:**
    - `storage.service.test.ts`:
@@ -261,5 +272,5 @@ Aprofundar a arquitetura de armazenamento e exportação em três etapas complem
 ## Further Notes
 
 - **Conformidade com AGENTS.md:** Módulos profundos com alta localidade, ausência de wrappers rasos, isolamento estrito client/server e mobile-first nos componentes visuais.
-- **Conformidade com GLOSSARY.md:** Preservação estrita dos termos ubíquos: *Ad Card*, *Briefing da Oferta*, *Clean Master Art*, *Watermarked Preview*, *Style Preset*, *Co-branding Signature*.
+- **Conformidade com GLOSSARY.md:** Preservação estrita dos termos ubíquos: _Ad Card_, _Briefing da Oferta_, _Clean Master Art_, _Watermarked Preview_, _Style Preset_, _Co-branding Signature_.
 - **Migração SQL:** Executar `pnpm db:generate && pnpm db:migrate` dentro da worktree para manter os esquemas e snapshots Drizzle sempre atualizados.

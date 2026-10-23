@@ -415,52 +415,128 @@ export type OfferBrief = z.infer<typeof offerBriefSchema>;
 
 /**
  * Schema flexível para salvar drafts em qualquer estágio (incluindo drafts parciais).
+ * Proteção P0: campos server-only (cleanMaster*, previewCardImageUrl, previewAssetKey) são estritamente proibidos.
  */
-export const saveOfferDraftSchema = z.object({
-  id: z.string().optional(),
-  businessSegment: z.enum(BUSINESS_SEGMENTS).default("fashion"),
-  targetAspectRatio: z.enum(CARD_ASPECT_RATIOS).default("feed"),
-  businessName: z.string().default(""),
-  offerTitle: z.string().default(""),
-  promoPrice: z.string().default(""),
-  originalPrice: z.string().optional().nullable(),
-  callToAction: z.string().optional().nullable(),
-  whatsapp: z.string().optional().nullable(),
-  productImageDataUrl: z
-    .union([imageDataUrlSchema, z.string().url()])
-    .optional()
-    .nullable(),
-  referenceImageDataUrl: z
-    .union([imageDataUrlSchema, z.string().url()])
-    .optional()
-    .nullable(),
-  stylePresetId: z.string().optional().nullable(),
-  customStyleInstructions: z.string().optional().nullable(),
-  cleanMasterImageDataUrl: z.string().optional().nullable(),
-  previewCardImageUrl: z.string().optional().nullable(),
-  // Novos campos do Épico 6
-  cardIntent: z.enum(CARD_INTENTS).default("promo"),
-  customIntentText: z.string().optional().nullable(),
-  logoImageDataUrl: z
-    .union([imageDataUrlSchema, z.string().url()])
-    .optional()
-    .nullable(),
+export const saveOfferDraftSchema = z
+  .object({
+    id: z.string().optional(),
+    businessSegment: z.enum(BUSINESS_SEGMENTS).default("fashion"),
+    targetAspectRatio: z.enum(CARD_ASPECT_RATIOS).default("feed"),
+    businessName: z.string().default(""),
+    offerTitle: z.string().default(""),
+    promoPrice: z.string().default(""),
+    originalPrice: z.string().optional().nullable(),
+    callToAction: z.string().optional().nullable(),
+    whatsapp: z.string().optional().nullable(),
+    productImageDataUrl: z
+      .union([imageDataUrlSchema, z.string().url()])
+      .optional()
+      .nullable(),
+    referenceImageDataUrl: z
+      .union([imageDataUrlSchema, z.string().url()])
+      .optional()
+      .nullable(),
+    stylePresetId: z.string().optional().nullable(),
+    customStyleInstructions: z.string().optional().nullable(),
+    // Campos de objetivo
+    cardIntent: z.enum(CARD_INTENTS).default("promo"),
+    customIntentText: z.string().optional().nullable(),
+    logoImageDataUrl: z
+      .union([imageDataUrlSchema, z.string().url()])
+      .optional()
+      .nullable(),
 
-  // Storage R2 Asset Keys (Drafts Intake)
-  productAssetKey: z.string().optional().nullable(),
-  referenceAssetKey: z.string().optional().nullable(),
-  logoAssetKey: z.string().optional().nullable(),
-
-  // Storage R2 Keys
-  previewAssetKey: z.string().optional().nullable(),
-  cleanMasterAssetKey: z.string().optional().nullable(),
-});
+    // Storage R2 Asset Keys (Drafts Intake)
+    productAssetKey: z.string().optional().nullable(),
+    referenceAssetKey: z.string().optional().nullable(),
+    logoAssetKey: z.string().optional().nullable(),
+  })
+  .passthrough()
+  .superRefine((data, ctx) => {
+    const forbidden = [
+      "cleanMasterImageDataUrl",
+      "cleanMasterAssetKey",
+      "previewCardImageUrl",
+      "previewAssetKey",
+    ] as const;
+    for (const key of forbidden) {
+      if (
+        key in (data as Record<string, unknown>) &&
+        (data as Record<string, unknown>)[key] !== undefined
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: `Campo ${key} não é permitido no salvamento de rascunho`,
+        });
+      }
+    }
+  });
 
 export type SaveOfferDraftInput = z.input<typeof saveOfferDraftSchema>;
 export type SavedOfferDraft = z.infer<typeof saveOfferDraftSchema>;
+
+export const blockedReasonSchema = z.enum(["visitor", "ip", "global"]);
+export type BlockedReason = z.infer<typeof blockedReasonSchema>;
+
+/**
+ * DTO seguro e limpo de rascunho exposto ao cliente (Allowlist estrita P0).
+ * Exclui totalmente cleanMasterImageDataUrl, cleanMasterAssetKey, previewAssetKey,
+ * e chaves de storage brutas (productAssetKey, referenceAssetKey, logoAssetKey).
+ */
+export const draftClientDtoSchema = z.object({
+  id: z.string(),
+  businessSegment: z.enum(BUSINESS_SEGMENTS),
+  targetAspectRatio: z.enum(CARD_ASPECT_RATIOS),
+  businessName: z.string(),
+  offerTitle: z.string(),
+  promoPrice: z.string(),
+  originalPrice: z.string().nullable().optional(),
+  callToAction: z.string().nullable().optional(),
+  whatsapp: z.string().nullable().optional(),
+  stylePresetId: z.string().nullable().optional(),
+  customStyleInstructions: z.string().nullable().optional(),
+  cardIntent: z.enum(CARD_INTENTS),
+  customIntentText: z.string().nullable().optional(),
+  productImageDataUrl: z.string().nullable().optional(),
+  referenceImageDataUrl: z.string().nullable().optional(),
+  logoImageDataUrl: z.string().nullable().optional(),
+  previewCardImageUrl: z.string().nullable().optional(),
+  aiGenerationCount: z.number().int().min(0),
+  createdAt: z.union([z.date(), z.string()]),
+  updatedAt: z.union([z.date(), z.string()]),
+});
+
+export type DraftClientDto = z.infer<typeof draftClientDtoSchema>;
 
 export const generatePreviewInputSchema = z.object({
   draftId: z.string().trim().min(1, "draftId é obrigatório"),
 });
 
 export type GeneratePreviewInput = z.infer<typeof generatePreviewInputSchema>;
+
+export const generatePreviewOutputSchema = z.discriminatedUnion("status", [
+  z.object({
+    status: z.literal("OK"),
+    draft: draftClientDtoSchema,
+  }),
+  z.object({
+    status: z.literal("LIMIT_REACHED"),
+    reason: blockedReasonSchema,
+    lastDraft: draftClientDtoSchema.nullable(),
+  }),
+  z.object({
+    status: z.literal("ERROR"),
+    code: z.string(),
+    message: z.string(),
+  }),
+]);
+
+export type GeneratePreviewOutput = z.infer<typeof generatePreviewOutputSchema>;
+
+export const getPreviewQuotaOutputSchema = z.object({
+  remaining: z.number().int().min(0),
+  blockedReason: blockedReasonSchema.nullable(),
+});
+
+export type GetPreviewQuotaOutput = z.infer<typeof getPreviewQuotaOutputSchema>;

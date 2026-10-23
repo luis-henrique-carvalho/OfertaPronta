@@ -14,6 +14,7 @@ Vedar a costura do `StorageService` para garantir que tanto o driver em memória
 ## Acceptance Criteria (BDD)
 
 ### 1. Sealing do `StorageService` & Driver em Memória sem Strings Mágicas
+
 - [x] **Scenario: Retorno de URLs válidas e consumíveis pelo navegador no InMemoryStorageDriver**
   - **Given** que o `InMemoryStorageDriver` é instanciado em ambiente de testes ou desenvolvimento offline sem `publicUrlBase`
   - **When** um asset binário é enviado via `storageService.uploadAsset({ key: "test/card.png", buffer, contentType: "image/png" })`
@@ -31,6 +32,7 @@ Vedar a costura do `StorageService` para garantir que tanto o driver em memória
   - **Then** o mapa interno deve ser esvaziado e `storageService.getAsset(key)` deve retornar `null` para qualquer chave anterior.
 
 ### 2. Validação Fail-Fast no Driver Cloudflare R2
+
 - [x] **Scenario: Inicialização do CloudflareR2StorageDriver sem URL pública de CDN**
   - **Given** que as credenciais do bucket R2 estão configuradas, mas `publicUrl` está ausente ou vazia
   - **When** uma instância de `CloudflareR2StorageDriver` for criada
@@ -43,6 +45,7 @@ Vedar a costura do `StorageService` para garantir que tanto o driver em memória
   - **Then** deve retornar exatamente `"https://assets.ofertapronta.com.br/deliveries/order-1/feed.png"` sem barras duplicadas.
 
 ### 3. Módulo Profundo `ExportEngine` (Sharp + Storage + Chaves Canônicas)
+
 - [x] **Scenario: Geração e upload de prévia protegida com marca d'água (`exportPreviewCard`)**
   - **Given** uma arte gerada pela IA para o rascunho `draft-abc` em buffer PNG bruto
   - **When** `exportEngine.exportPreviewCard({ draftId: "draft-abc", rawImageBuffer })` for chamado
@@ -65,6 +68,7 @@ Vedar a costura do `StorageService` para garantir que tanto o driver em memória
   - **Then** deve fazer upload para `masters/orders/order-xyz/{timestamp}.png` e retornar a chave canônica e URL correspondente.
 
 ### 4. Drizzle Schemas & Migrações SQL de Chaves de Insumos
+
 - [x] **Scenario: Adição das colunas de chaves de insumos na tabela drafts**
   - **Given** o schema `src/server/db/schema/promotions.ts`
   - **When** as colunas `productAssetKey`, `referenceAssetKey` e `logoAssetKey` forem adicionadas como texto opcional
@@ -73,6 +77,7 @@ Vedar a costura do `StorageService` para garantir que tanto o driver em memória
   - **And** `pnpm typecheck` deve validar sem erros de tipos.
 
 ### 5. Qualidade e Testes Unitários TDD
+
 - [x] **Scenario: Execução cirúrgica dos testes de storage e export-engine**
   - **Given** os testes `src/server/storage/storage.service.test.ts` e `src/server/export-engine/export-engine.test.ts`
   - **When** executados via `pnpm vitest run src/server/storage/storage.service.test.ts src/server/export-engine/export-engine.test.ts`

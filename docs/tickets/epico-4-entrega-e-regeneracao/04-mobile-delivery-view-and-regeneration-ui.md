@@ -6,6 +6,7 @@
 Construir a interface mobile-first completa de entrega do pedido e a rota TanStack Start `/pedido/$orderId`. Inclui banner de celebração, visualizador com alternância Feed (1080×1350) e Story (1080×1920) em alta resolução, botões diretos de download em PNG HD, botão de conveniência "Enviar artes para meu WhatsApp" (link direto `wa.me` com mensagem pré-formatada contendo o link permanente do pedido), e painel retrátil de refinamento com IA exibindo o cronômetro regressivo da janela de 30 minutos e cota restante (X de 3).
 
 **Blocked by:**
+
 - `docs/tickets/epico-4-entrega-e-regeneracao/02-delivery-server-functions-and-download-endpoint.md`
 - `docs/tickets/epico-4-entrega-e-regeneracao/03-post-payment-ai-regeneration-service.md`
 

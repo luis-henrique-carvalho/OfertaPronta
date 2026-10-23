@@ -14,6 +14,7 @@ Refatorar os serviços de negócio (`DeliveryService`, `PreviewGeneratorService`
 ## Acceptance Criteria (BDD)
 
 ### 1. Eliminação de `storage.local.fake` & Consumo do `ExportEngine` no `DeliveryService`
+
 - [x] **Scenario: Geração e persistência de exports finais via ExportEngine**
   - **Given** um pedido pago com arte mestre limpa disponível
   - **When** `deliveryService.getDeliveryDetails(orderId)` ou `deliveryService.updateExports(orderId, masterBuffer)` for executado
@@ -29,6 +30,7 @@ Refatorar os serviços de negócio (`DeliveryService`, `PreviewGeneratorService`
   - **And** incrementar atomicamente `downloadCount` no PostgreSQL.
 
 ### 2. Simetria na Regeneração Pós-Pagamento (`PostPaymentRegenerationService`)
+
 - [x] **Scenario: Persistência da nova arte mestre limpa pós-regeneração**
   - **Given** um pedido elegível com ajustes solicitados pelo cliente via `regenerateOrderCard(...)`
   - **When** o motor de IA Gemini gerar com sucesso a nova arte mestre
@@ -43,6 +45,7 @@ Refatorar os serviços de negócio (`DeliveryService`, `PreviewGeneratorService`
   - **And** a arte mestre anterior e os exports existentes em `deliveryExports` devem permanecer intocados.
 
 ### 3. Consumo do `ExportEngine` no `PreviewGeneratorService`
+
 - [x] **Scenario: Geração de prévia protegida delegada ao ExportEngine**
   - **Given** um rascunho de oferta no Passo 4 do assistente
   - **When** o microempresário aciona a geração da prévia gratuita
@@ -51,6 +54,7 @@ Refatorar os serviços de negócio (`DeliveryService`, `PreviewGeneratorService`
   - **And** descarregar a lógica de manipulação direta de Sharp e formatação de caminhos de arquivos para o `ExportEngine`.
 
 ### 4. Ingestão de Insumos Desacoplada e Fim do Bloat TOAST no PostgreSQL
+
 - [x] **Scenario: Salvamento de fotos do usuário no StorageService via saveOfferDraft**
   - **Given** um payload de rascunho em `saveOfferDraft` contendo foto do produto em Data URL Base64 (`productImageDataUrl: "data:image/jpeg;base64,..."`)
   - **When** o rascunho for persistido no backend
@@ -65,6 +69,7 @@ Refatorar os serviços de negócio (`DeliveryService`, `PreviewGeneratorService`
   - **And** o asset anterior pode ser excluído via `storageService.deleteAsset(...)`.
 
 ### 5. Resolução Transparente de Insumos para Geração Multimodal Gemini
+
 - [x] **Scenario: Resolução de imagens armazenadas para o gerador de cards**
   - **Given** um rascunho salvo que possui `productAssetKey` e `logoAssetKey` configuradas
   - **When** `PreviewGeneratorService` preparar o input para o `aiCardGenerator`
@@ -72,12 +77,14 @@ Refatorar os serviços de negócio (`DeliveryService`, `PreviewGeneratorService`
   - **And** repassar os insumos de imagem formatados para o Gemini compor o Card Publicitário completo.
 
 ### 6. Retrocompatibilidade Estrita com Registros Legados
+
 - [x] **Scenario: Rascunhos ou pedidos com imagens legadas em Base64 Data URL**
   - **Given** um rascunho ou pedido criado antes da migração contendo imagens salvas em Base64 Data URL
   - **When** carregado pelo assistente, pelo gerador de prévia ou pela tela de entrega
   - **Then** o sistema deve detectar o prefixo `data:` e processá-lo com sucesso sem exigir migração manual de dados prévia.
 
 ### 7. Testes de Integração e Conformidade de UI
+
 - [x] **Scenario: Execução da suíte de testes de entrega, regeneração e drafts**
   - **Given** as suítes `delivery.service.test.ts`, `post-payment-regeneration.service.test.ts` e `drafts.service.test.ts`
   - **When** executadas via `pnpm vitest run src/features/delivery/server/services/delivery.service.test.ts src/features/delivery/server/services/post-payment-regeneration.service.test.ts src/features/promotions/server/services/drafts.service.test.ts`
