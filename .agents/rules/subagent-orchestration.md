@@ -22,8 +22,12 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
      - **Provisionamento Obrigatório de Git Worktree (Isolamento Físico de Features)**:
        Antes de invocar o `feature-orchestrator`, o Chat Canvas DEVE obrigatoriamente:
        1. Provisionar a worktree isolada: `git worktree add .worktrees/<slug> -b feat/<slug>`
-       2. Garantir que `.worktrees/` conste no `.gitignore`.
-       3. Invocar o `feature-orchestrator` passando o diretório da worktree (`Cwd: .worktrees/<slug>`) como raiz de execução para que a branch `main` permaneça 100% intocada até a homologação final.
+       2. Copiar variáveis de ambiente locais ignoradas pelo Git: `[ -f .env.local ] && cp .env.local .worktrees/<slug>/.env.local`
+       3. Garantir que `.worktrees/` conste no `.gitignore`.
+       4. Invocar o `feature-orchestrator` passando o diretório da worktree (`Cwd: .worktrees/<slug>`) como raiz de execução para que a branch `main` permaneça 100% intocada até a homologação final.
+     - **Gate Obrigatório de Commit na Worktree (Prevenção de Perda de Código)**:
+       - O `feature-orchestrator` DEVE executar `git add -A && git commit` dentro de `.worktrees/<slug>` antes de encerrar e reportar o hash do commit criado.
+       - Antes de executar `git merge` ou `git worktree remove`, o Chat Canvas DEVE validar que `git -C .worktrees/<slug> status --porcelain` está vazio e que `git rev-list --count main..feat/<slug>` é maior que `0`. É TERMINANTEMENTE PROIBIDO rodar `git worktree remove --force` sem antes confirmar que todos os arquivos estão commitados e mergeados na `main`.
      - **Checklist Obrigatório Pós-Merge na Branch `main`**:
        Sempre que a worktree contiver novas migrações SQL (`drizzle/*.sql`), após realizar o merge na branch `main`, o Chat Canvas DEVE rodar obrigatoriamente `pnpm db:migrate` na raiz do workspace antes de disparar o pipeline de verificação global de fechamento (`./.agents/scripts/verify.sh`).
      - Invoca o subagente `feature-orchestrator` (`Role: "Feature Factory Orchestrator"`) com o plano aprovado.
@@ -50,6 +54,7 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
    - **Nos Builders (`backend-builder` / `frontend-builder`)**:
      - O ciclo TDD deve executar **apenas o arquivo de teste unitário específico** em alteração: `pnpm vitest run <caminho/do/teste.test.ts>` (execução ultrarrápida de 1 a 2 segundos) + `pnpm typecheck` + `./.agents/scripts/verify.sh --shadcn` (para frontend).
      - É TERMINANTEMENTE PROIBIDO rodar `pnpm test` global (todos os 40+ arquivos) ou `pnpm build` dentro dos builders.
+     - **Isolamento em Testes de Banco Compartilhado (PostgreSQL)**: Como a suíte global do Vitest roda arquivos em paralelo na mesma instância PostgreSQL, é PROIBIDO executar `await db.delete(tabela)` sem cláusula `WHERE` em `beforeEach`/`afterEach`. Sempre isole dados de teste com identificadores únicos (`crypto.randomUUID()`) e remova apenas os registros criados pelo próprio teste.
    - **Migração de Banco na Worktree Obrigatória**:
      - Sempre que `src/server/db/schema/` for alterado, o `backend-builder` DEVE rodar obrigatoriamente `pnpm db:generate && pnpm db:migrate` dentro da worktree para gerar o arquivo SQL em `drizzle/` e aplicá-lo ao banco, garantindo que o commit contenha a migração limpa.
    - **No `test-verifier` (Fase 4)**:

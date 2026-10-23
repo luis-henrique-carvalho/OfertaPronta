@@ -195,7 +195,7 @@ src/
 
 Para novas fases, funcionalidades ou refatorações:
 
-1. **Context Discovery & Worktree Provisioning (`codebase-researcher`)**: Mapeie dependências com `graphify query` (`model: flash`), inspecione `PRD.md`, `GLOSSARY.md` e provisione obrigatoriamente a worktree isolada da feature via `git worktree add .worktrees/<slug> -b feat/<slug>` antes de iniciar qualquer ciclo de planejamento ou construção.
+1. **Context Discovery & Worktree Provisioning (`codebase-researcher`)**: Mapeie dependências com `graphify query` (`model: flash`), inspecione `PRD.md`, `GLOSSARY.md`, provisione obrigatoriamente a worktree isolada via `git worktree add .worktrees/<slug> -b feat/<slug>` e copie o `.env.local` (`[ -f .env.local ] && cp .env.local .worktrees/<slug>/.env.local`) antes de iniciar qualquer ciclo de planejamento ou construção.
 2. **Gate 0 — Planejamento Inteligente & Anti-Cerimônia**:
    - **Fast-Track Pós-Protótipo**: Se a feature já possui protótipo funcional validado pelo usuário (`/prototype`), pule o `product-manager` e despache diretamente o `solution-architect` (`model: inherit`) para consolidar a arquitetura em `docs/plans/<slug>.md` e gerar no máximo **2 Macro-Tickets** (`01-backend-stream.md` e `02-frontend-stream.md`).
    - **Fluxo Standard (Sem Protótipo)**: Despache `product-manager` (`model: inherit`) para caçar lacunas de negócio via `ask_question` (`/grill-me`), salvando `docs/specs/<slug>.md` e no máximo **2 a 3 Macro-Tickets** em `docs/tickets/<slug>/`. Em seguida, despache `solution-architect` (`model: inherit`) para redigir o plano técnico em `docs/plans/<slug>.md` com diagramas Mermaid.
@@ -204,14 +204,15 @@ Para novas fases, funcionalidades ou refatorações:
      - **Stream 1 (Backend & Data)**: Drizzle Schemas + Migrações SQL + Schemas Zod isomórficos + Services/Prompts + Testes unitários de backend.
      - **Stream 2 (Frontend & UX)**: Catálogo/DTOs + Hook de Estado + Componentes Visuais + Rota + Testes de integração/UI.
    - O `feature-orchestrator` despacha ambas as streams concorrentemente via `invoke_subagent`.
-4. **Dieta de Contexto & TDD Cirúrgico nos Builders**:
+4. **Dieta de Contexto, TDD Cirúrgico & Isolamento de Banco nos Builders**:
    - Builders (`backend-builder`, `frontend-builder`) são proibidos de chamar `view_file` em `AGENTS.md`, `PRD.md` ou `GLOSSARY.md` (o `AGENTS.md` já é injetado automaticamente pelo Antigravity em `<user_rules>`). Devem abrir apenas o seu ticket ativo e os contratos técnicos.
    - No ciclo TDD, builders rodam exclusivamente o teste do arquivo editado (`pnpm vitest run <caminho.test.ts>` em 1-2s) + `pnpm typecheck`. Proibido rodar `pnpm test` global ou `pnpm build` dentro dos builders.
+   - Em testes que acessam o PostgreSQL, é proibido rodar `db.delete(tabela)` sem `WHERE` (evita colisão entre arquivos paralelos no Vitest); use IDs únicos por teste (`crypto.randomUUID()`) e limpe apenas as próprias linhas.
    - Sempre que `src/server/db/schema/` for alterado, o `backend-builder` DEVE rodar obrigatoriamente `pnpm db:generate && pnpm db:migrate` dentro da worktree para persistir a migração SQL em `drizzle/`.
 5. **Validação & Auditoria Paralelas**:
    - Despache `test-verifier` (`model: flash`) para rodar o pipeline oficial completo `./.agents/scripts/verify.sh`, regressões e o **Dual Browser Audit** (Mobile 390×844 e Desktop 1440×900 no dev server ativo).
    - Despache simultaneamente `implementation-validator` (`model: flash`) para auditar o diff contra a Spec, SOLID e anti-bloat (`ponytail-review`).
-6. **Fechamento & Auditoria de Execução**: Ao realizar o merge da worktree na branch `main`, se houver novas migrações SQL (`drizzle/*.sql`), execute obrigatoriamente `pnpm db:migrate` na raiz antes da homologação final. Apresente o resultado no Gate 3, gere a telemetria operacional via `./.agents/scripts/audit_agent_execution.py <conversation_id>` e registre aprendizados no ritual `/learn`.
+6. **Fechamento & Auditoria de Execução**: O `feature-orchestrator` DEVE commitar todas as alterações na branch da worktree antes de concluir. Antes de realizar o merge na `main` e remover a worktree, verifique obrigatoriamente que `git -C .worktrees/<slug> status --porcelain` está vazio e que `git rev-list --count main..feat/<slug> > 0`. Se houver novas migrações SQL (`drizzle/*.sql`), execute `pnpm db:migrate` na raiz antes da homologação final. Apresente o resultado no Gate 3, gere a telemetria operacional via `./.agents/scripts/audit_agent_execution.py <conversation_id>` e registre aprendizados no ritual `/learn`.
 
 ---
 
