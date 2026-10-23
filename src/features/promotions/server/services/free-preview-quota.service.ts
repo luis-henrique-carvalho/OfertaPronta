@@ -334,3 +334,70 @@ export async function findLastPreviewDraftId(
 
   return rows[0]?.draftId ?? null;
 }
+
+export interface ResetVisitorQuotaInput {
+  draftId: string;
+  now?: Date;
+}
+
+export interface ResetVisitorQuotaResult {
+  resetCount: number;
+  visitorId: string | null;
+}
+
+/**
+ * Módulo profundo FreePreviewQuota:
+ * Restaura integralmente o saldo de prévias do visitante pagante ao identificar
+ * o draft pago e transicionar todas as linhas ativas (CONSUMED / RESERVED)
+ * para 'RESET_BY_PURCHASE' de forma atômica e estritamente idempotente.
+ */
+export async function resetVisitorQuotaOnPayment(
+  input: ResetVisitorQuotaInput,
+  database: AppDatabase = db,
+): Promise<ResetVisitorQuotaResult> {
+  const now = input.now ?? new Date();
+
+  const [ledgerRow] = await database
+    .select({ visitorId: freePreviewLedger.visitorId })
+    .from(freePreviewLedger)
+    .where(eq(freePreviewLedger.draftId, input.draftId))
+    .orderBy(desc(freePreviewLedger.reservedAt))
+    .limit(1);
+
+  if (!ledgerRow || !ledgerRow.visitorId) {
+    log.info(
+      "Reset de cota de prévia ignorado: draft não possui registro no ledger",
+      { draftId: input.draftId },
+    );
+    return { resetCount: 0, visitorId: null };
+  }
+
+  const { visitorId } = ledgerRow;
+
+  const updatedRows = await database
+    .update(freePreviewLedger)
+    .set({
+      status: "RESET_BY_PURCHASE",
+      settledAt: now,
+    })
+    .where(
+      and(
+        eq(freePreviewLedger.visitorId, visitorId),
+        or(
+          eq(freePreviewLedger.status, "CONSUMED"),
+          eq(freePreviewLedger.status, "RESERVED"),
+        ),
+      ),
+    )
+    .returning({ id: freePreviewLedger.id });
+
+  const resetCount = updatedRows.length;
+
+  log.info("Cota de prévias do visitante resetada por pagamento", {
+    visitorId,
+    draftId: input.draftId,
+    resetCount,
+  });
+
+  return { resetCount, visitorId };
+}

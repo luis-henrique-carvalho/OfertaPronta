@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { db } from "../../../../server/db";
 import { orders, paymentCharges } from "../../../../server/db/schema/orders";
+import { freePreviewLedger } from "../../../../server/db/schema/free-preview";
 import { eq } from "drizzle-orm";
 import {
   saveOfferDraft,
@@ -366,6 +367,39 @@ describe("PixCheckoutService Deep Module", () => {
         .where(eq(paymentCharges.orderId, orderId));
       expect(chargeRow.status).toBe("PAID");
       expect(chargeRow.paidAt?.toISOString()).toBe(paidIso);
+    });
+
+    it("should reset the paying visitor's free preview ledger rows to RESET_BY_PURCHASE", async () => {
+      const draft = await saveOfferDraft({
+        businessSegment: "beauty-salon",
+        businessName: "Salão Bella",
+        offerTitle: "Corte + Escova",
+        promoPrice: "R$ 60,00",
+      });
+      await updateDraftPreviewCard(draft.id, "data:image/webp;base64,prev");
+      const visitorId = `visitor-${crypto.randomUUID()}`;
+      await db.insert(freePreviewLedger).values({
+        id: crypto.randomUUID(),
+        visitorId,
+        ipHash: `ip-${crypto.randomUUID()}`,
+        draftId: draft.id,
+        status: "CONSUMED",
+      });
+
+      const { orderId } = await service.initiateCheckout({ draftId: draft.id });
+      const details = await service.getCheckoutDetails(orderId);
+      await service.handleWebhookPayment({
+        id: details.charge!.txId,
+        status: "paid",
+        value: 990,
+        paid_at: "2026-10-16T16:00:00.000Z",
+      });
+
+      const rows = await db
+        .select()
+        .from(freePreviewLedger)
+        .where(eq(freePreviewLedger.visitorId, visitorId));
+      expect(rows.map((r) => r.status)).toEqual(["RESET_BY_PURCHASE"]);
     });
 
     it("should be strictly idempotent: secondary identical webhook returns success without re-processing or failing", async () => {

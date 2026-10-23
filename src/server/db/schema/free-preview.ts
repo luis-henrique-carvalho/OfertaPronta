@@ -1,5 +1,8 @@
 import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core";
 
+export type FreePreviewStatus =
+  "RESERVED" | "CONSUMED" | "FAILED" | "RESET_BY_PURCHASE";
+
 export const freePreviewLedger = pgTable(
   "free_preview_ledger",
   {
@@ -7,7 +10,7 @@ export const freePreviewLedger = pgTable(
     visitorId: text("visitor_id").notNull(),
     ipHash: text("ip_hash").notNull(),
     draftId: text("draft_id").notNull(),
-    status: text("status").notNull(), // 'RESERVED' | 'CONSUMED' | 'FAILED'
+    status: text("status").notNull(), // 'RESERVED' | 'CONSUMED' | 'FAILED' | 'RESET_BY_PURCHASE'
     reservedAt: timestamp("reserved_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

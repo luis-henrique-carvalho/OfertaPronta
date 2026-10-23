@@ -20,6 +20,7 @@ import {
   type CampaignPlan,
 } from "../../data/campaign-catalog";
 import { PushinPayService, type PixChargeResult } from "./pushin-pay.service";
+import { resetVisitorQuotaOnPayment } from "../../../promotions/server/services/free-preview-quota.service";
 import { createServerLogger } from "../../../../server/logger";
 import {
   getStorageService,
@@ -719,12 +720,18 @@ export class PixCheckoutService {
     txId: string,
     paidAt: Date,
   ): Promise<void> {
+    let paidDraftId: string | null = null;
+
     await this.database.transaction(async (tx) => {
       const [order] = await tx
         .select()
         .from(orders)
         .where(eq(orders.id, orderId))
         .limit(1);
+
+      if (order?.draftId) {
+        paidDraftId = order.draftId;
+      }
 
       const [charge] = await tx
         .select()
@@ -772,6 +779,8 @@ export class PixCheckoutService {
         .where(eq(orders.id, orderId));
     });
 
+    await this.resetPreviewQuotaSafely(orderId, paidDraftId, paidAt);
+
     log.info(
       "Webhook processado com sucesso: pedido e cobrança atualizados para PAID",
       {
@@ -779,6 +788,24 @@ export class PixCheckoutService {
         txId,
       },
     );
+  }
+
+  /** Reseta a cota de prévias do pagante; falhas não devem derrubar a confirmação do pagamento. */
+  private async resetPreviewQuotaSafely(
+    orderId: string,
+    draftId: string | null,
+    now: Date,
+  ): Promise<void> {
+    if (!draftId) return;
+    try {
+      await resetVisitorQuotaOnPayment({ draftId, now }, this.database);
+    } catch (error) {
+      log.error("Erro ao resetar cota de prévia do visitante após pagamento", {
+        orderId,
+        draftId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   /**
@@ -826,6 +853,7 @@ export class PixCheckoutService {
         .update(orders)
         .set({ status: "PAID", paidAt: now, updatedAt: now })
         .where(eq(orders.id, orderId));
+      await this.resetPreviewQuotaSafely(orderId, order.draftId, now);
     }
 
     log.info("[DEV_MODE] Pagamento Pix simulado com sucesso para pedido", {
