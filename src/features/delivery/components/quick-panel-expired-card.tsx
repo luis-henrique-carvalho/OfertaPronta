@@ -60,6 +60,12 @@ export function QuickPanelExpiredCard({
             <PlusCircle className="size-4" data-icon="inline-start" />
             <span>Criar Nova Oferta</span>
           </Button>
+          <Typography
+            variant="muted"
+            className="mt-1.5 text-center text-[11px] font-medium text-emerald-700 dark:text-emerald-400"
+          >
+            +2 prévias grátis liberadas para sua próxima arte
+          </Typography>
         </div>
       </CardContent>
     </Card>

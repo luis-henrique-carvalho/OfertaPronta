@@ -370,6 +370,15 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
   });
 
   describe("Integration: Real DB and Watermark with Mocked AI Generator", () => {
+    let identity: { visitorId: string; ipHash: string };
+
+    beforeEach(() => {
+      identity = {
+        visitorId: `visitor-gen-${crypto.randomUUID()}`,
+        ipHash: `ip-gen-${crypto.randomUUID()}`,
+      };
+    });
+
     it("persists watermarked preview in PostgreSQL, settles ledger, and blocks subsequent attempt", async () => {
       // 1. Create fresh draft in real database
       const createdDraft = await saveOfferDraft({
@@ -402,7 +411,7 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       // 3. Execute generation using real DB and real Sharp watermark
       const firstResponse = await executeGeneratePreview(
         { draftId: createdDraft.id },
-        { generateAdCard: mockGenerateAdCard },
+        { generateAdCard: mockGenerateAdCard, identity },
       );
 
       expect(firstResponse.status).toBe("OK");
@@ -429,7 +438,7 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
       const secondMockGenerator = vi.fn();
       const secondResponse = await executeGeneratePreview(
         { draftId: createdDraft.id },
-        { generateAdCard: secondMockGenerator },
+        { generateAdCard: secondMockGenerator, identity },
       );
 
       expect(secondResponse.status).toBe("LIMIT_REACHED");
@@ -454,7 +463,7 @@ describe("Generator Server Functions (RPC & Atomic Quota Enforcement)", () => {
 
       const response = await executeGeneratePreview(
         { draftId: createdDraft.id },
-        { generateAdCard: failingGenerator },
+        { generateAdCard: failingGenerator, identity },
       );
 
       expect(response).toEqual({

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Typography } from "@/components/ui/typography";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { toAbsoluteOrderUrl } from "../lib/delivery-urls";
 import { AdCardUnifiedDeliveryHero } from "../components/ad-card-unified-delivery-hero";
 import { AiRegenerationQuickPanel } from "../components/ai-regeneration-quick-panel";
 import { trackPurchase } from "@/lib/tracking";
+import { PREVIEW_QUOTA_QUERY_KEY } from "@/features/promotions/hooks/use-preview-quota";
 
 export interface OrderDeliveryViewProps {
   initialDetails: DeliveryDetailsResult;
@@ -35,6 +37,7 @@ export function OrderDeliveryView({
   recordDownloadFn,
   regenerationFn,
 }: OrderDeliveryViewProps) {
+  const queryClient = useQueryClient();
   const {
     details,
     updateDetails,
@@ -52,12 +55,14 @@ export function OrderDeliveryView({
       const amountCents =
         details.frozenPlan?.amountCents ?? details.amountCents ?? 990;
       trackPurchase(details.orderId, amountCents);
+      queryClient.invalidateQueries({ queryKey: PREVIEW_QUOTA_QUERY_KEY });
     }
   }, [
     details.status,
     details.orderId,
     details.frozenPlan?.amountCents,
     details.amountCents,
+    queryClient,
   ]);
 
   const handleCreateNew = () => {
@@ -90,16 +95,28 @@ export function OrderDeliveryView({
             Entrega Garantida
           </Badge>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-semibold"
-            onClick={handleCreateNew}
-          >
-            <PlusCircle className="size-3.5" data-icon="inline-start" />
-            <span>Nova Oferta</span>
-          </Button>
+          <div className="flex items-center gap-1.5">
+            {details.status === "PAID" && (
+              <Badge
+                variant="outline"
+                className="border-emerald-600/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300"
+              >
+                +2 prévias grátis
+              </Badge>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-semibold"
+              onClick={handleCreateNew}
+              title="+2 prévias grátis liberadas para sua próxima arte"
+            >
+              <PlusCircle className="size-3.5" data-icon="inline-start" />
+              <span>Nova Oferta</span>
+            </Button>
+          </div>
         </div>
       </div>
 

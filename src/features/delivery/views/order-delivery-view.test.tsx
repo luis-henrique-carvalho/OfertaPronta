@@ -252,11 +252,44 @@ describe("OrderDeliveryView Component (Redesign Simplificado)", () => {
     expect(
       screen.getByText(/Você aproveitou todos os 3 ajustes inclusos no pedido/),
     ).toBeDefined();
+    expect(
+      screen.getByText("+2 prévias grátis liberadas para sua próxima arte"),
+    ).toBeDefined();
 
     // Botão destacado para criar nova oferta
     const newOfferBtn = screen.getByRole("button", {
       name: "Criar Nova Oferta",
     });
+    expect(newOfferBtn).toBeDefined();
+
+    fireEvent.click(newOfferBtn);
+    expect(mockNavigateHome).toHaveBeenCalledTimes(1);
+  });
+
+  it("invalidates PREVIEW_QUOTA_QUERY_KEY on mount when order is PAID and displays bonus badge", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const mockNavigateHome = vi.fn();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <OrderDeliveryView
+          initialDetails={mockDeliveryDetails}
+          onNavigateHome={mockNavigateHome}
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["free-preview-quota"],
+    });
+
+    const bonusBadge = screen.getByText("+2 prévias grátis");
+    expect(bonusBadge).toBeDefined();
+
+    const newOfferBtn = screen.getByRole("button", { name: "Nova Oferta" });
     expect(newOfferBtn).toBeDefined();
 
     fireEvent.click(newOfferBtn);
