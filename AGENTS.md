@@ -1,13 +1,16 @@
 <!-- intent-skills:start -->
+
 ## Skill Loading
 
 Use the repository’s installed Intent. If it is unavailable, report the missing dependency instead of downloading a replacement.
 Before editing files for a substantial task:
+
 - Run `pnpm exec intent list` from the workspace root to see available local skills.
 - If a listed skill matches the task, run `pnpm exec intent load <package>#<skill>` before changing files.
 - Use the loaded `SKILL.md` guidance while making the change.
 - Monorepos: when working across packages, run the skill check from the workspace root and prefer the local skill for the package being changed.
 - Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
+
 <!-- intent-skills:end -->
 
 ## graphify
@@ -15,11 +18,11 @@ Before editing files for a substantial task:
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
 
 Rules:
+
 - For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
-
 
 # Diretrizes do Workspace — OfertaPronta (Full-Stack TanStack Start)
 
@@ -31,7 +34,7 @@ Este arquivo é a fonte única de regras e arquitetura do repositório para agen
 
 O **OfertaPronta** é uma plataforma web mobile-first voltada para **microempresários de diversos segmentos** (donos de supermercado, cabeleireiros, salões de beleza, barbearias, pizzarias, hamburguerias, restaurantes e comércio local) criarem **Cards Publicitários (`Ad Cards`) profissionais gerados por Inteligência Artificial** prontos para publicação no Instagram e WhatsApp (Feed 1080×1350 e Story 1080×1920) em menos de 90 segundos, sem necessidade de cadastro ou conhecimento de design.
 
-- **Proposta de Valor:** *"Seu card publicitário criado por IA e pronto para postar, sem precisar saber design."*
+- **Proposta de Valor:** _"Seu card publicitário criado por IA e pronto para postar, sem precisar saber design."_
 - **Core do Produto (Geração de Card por IA Multimodal):** O microempresário informa os dados da promoção (**Briefing da Oferta**), envia opcionalmente a **Imagem do Produto/Serviço (`Product Image`)** e/ou uma **Imagem de Referência (`Reference Image`)** (ou escolhe um **Estilo Visual (`Style Preset`)**), e a IA gera o **Card Publicitário completo** (cenário, produto, composição gráfica e textos/preços integrados).
 - **Modelo de Negócio (MVP):** R$ 9,90 por campanha (o Card Publicitário gerado nos 2 formatos: Feed e Story), com pagamento avulso via Pix (QR Code e Copia e Cola) e entrega automática dos arquivos em alta resolução sem marca d'água após confirmação via webhook (com direito a até 3 regenerações/ajustes por IA pós-pagamento).
 - **Princípio Fundamental:** Validar a experiência de ponta a ponta (briefing rápido sem login, geração do card completo por IA, prévia protegida por marca d'água, checkout Pix e entrega em alta resolução) com extrema simplicidade e sem bloat (YAGNI).
@@ -40,19 +43,19 @@ O **OfertaPronta** é uma plataforma web mobile-first voltada para **microempres
 
 ## 2. Stack Tecnológica Oficial
 
-| Camada | Tecnologia | Detalhes & Responsabilidades |
-|---|---|---|
-| **Framework Full-Stack** | **TanStack Start** | React 19 + TanStack Router + Vite / Vinxi / Nitro (SSR, File-based Routing, RPC via Server Functions). |
-| **Frontend & UI** | **Tailwind CSS v4 + shadcn/ui** | Design system mobile-first, primitivos Radix UI, Lucide Icons, tipografia moderna (Inter + Space Grotesk). |
-| **Client State & Cache** | **TanStack Query v5** | Cache de dados assíncronos, polling de status de pagamento e mutations tipadas via Server Functions. |
-| **Fronteira RPC & HTTP** | **Server Functions + API Routes** | `createServerFn` para RPC tipado end-to-end com Zod; rota de API exclusivamente para o webhook Pix da Pushin Pay. |
-| **Arquitetura de Código** | **Deep Modules & Codebase Design** | Módulos profundos com interfaces concisas e alta localidade; zero portas hipotéticas com único adaptador. |
-| **Banco de Dados & ORM** | **PostgreSQL + Drizzle ORM** | Schemas tipados em TypeScript, transações atômicas e snapshots congelados imutáveis. |
-| **Motor Central de IA** | **Google Gemini Multimodal Image API (`@google/genai`)** | Módulo profundo `AdCardGenerator` usando `gemini-nano-banana-2.1` / `gemini-3-pro-image` para gerar o Card Publicitário completo fundindo Briefing + Foto do Produto + Imagem de Referência. |
-| **Pós-Processamento & Marca d'Água** | **Sharp + @resvg/resvg-js** | Módulo profundo `ExportEngine` para aplicação determinística de marca d'água na prévia gratuita e exportação limpa em alta resolução (1080×1350 e 1080×1920) pós-Pix. |
-| **Gateway de Pagamento** | **Pushin Pay (Pix Dinâmico R$ 0,35)** | Módulo profundo `PixCheckout` com máquina de estados, token de segurança, reconciliação ativa e idempotência estrita. |
-| **Storage & Exportação** | **S3 / Cloudinary** | Persistência dos insumos e dos PNGs finais de alta resolução (Feed 1080×1350 e Story 1080×1920) com URLs privadas de 7 dias. |
-| **Testes & Qualidade** | **Vitest + Testing Library** | TDD nos limites da interface pública dos módulos profundos (replace-don't-layer com fakes in-memory). |
+| Camada                               | Tecnologia                                               | Detalhes & Responsabilidades                                                                                                                                                                 |
+| ------------------------------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Framework Full-Stack**             | **TanStack Start**                                       | React 19 + TanStack Router + Vite / Vinxi / Nitro (SSR, File-based Routing, RPC via Server Functions).                                                                                       |
+| **Frontend & UI**                    | **Tailwind CSS v4 + shadcn/ui**                          | Design system mobile-first, primitivos Radix UI, Lucide Icons, tipografia moderna (Inter + Space Grotesk).                                                                                   |
+| **Client State & Cache**             | **TanStack Query v5**                                    | Cache de dados assíncronos, polling de status de pagamento e mutations tipadas via Server Functions.                                                                                         |
+| **Fronteira RPC & HTTP**             | **Server Functions + API Routes**                        | `createServerFn` para RPC tipado end-to-end com Zod; rota de API exclusivamente para o webhook Pix da Pushin Pay.                                                                            |
+| **Arquitetura de Código**            | **Deep Modules & Codebase Design**                       | Módulos profundos com interfaces concisas e alta localidade; zero portas hipotéticas com único adaptador.                                                                                    |
+| **Banco de Dados & ORM**             | **PostgreSQL + Drizzle ORM**                             | Schemas tipados em TypeScript, transações atômicas e snapshots congelados imutáveis.                                                                                                         |
+| **Motor Central de IA**              | **Google Gemini Multimodal Image API (`@google/genai`)** | Módulo profundo `AdCardGenerator` usando `gemini-nano-banana-2.1` / `gemini-3-pro-image` para gerar o Card Publicitário completo fundindo Briefing + Foto do Produto + Imagem de Referência. |
+| **Pós-Processamento & Marca d'Água** | **Sharp + @resvg/resvg-js**                              | Módulo profundo `ExportEngine` para aplicação determinística de marca d'água na prévia gratuita e exportação limpa em alta resolução (1080×1350 e 1080×1920) pós-Pix.                        |
+| **Gateway de Pagamento**             | **Pushin Pay (Pix Dinâmico R$ 0,35)**                    | Módulo profundo `PixCheckout` com máquina de estados, token de segurança, reconciliação ativa e idempotência estrita.                                                                        |
+| **Storage & Exportação**             | **S3 / Cloudinary**                                      | Persistência dos insumos e dos PNGs finais de alta resolução (Feed 1080×1350 e Story 1080×1920) com URLs privadas de 7 dias.                                                                 |
+| **Testes & Qualidade**               | **Vitest + Testing Library**                             | TDD nos limites da interface pública dos módulos profundos (replace-don't-layer com fakes in-memory).                                                                                        |
 
 ---
 
@@ -163,9 +166,9 @@ src/
    - Liberação de downloads sem marca d'água é restrita a pedidos cujo status de pagamento foi confirmado com sucesso (`orders.status === "PAID"`). Arquivos são protegidos por tokens assinados com validade mínima de 7 dias.
 
 5. **Codebase Design & Módulos Profundos (TDD)**:
-   - **Módulos Profundos**: Projete **módulos profundos** (uma interface pequena e concisa ocultando uma implementação substancial), proporcionando *leverage* para quem chama e *locality* para quem mantém. Evite módulos rasos que apenas repassam chamadas.
-   - **A Interface é a Superfície de Teste**: Chamadores e testes cruzam a mesma costura (*seam*). Não teste além da interface nem crie abstrações apenas para injetar mocks.
-   - **Disciplina de Costuras (*Seams*)**: "Um adaptador significa uma costura hipotética; dois adaptadores significam uma costura real." Não introduza interfaces/portas para dependências externas que possuem apenas uma implementação real (como S3 ou Sharp); prefira *replace-don't-layer* com *fakes in-memory* simples nos testes.
+   - **Módulos Profundos**: Projete **módulos profundos** (uma interface pequena e concisa ocultando uma implementação substancial), proporcionando _leverage_ para quem chama e _locality_ para quem mantém. Evite módulos rasos que apenas repassam chamadas.
+   - **A Interface é a Superfície de Teste**: Chamadores e testes cruzam a mesma costura (_seam_). Não teste além da interface nem crie abstrações apenas para injetar mocks.
+   - **Disciplina de Costuras (_Seams_)**: "Um adaptador significa uma costura hipotética; dois adaptadores significam uma costura real." Não introduza interfaces/portas para dependências externas que possuem apenas uma implementação real (como S3 ou Sharp); prefira _replace-don't-layer_ com _fakes in-memory_ simples nos testes.
    - **O Teste de Deleção**: Se deletar um módulo faz a complexidade desaparecer, ele era uma casca rasa desnecessária e deve ser eliminado; se a complexidade reaparecer espalhada por N chamadores, o módulo ganhou seu lugar.
    - **TDD (Red → Green → Refactor)**: Escreva testes nos limites da interface pública do módulo antes de implementar a lógica interna.
 
@@ -212,7 +215,7 @@ Para novas fases, funcionalidades ou refatorações:
 5. **Validação & Auditoria Paralelas**:
    - Despache `test-verifier` (`model: flash`) para rodar o pipeline oficial completo `./.agents/scripts/verify.sh`, regressões e o **Dual Browser Audit** (Mobile 390×844 e Desktop 1440×900 no dev server ativo).
    - Despache simultaneamente `implementation-validator` (`model: flash`) para auditar o diff contra a Spec, SOLID e anti-bloat (`ponytail-review`).
-6. **Fechamento & Auditoria de Execução**: O `feature-orchestrator` DEVE commitar todas as alterações na branch da worktree antes de concluir. Antes de realizar o merge na `main` e remover a worktree, verifique obrigatoriamente que `git -C .worktrees/<slug> status --porcelain` está vazio e que `git rev-list --count main..feat/<slug> > 0`. Se houver novas migrações SQL (`drizzle/*.sql`), execute `pnpm db:migrate` na raiz antes da homologação final. Apresente o resultado no Gate 3, gere a telemetria operacional via `./.agents/scripts/audit_agent_execution.py <conversation_id>` e registre aprendizados no ritual `/learn`.
+6. **Gate 3 (Aprovação Pré-Merge), Fechamento & Auditoria de Execução**: O `feature-orchestrator` DEVE commitar todas as alterações na branch da worktree (`feat/<slug>`) antes de concluir. O Chat Canvas valida que `git -C .worktrees/<slug> status --porcelain` está vazio e que `git rev-list --count main..feat/<slug> > 0`, apresenta o resultado no **Gate Humano 3** e **aguarda aprovação explícita do usuário antes de executar `git merge feat/<slug>` na `main`** (é proibido fazer merge na `main` ou remover a worktree sem aprovação prévia no Gate 3). Após a aprovação, realiza o merge na `main`, executa `pnpm db:migrate` na raiz caso existam novas migrações SQL (`drizzle/*.sql`), remove a worktree, gera a telemetria operacional via `./.agents/scripts/audit_agent_execution.py <conversation_id>` e registra aprendizados no ritual `/learn`.
 
 ---
 

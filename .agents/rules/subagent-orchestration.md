@@ -17,7 +17,7 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
      - **Fluxo Standard (Demandas do Zero sem Protótipo)**:
        - Delega o **Gate 0 Mandatório (`/grill-me`) e Planejamento (`/plan`)** para a dupla de especialistas em `model: inherit`:
          - **`product-manager`**: analisa regras de negócio e UX via `ask_question`, salvando a Spec em `docs/specs/<slug>.md` e fatiando em no máximo **2 a 3 Macro-Tickets** em `docs/tickets/<slug>/`.
-         - **`solution-architect`**: avalia arquitetura (*Deep Modules*), segurança e qualidade, redigindo `docs/plans/<slug>.md` (e `implementation_plan.md`) com diagramas Mermaid.
+         - **`solution-architect`**: avalia arquitetura (_Deep Modules_), segurança e qualidade, redigindo `docs/plans/<slug>.md` (e `implementation_plan.md`) com diagramas Mermaid.
      - Aguarda aprovação explícita do usuário no Gate Humano 1 & 2.
      - **Provisionamento Obrigatório de Git Worktree (Isolamento Físico de Features)**:
        Antes de invocar o `feature-orchestrator`, o Chat Canvas DEVE obrigatoriamente:
@@ -27,11 +27,15 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
        4. Invocar o `feature-orchestrator` passando o diretório da worktree (`Cwd: .worktrees/<slug>`) como raiz de execução para que a branch `main` permaneça 100% intocada até a homologação final.
      - **Gate Obrigatório de Commit na Worktree (Prevenção de Perda de Código)**:
        - O `feature-orchestrator` DEVE executar `git add -A && git commit` dentro de `.worktrees/<slug>` antes de encerrar e reportar o hash do commit criado.
-       - Antes de executar `git merge` ou `git worktree remove`, o Chat Canvas DEVE validar que `git -C .worktrees/<slug> status --porcelain` está vazio e que `git rev-list --count main..feat/<slug>` é maior que `0`. É TERMINANTEMENTE PROIBIDO rodar `git worktree remove --force` sem antes confirmar que todos os arquivos estão commitados e mergeados na `main`.
-     - **Checklist Obrigatório Pós-Merge na Branch `main`**:
-       Sempre que a worktree contiver novas migrações SQL (`drizzle/*.sql`), após realizar o merge na branch `main`, o Chat Canvas DEVE rodar obrigatoriamente `pnpm db:migrate` na raiz do workspace antes de disparar o pipeline de verificação global de fechamento (`./.agents/scripts/verify.sh`).
-     - Invoca o subagente `feature-orchestrator` (`Role: "Feature Factory Orchestrator"`) com o plano aprovado.
-     - Apresenta o resultado final no Gate 3 e dispara o fechamento `/learn`.
+       - Antes de apresentar o Gate 3, o Chat Canvas DEVE validar que `git -C .worktrees/<slug> status --porcelain` está vazio e que `git rev-list --count main..feat/<slug>` é maior que `0`.
+     - **Gate Humano 3 — Trava Obrigatória antes do Merge na `main`**:
+       - Concluído o `feature-orchestrator`, o Chat Canvas apresenta o resumo da entrega e validação (Gate 3) e **AGUARDA APROVAÇÃO EXPLÍCITA DO USUÁRIO** antes de executar `git merge feat/<slug>` na branch `main` ou remover a worktree.
+       - É TERMINANTEMENTE PROIBIDO executar `git merge` na `main` ou `git worktree remove` sem o aval explícito do usuário no Gate 3.
+     - **Checklist Obrigatório Pós-Aprovação do Gate 3 e Merge na Branch `main`**:
+       Após o usuário aprovar o Gate 3:
+       1. Realizar `git merge feat/<slug>` na raiz (`main`).
+       2. Sempre que houver novas migrações SQL (`drizzle/*.sql`), rodar obrigatoriamente `pnpm db:migrate` na raiz antes da verificação global (`./.agents/scripts/verify.sh`).
+       3. Remover a worktree (`git worktree remove .worktrees/<slug>`) e a branch temporária (`git branch -d feat/<slug>`), e disparar o fechamento `/learn`.
    - **Nível 2 — Subagente Orquestrador (`feature-orchestrator`)**:
      - Opera com carregamento cirúrgico de skills sob demanda (Just-in-Time), sem poluição de contexto.
      - Comanda a esteira técnica e gerencia os blocos de execução paralela respeitando a ordem de dependência (`Blocked by:`) dos macro-tickets.
@@ -67,7 +71,7 @@ Neste repositório, o agente primário da conversa atua como **User Bridge** e a
 6. **Identificadores Canônicos (`TypeName`)**:
    - `codebase-researcher` para mapeamento rápido do grafo (`graphify`) (`model: flash`).
    - `product-manager` para descoberta de regras de negócio, casos de borda e UX (`model: inherit`).
-   - `solution-architect` para arquitetura (*Deep Modules*), segurança e planos técnicos (`model: inherit`).
+   - `solution-architect` para arquitetura (_Deep Modules_), segurança e planos técnicos (`model: inherit`).
    - `backend-builder` para construção backend guiada por TDD cirúrgico (`model: flash`).
    - `frontend-builder` para construção frontend mobile-first (`model: flash`).
    - `test-verifier` para pipeline oficial completo e Dual Browser Audit (`model: flash`).
