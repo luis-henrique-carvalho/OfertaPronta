@@ -76,13 +76,13 @@ describe("FloatingWhatsappSupport", () => {
     });
   });
 
-  it("renderiza o botão no desktop mesmo quando estiver na rota /criar", async () => {
+  it("oculta o botão flutuante na rota /criar no desktop (já integrado no cabeçalho)", async () => {
     render(<FloatingWhatsappSupport isMobile={false} pathname="/criar" />);
 
     await waitFor(() => {
       expect(
-        screen.getByRole("link", { name: /atendimento via whatsapp/i }),
-      ).toBeDefined();
+        screen.queryByRole("link", { name: /atendimento via whatsapp/i }),
+      ).toBeNull();
     });
   });
 

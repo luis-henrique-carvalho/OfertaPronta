@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { getCompanyLegalProfile } from "@/lib/legal-company";
 
 export interface FloatingWhatsappSupportProps {
@@ -11,10 +10,9 @@ export interface FloatingWhatsappSupportProps {
 
 export function FloatingWhatsappSupport({
   pathname: propPathname,
-  isMobile: propIsMobile,
+  isMobile: _propIsMobile,
 }: FloatingWhatsappSupportProps = {}) {
   const [isMounted, setIsMounted] = useState(false);
-  const isMobileHook = useIsMobile();
   const [currentPath, setCurrentPath] = useState<string>(() => {
     if (propPathname !== undefined) return propPathname;
     if (typeof window !== "undefined") return window.location.pathname;
@@ -49,19 +47,13 @@ export function FloatingWhatsappSupport({
     return null;
   }
 
-  const isMobile = propIsMobile !== undefined ? propIsMobile : isMobileHook;
   const isCreationWizard =
     currentPath === "/criar" || currentPath.startsWith("/criar/");
   const isCheckout =
     currentPath === "/checkout" || currentPath.startsWith("/checkout/");
 
-  // Oculta no mobile durante o assistente de criação onde a barra de ação inferior já ocupa o espaço
-  if (isMobile && isCreationWizard) {
-    return null;
-  }
-
-  // Oculta no checkout pois o botão de suporte via WhatsApp já fica integrado no topo no cabeçalho
-  if (isCheckout) {
+  // Oculta no assistente de criação e checkout pois o botão de suporte via WhatsApp já fica integrado no topo no cabeçalho
+  if (isCreationWizard || isCheckout) {
     return null;
   }
 

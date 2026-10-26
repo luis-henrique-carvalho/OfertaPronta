@@ -1,8 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { OfferCreationWizard } from "@/features/promotions/components/offer-creation-wizard";
+import { CreationHeader } from "@/features/promotions/components/wizard/creation-header";
 import { Typography } from "@/components/ui/typography";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, Store } from "lucide-react";
 
 export const Route = createFileRoute("/criar")({
   component: CriarPageComponent,
@@ -13,30 +12,8 @@ function CriarPageComponent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      {/* Top Header Mobile-First */}
-      <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4 sm:px-6">
-          <a href="/" className="flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Store className="size-4" />
-            </div>
-            <Typography
-              variant="h4"
-              className="text-base font-extrabold tracking-tight"
-            >
-              Oferta<span className="text-primary">Pronta</span>
-            </Typography>
-          </a>
-
-          <Badge
-            variant="secondary"
-            className="gap-1 px-2.5 py-0.5 text-[11px] font-semibold"
-          >
-            <Sparkles className="size-3 text-primary" />
-            IA Fácil
-          </Badge>
-        </div>
-      </header>
+      {/* Top Header Mobile-First com Botão de Ajuda WhatsApp */}
+      <CreationHeader />
 
       {/* Main Content: Fluxo Oficial em Micro-Passos com Rodapé Fixo */}
       <main className="flex-1">
