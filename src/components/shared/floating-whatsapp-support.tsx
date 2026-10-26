@@ -55,8 +55,13 @@ export function FloatingWhatsappSupport({
   const isCheckout =
     currentPath === "/checkout" || currentPath.startsWith("/checkout/");
 
-  // Oculta no mobile durante o assistente de criação ou checkout onde a barra de ação inferior já ocupa o espaço
-  if (isMobile && (isCreationWizard || isCheckout)) {
+  // Oculta no mobile durante o assistente de criação onde a barra de ação inferior já ocupa o espaço
+  if (isMobile && isCreationWizard) {
+    return null;
+  }
+
+  // Oculta no checkout pois o botão de suporte via WhatsApp já fica integrado no topo no cabeçalho
+  if (isCheckout) {
     return null;
   }
 

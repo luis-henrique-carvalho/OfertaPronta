@@ -1,15 +1,17 @@
-import { ArrowLeft, Store, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Store, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
-import { Badge } from "@/components/ui/badge";
+import { getCompanyLegalProfile } from "@/lib/legal-company";
 
 export interface CheckoutHeaderProps {
   onNavigateBack?: () => void;
 }
 
 export function CheckoutHeader({ onNavigateBack }: CheckoutHeaderProps) {
+  const legal = getCompanyLegalProfile();
+
   return (
-    <div className="flex items-center justify-between">
+    <header className="flex items-center justify-between">
       <div className="flex items-center gap-2">
         {onNavigateBack && (
           <Button
@@ -33,13 +35,22 @@ export function CheckoutHeader({ onNavigateBack }: CheckoutHeaderProps) {
         </div>
       </div>
 
-      <Badge
-        variant="secondary"
-        className="gap-1 px-2.5 py-0.5 text-[11px] font-semibold"
+      <Button
+        asChild
+        variant="outline"
+        size="sm"
+        className="h-8 gap-1.5 rounded-full border-emerald-500/30 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-500/20 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200"
       >
-        <ShieldCheck className="size-3 text-emerald-500" />
-        Checkout Seguro Pix
-      </Badge>
-    </div>
+        <a
+          href={legal.supportWhatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Ajuda via WhatsApp"
+        >
+          <MessageCircle className="size-3.5 fill-emerald-500/20 text-emerald-600 dark:text-emerald-400" />
+          <span>Ajuda WhatsApp</span>
+        </a>
+      </Button>
+    </header>
   );
 }
