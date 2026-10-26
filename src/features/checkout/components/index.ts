@@ -59,3 +59,7 @@ export {
 
 export { CheckoutPaidSuccessCard } from "./checkout-paid-success-card";
 export { CheckoutHeader, type CheckoutHeaderProps } from "./checkout-header";
+export {
+  StickyPixPaymentBar,
+  type StickyPixPaymentBarProps,
+} from "./sticky-pix-payment-bar";

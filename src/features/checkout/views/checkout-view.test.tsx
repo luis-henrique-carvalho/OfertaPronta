@@ -162,7 +162,9 @@ describe("CheckoutView Component", () => {
     expect(
       screen.getByText("Alta Resolução (1080p) sem Marca d'Água após Pix"),
     ).toBeDefined();
-    expect(screen.getByText("Copiar Código Pix")).toBeDefined();
+    expect(
+      screen.getAllByText("Copiar Código Pix").length,
+    ).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Aguardando pagamento Pix")).toBeDefined();
   });
 
@@ -171,7 +173,7 @@ describe("CheckoutView Component", () => {
       wrapper: createWrapper(),
     });
 
-    const copyBtn = screen.getByText("Copiar Código Pix");
+    const copyBtn = screen.getAllByText("Copiar Código Pix")[0];
     fireEvent.click(copyBtn);
 
     await waitFor(() => {
@@ -180,7 +182,9 @@ describe("CheckoutView Component", () => {
       );
     });
 
-    expect(screen.getByText("Código Pix Copiado!")).toBeDefined();
+    expect(
+      screen.getAllByText("Código Pix Copiado!").length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it("switches tabs between Copia e Cola and QR Code smoothly", () => {
