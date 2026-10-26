@@ -52,9 +52,11 @@ export function FloatingWhatsappSupport({
   const isMobile = propIsMobile !== undefined ? propIsMobile : isMobileHook;
   const isCreationWizard =
     currentPath === "/criar" || currentPath.startsWith("/criar/");
+  const isCheckout =
+    currentPath === "/checkout" || currentPath.startsWith("/checkout/");
 
-  // Oculta no mobile durante o assistente de criação onde a barra de ação inferior já ocupa o espaço
-  if (isMobile && isCreationWizard) {
+  // Oculta no mobile durante o assistente de criação ou checkout onde a barra de ação inferior já ocupa o espaço
+  if (isMobile && (isCreationWizard || isCheckout)) {
     return null;
   }
 

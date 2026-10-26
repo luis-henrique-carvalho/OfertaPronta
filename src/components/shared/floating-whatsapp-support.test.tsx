@@ -46,6 +46,36 @@ describe("FloatingWhatsappSupport", () => {
     });
   });
 
+  it("oculta o botão flutuante quando está no mobile e na rota /checkout/:id", async () => {
+    render(
+      <FloatingWhatsappSupport
+        isMobile={true}
+        pathname="/checkout/dafa0872-287a-4df4-8504-07cc3aefe960"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("link", { name: /atendimento via whatsapp/i }),
+      ).toBeNull();
+    });
+  });
+
+  it("renderiza o botão no desktop mesmo quando estiver na rota /checkout/:id", async () => {
+    render(
+      <FloatingWhatsappSupport
+        isMobile={false}
+        pathname="/checkout/dafa0872-287a-4df4-8504-07cc3aefe960"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("link", { name: /atendimento via whatsapp/i }),
+      ).toBeDefined();
+    });
+  });
+
   it("renderiza o botão no desktop mesmo quando estiver na rota /criar", async () => {
     render(<FloatingWhatsappSupport isMobile={false} pathname="/criar" />);
 
