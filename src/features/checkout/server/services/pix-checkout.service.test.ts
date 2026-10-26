@@ -13,6 +13,10 @@ import type {
   PixChargeResult,
   TransactionStatusResult,
 } from "./pushin-pay.service";
+import {
+  InMemoryStorageDriver,
+  setStorageServiceForTesting,
+} from "../../../../server/storage";
 
 class FakePushinPayService implements Partial<PushinPayService> {
   public chargesCreated: Array<{ valueCents: number; webhookUrl?: string }> =
@@ -61,6 +65,11 @@ describe("PixCheckoutService Deep Module", () => {
   let service: PixCheckoutService;
 
   beforeEach(() => {
+    setStorageServiceForTesting(
+      new InMemoryStorageDriver({
+        publicUrlBase: "https://pub-test.r2.dev",
+      }),
+    );
     fakePushinPay = new FakePushinPayService();
     service = new PixCheckoutService(
       fakePushinPay as unknown as PushinPayService,
