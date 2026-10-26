@@ -4,6 +4,11 @@ export {
 } from "./ad-card-checkout-showcase";
 
 export {
+  AdCardMockupPlaceholder,
+  type AdCardMockupPlaceholderProps,
+} from "./ad-card-mockup-placeholder";
+
+export {
   CobrandingDiscountCard,
   type CobrandingDiscountCardProps,
 } from "./cobranding-discount-card";
@@ -63,3 +68,8 @@ export {
   StickyPixPaymentBar,
   type StickyPixPaymentBarProps,
 } from "./sticky-pix-payment-bar";
+export { AiCreationGuaranteedBanner } from "./ai-creation-guaranteed-banner";
+export {
+  ResponsiveCheckoutLayout,
+  type ResponsiveCheckoutLayoutProps,
+} from "./responsive-checkout-layout";

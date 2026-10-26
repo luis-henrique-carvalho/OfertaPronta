@@ -16,14 +16,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Sparkles, Image as ImageIcon, Maximize2 } from "lucide-react";
+import { Sparkles, Maximize2 } from "lucide-react";
 import { formatBRL } from "@/lib/utils";
 import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
+import { AdCardMockupPlaceholder } from "./ad-card-mockup-placeholder";
 
 export interface AdCardCheckoutShowcaseProps {
   previewCardImageUrl?: string | null;
   offerTitle: string;
   businessName?: string | null;
+  promoPrice?: string | null;
   targetAspectRatio?: string | null;
   amountCents?: number;
   planName?: string | null;
@@ -37,6 +39,7 @@ export function AdCardCheckoutShowcase({
   previewCardImageUrl,
   offerTitle,
   businessName,
+  promoPrice,
   targetAspectRatio = "feed",
   amountCents,
   planName,
@@ -51,6 +54,7 @@ export function AdCardCheckoutShowcase({
   const resolvedMaxRegenerations =
     maxRegenerations ?? defaultPlan.maxPostPaymentRegenerations;
   const formattedPrice = formatBRL(resolvedAmountCents);
+  const displayPrice = promoPrice || formattedPrice;
 
   const isStory = targetAspectRatio === "story";
 
@@ -142,13 +146,12 @@ export function AdCardCheckoutShowcase({
               </Dialog>
             </>
           ) : (
-            // shadcn-ignore: layout
-            <div className="flex h-64 w-full flex-col items-center justify-center gap-2 text-center text-muted-foreground">
-              <ImageIcon className="size-10 text-muted-foreground/60" />
-              <Typography variant="muted" className="text-xs font-medium">
-                Prévia do Card Publicitário
-              </Typography>
-            </div>
+            <AdCardMockupPlaceholder
+              offerTitle={offerTitle}
+              businessName={businessName}
+              displayPrice={displayPrice}
+              isStory={isStory}
+            />
           )}
 
           {/* Mockup sutil da marca d'água de co-branding no canto inferior direito da arte */}

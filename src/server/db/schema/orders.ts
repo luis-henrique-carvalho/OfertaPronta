@@ -52,6 +52,8 @@ export interface OrderFrozenSnapshot {
   cleanMasterImageDataUrl?: string | null;
   cleanMasterAssetKey?: string | null;
   previewAssetKey?: string | null;
+  pendingAiGeneration?: boolean;
+  visitorId?: string | null;
 
   // Metadados comerciais e co-branding
   planId: string;

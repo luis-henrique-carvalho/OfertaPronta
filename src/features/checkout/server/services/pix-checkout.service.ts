@@ -57,6 +57,7 @@ export class PixCheckoutService {
     draft: Draft,
     plan: CampaignPlan,
     customerWhatsapp?: string,
+    visitorId?: string,
   ): Record<string, unknown> {
     const resolvedProduct = draft.productAssetKey
       ? this.storageService.getPublicUrl(draft.productAssetKey)
@@ -89,6 +90,10 @@ export class PixCheckoutService {
       cleanMasterImageDataUrl: draft.cleanMasterImageDataUrl,
       cleanMasterAssetKey: draft.cleanMasterAssetKey,
       previewAssetKey: draft.previewAssetKey,
+
+      // Flag para indicar se a geração com IA ficou pendente para após o Pix (cota esgotada)
+      pendingAiGeneration: !draft.previewCardImageUrl,
+      visitorId: visitorId || null,
 
       // Metadados do Épico 6 congelados para regenerações idênticas
       cardIntent: draft.cardIntent || "promo",
@@ -183,15 +188,6 @@ export class PixCheckoutService {
       throw new Error("Rascunho não encontrado");
     }
 
-    if (!draft.previewCardImageUrl) {
-      log.warn("Tentativa de checkout sem prévia de card gerada", {
-        draftId: validated.draftId,
-      });
-      throw new Error(
-        "Não é possível iniciar o checkout sem antes gerar a prévia do card com IA",
-      );
-    }
-
     const activeOrder = await this.findActivePendingOrder(
       draft.id,
       validated.customerWhatsapp,
@@ -208,6 +204,7 @@ export class PixCheckoutService {
       draft,
       plan,
       validated.customerWhatsapp,
+      validated.visitorId,
     );
     log.info(
       "Snapshot imutável congelado. Solicitando cobrança Pix à Pushin Pay...",
@@ -721,6 +718,7 @@ export class PixCheckoutService {
     paidAt: Date,
   ): Promise<void> {
     let paidDraftId: string | null = null;
+    let paidVisitorId: string | null = null;
 
     await this.database.transaction(async (tx) => {
       const [order] = await tx
@@ -733,13 +731,17 @@ export class PixCheckoutService {
         paidDraftId = order.draftId;
       }
 
+      const snapshot = (order?.frozenSnapshot || {}) as Record<string, unknown>;
+      if (typeof snapshot.visitorId === "string") {
+        paidVisitorId = snapshot.visitorId;
+      }
+
       const [charge] = await tx
         .select()
         .from(paymentCharges)
         .where(eq(paymentCharges.id, chargeId))
         .limit(1);
 
-      const snapshot = (order?.frozenSnapshot || {}) as Record<string, unknown>;
       const originalAmountCents =
         typeof snapshot.originalAmountCents === "number"
           ? snapshot.originalAmountCents
@@ -779,7 +781,12 @@ export class PixCheckoutService {
         .where(eq(orders.id, orderId));
     });
 
-    await this.resetPreviewQuotaSafely(orderId, paidDraftId, paidAt);
+    await this.resetPreviewQuotaSafely(
+      orderId,
+      paidDraftId,
+      paidAt,
+      paidVisitorId,
+    );
 
     log.info(
       "Webhook processado com sucesso: pedido e cobrança atualizados para PAID",
@@ -795,14 +802,23 @@ export class PixCheckoutService {
     orderId: string,
     draftId: string | null,
     now: Date,
+    visitorId?: string | null,
   ): Promise<void> {
-    if (!draftId) return;
+    if (!draftId && !visitorId) return;
     try {
-      await resetVisitorQuotaOnPayment({ draftId, now }, this.database);
+      await resetVisitorQuotaOnPayment(
+        {
+          draftId: draftId || undefined,
+          visitorId: visitorId || undefined,
+          now,
+        },
+        this.database,
+      );
     } catch (error) {
       log.error("Erro ao resetar cota de prévia do visitante após pagamento", {
         orderId,
         draftId,
+        visitorId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -853,7 +869,15 @@ export class PixCheckoutService {
         .update(orders)
         .set({ status: "PAID", paidAt: now, updatedAt: now })
         .where(eq(orders.id, orderId));
-      await this.resetPreviewQuotaSafely(orderId, order.draftId, now);
+      const snapshot = (order.frozenSnapshot || {}) as Record<string, unknown>;
+      const visitorId =
+        typeof snapshot.visitorId === "string" ? snapshot.visitorId : null;
+      await this.resetPreviewQuotaSafely(
+        orderId,
+        order.draftId,
+        now,
+        visitorId,
+      );
     }
 
     log.info("[DEV_MODE] Pagamento Pix simulado com sucesso para pedido", {

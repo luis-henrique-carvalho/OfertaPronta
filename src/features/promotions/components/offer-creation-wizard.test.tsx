@@ -789,7 +789,7 @@ describe("OfferCreationWizard Integration Flow", () => {
     });
   });
 
-  it("deve desabilitar botão de gerar com 'Prévias esgotadas hoje' quando cota estiver bloqueada e não houver draft anterior", async () => {
+  it("deve manter botão habilitado com 'Continuar e Gerar Card' e exibir mensagem amigável quando cota estiver esgotada", async () => {
     const mockBlockedQuota = vi.fn().mockResolvedValue({
       remaining: 0,
       blockedReason: "visitor",
@@ -817,12 +817,17 @@ describe("OfferCreationWizard Integration Flow", () => {
     await waitFor(() => {
       const btn = screen.getByTestId("btn-wizard-generate");
       expect(btn).toBeDefined();
-      expect(btn.getAttribute("disabled")).toBeDefined();
-      expect(screen.getByText(/Prévias esgotadas hoje/i)).toBeDefined();
+      expect(btn.hasAttribute("disabled")).toBe(false);
+      expect(screen.getByText("Continuar e Gerar Card")).toBeDefined();
+      expect(
+        screen.getByText(
+          /Você usou suas 2 prévias grátis de hoje\. Confirme o Pix \(R\$ 9,90\) e nossa IA criará seu card logo após o pagamento\./i,
+        ),
+      ).toBeDefined();
     });
   });
 
-  it("deve adaptar botão para 'Liberar por R$ 9,90' quando cota estiver bloqueada mas houver preview anterior", async () => {
+  it("deve salvar rascunho e iniciar checkout diretamente sem chamar generatePreviewFn ao clicar em 'Continuar e Gerar Card' com cota esgotada", async () => {
     const mockBlockedQuota = vi.fn().mockResolvedValue({
       remaining: 0,
       blockedReason: "visitor",
@@ -832,12 +837,10 @@ describe("OfferCreationWizard Integration Flow", () => {
     render(
       <OfferCreationWizard
         initialDraft={{
-          id: "draft-prev-456",
           businessSegment: "fashion",
           businessName: "Boutique Flor",
           offerTitle: "Vestido Floral",
           promoPrice: "R$ 89,90",
-          previewCardImageUrl: "data:image/png;base64,previousWatermarkedPng",
         }}
         saveDraftFn={mockSaveDraft}
         generatePreviewFn={mockGeneratePreview}
@@ -855,21 +858,27 @@ describe("OfferCreationWizard Integration Flow", () => {
     await waitFor(() => {
       const ctaBtn = screen.getByTestId("btn-wizard-generate");
       expect(ctaBtn).toBeDefined();
-      expect(screen.getByText(/Liberar por R\$ 9,90/i)).toBeDefined();
+      expect(screen.getByText("Continuar e Gerar Card")).toBeDefined();
     });
 
-    // Clicar no botão adaptado deve disparar o checkout
+    // Clicar em "Continuar e Gerar Card"
     const ctaBtn = screen.getByTestId("btn-wizard-generate");
     await act(async () => {
       fireEvent.click(ctaBtn);
     });
 
     await waitFor(() => {
+      // 1. Rascunho é salvo
+      expect(mockSaveDraft).toHaveBeenCalledTimes(1);
+      // 2. IA NÃO é chamada para gerar prévia
+      expect(mockGeneratePreview).not.toHaveBeenCalled();
+      // 3. Checkout é iniciado diretamente com o draftId
       expect(mockInitiateCheckout).toHaveBeenCalledWith({
         data: {
-          draftId: "draft-prev-456",
+          draftId: "draft-abc-123",
         },
       });
+      // 4. Redirecionamento ocorre com o orderId
       expect(onNavigateToCheckout).toHaveBeenCalledWith("order-pix-789");
     });
   });

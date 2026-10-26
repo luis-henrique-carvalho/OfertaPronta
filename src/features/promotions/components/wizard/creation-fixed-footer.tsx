@@ -1,13 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Wand2,
-  Loader2,
-  Sparkles,
-  QrCode,
-} from "lucide-react";
-import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
+import { ArrowLeft, ArrowRight, Wand2, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface CreationFixedFooterProps {
@@ -36,11 +28,8 @@ export function CreationFixedFooter({
   className,
   quotaBlocked = false,
   quotaLabel,
-  hasLastDraft = false,
-  onCheckoutLastDraft,
   isCheckingOut = false,
 }: CreationFixedFooterProps) {
-  const defaultPlan = getDefaultCampaignPlan();
   const isBackVisible = step > 1;
   const isLastStep = step === 4;
 
@@ -55,15 +44,26 @@ export function CreationFixedFooter({
       )}
     >
       <div className="mx-auto flex max-w-lg flex-col gap-1.5">
-        {isLastStep && quotaLabel && !quotaBlocked && (
-          <div
-            data-testid="quota-counter"
-            className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-muted-foreground"
-          >
-            <Sparkles className="size-3 text-primary shrink-0" />
-            <span>{quotaLabel}</span>
-          </div>
-        )}
+        {isLastStep &&
+          (quotaBlocked ? (
+            <div
+              data-testid="quota-counter"
+              className="flex items-center justify-center gap-1.5 text-center text-[11px] font-medium text-muted-foreground px-2"
+            >
+              <span>
+                Você usou suas 2 prévias grátis de hoje. Confirme o Pix (R$
+                9,90) e nossa IA criará seu card logo após o pagamento.
+              </span>
+            </div>
+          ) : quotaLabel ? (
+            <div
+              data-testid="quota-counter"
+              className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-muted-foreground"
+            >
+              <Sparkles className="size-3 text-primary shrink-0" />
+              <span>{quotaLabel}</span>
+            </div>
+          ) : null)}
 
         <div className="flex items-center gap-2.5">
           {isBackVisible && (
@@ -83,46 +83,30 @@ export function CreationFixedFooter({
 
           {isLastStep ? (
             quotaBlocked ? (
-              hasLastDraft && onCheckoutLastDraft ? (
-                <Button
-                  type="button"
-                  size="lg"
-                  data-testid="btn-wizard-generate"
-                  disabled={isCheckingOut}
-                  onClick={onCheckoutLastDraft}
-                  className={cn(
-                    "h-12 min-h-[48px] rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all",
-                    isBackVisible ? "w-2/3" : "w-full",
-                    "bg-primary text-primary-foreground hover:bg-primary/90",
-                  )}
-                >
-                  {isCheckingOut ? (
-                    <>
-                      <Loader2 className="size-4 mr-1.5 animate-spin shrink-0" />
-                      Iniciando Pix...
-                    </>
-                  ) : (
-                    <>
-                      <QrCode className="size-4 mr-1.5 shrink-0" />
-                      Liberar por {defaultPlan.formattedPrice}
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  size="lg"
-                  data-testid="btn-wizard-generate"
-                  disabled={true}
-                  className={cn(
-                    "h-12 min-h-[48px] rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all",
-                    isBackVisible ? "w-2/3" : "w-full",
-                    "bg-muted text-muted-foreground opacity-80 cursor-not-allowed",
-                  )}
-                >
-                  Prévias esgotadas hoje
-                </Button>
-              )
+              <Button
+                type="button"
+                size="lg"
+                data-testid="btn-wizard-generate"
+                disabled={isCheckingOut || isGenerating}
+                onClick={onGenerate}
+                className={cn(
+                  "h-12 min-h-[48px] rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all",
+                  isBackVisible ? "w-2/3" : "w-full",
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                )}
+              >
+                {isCheckingOut ? (
+                  <>
+                    <Loader2 className="size-4 mr-1.5 animate-spin shrink-0" />
+                    Iniciando Pix...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="size-4 mr-1.5 shrink-0" />
+                    Continuar e Gerar Card
+                  </>
+                )}
+              </Button>
             ) : (
               <Button
                 type="button"

@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeaders } from "@tanstack/react-start/server";
 import {
   initiateCheckoutSchema,
   orderIdSchema,
@@ -20,6 +21,17 @@ import {
   executeSimulateDevPayment,
   executeUpdateOrderCobranding,
 } from "../services/checkout-runners.service";
+import { resolveVisitorIdentity } from "../../../promotions/server/services/visitor-identity";
+import { serverEnv } from "../../../../config/server-env";
+
+function getRequestContextSafe(): { headers: Headers } {
+  try {
+    const headers = getRequestHeaders();
+    return { headers };
+  } catch {
+    return { headers: new Headers() };
+  }
+}
 
 /**
  * Server Function RPC: Inicia o checkout Pix para um rascunho com prévia gerada.
@@ -30,7 +42,24 @@ export const initiateCheckoutFn = createServerFn({ method: "POST" })
     initiateCheckoutSchema.parse(input),
   )
   .handler(async ({ data }): Promise<{ orderId: string }> => {
-    return executeInitiateCheckout(data);
+    let visitorId = data.visitorId;
+    if (!visitorId) {
+      try {
+        const { headers } = getRequestContextSafe();
+        if (serverEnv.FREE_PREVIEW_SECRET) {
+          const identity = resolveVisitorIdentity({
+            headers,
+            secret: serverEnv.FREE_PREVIEW_SECRET,
+            previousSecret: serverEnv.FREE_PREVIEW_SECRET_PREVIOUS,
+            trustedProxy: serverEnv.TRUSTED_PROXY,
+          });
+          visitorId = identity.visitorId;
+        }
+      } catch {
+        // Fallback silencioso caso headers não estejam disponíveis
+      }
+    }
+    return executeInitiateCheckout({ ...data, visitorId });
   });
 
 /**

@@ -15,6 +15,16 @@ import {
   type DeliveryDetailsResult,
   downloadFormatEnum,
 } from "../../data/delivery.schemas";
+import {
+  generateAdCardImage,
+  type GenerateAdCardInput,
+  type GenerateAdCardResult,
+} from "../../../promotions/server/services/ai-card-generator.service";
+import type {
+  BusinessSegment,
+  CardAspectRatio,
+  CardIntent,
+} from "../../../promotions/data/offer-brief.schema";
 import { createServerLogger } from "../../../../server/logger";
 import { serverEnv } from "../../../../config/server-env";
 import {
@@ -54,6 +64,9 @@ export interface DeliveryServiceDependencies {
     buffer: Buffer,
     options?: CobrandingOptions,
   ) => Promise<Buffer>;
+  generateAdCard?: (
+    input: GenerateAdCardInput,
+  ) => Promise<GenerateAdCardResult>;
 }
 
 /**
@@ -140,6 +153,9 @@ export class DeliveryService {
   private readonly baseUrl: string;
   private readonly exportEngine: ExportEngine;
   private readonly storageService: StorageService;
+  private readonly generateAdCard: (
+    input: GenerateAdCardInput,
+  ) => Promise<GenerateAdCardResult>;
 
   constructor(deps?: DeliveryServiceDependencies) {
     this.database = deps?.database ?? db;
@@ -151,6 +167,7 @@ export class DeliveryService {
       "";
     this.baseUrl = rawBaseUrl.replace(/\/$/, "");
     this.storageService = deps?.storageService ?? getStorageService();
+    this.generateAdCard = deps?.generateAdCard ?? generateAdCardImage;
 
     if (deps?.exportEngine) {
       this.exportEngine = deps.exportEngine;
@@ -253,28 +270,134 @@ export class DeliveryService {
       );
     }
 
-    // 2. Fallback para Base64 legado (order.cleanMasterImageDataUrl ou snapshot)
-    const masterDataUrl =
-      order.cleanMasterImageDataUrl ||
-      (typeof snapshot.cleanMasterImageDataUrl === "string"
-        ? snapshot.cleanMasterImageDataUrl
-        : null) ||
-      (typeof snapshot.previewCardImageUrl === "string"
-        ? snapshot.previewCardImageUrl
-        : null);
+    // 2. Fallback para Base64 legado (order.cleanMasterImageDataUrl ou snapshot) se não for pendingAiGeneration
+    const isPendingAiGeneration = Boolean(snapshot.pendingAiGeneration);
+    if (!isPendingAiGeneration) {
+      const masterDataUrl =
+        order.cleanMasterImageDataUrl ||
+        (typeof snapshot.cleanMasterImageDataUrl === "string"
+          ? snapshot.cleanMasterImageDataUrl
+          : null) ||
+        (typeof snapshot.previewCardImageUrl === "string"
+          ? snapshot.previewCardImageUrl
+          : null);
 
-    if (masterDataUrl) {
-      return this.parseDataUrlBuffer(masterDataUrl);
+      if (masterDataUrl) {
+        return this.parseDataUrlBuffer(masterDataUrl);
+      }
     }
 
-    log.error("Arte mestre limpa não encontrada no pedido pago", undefined, {
-      orderId: order.id,
-    });
-    throw new DeliveryError(
-      `Arte mestre não encontrada para o pedido ${order.id}`,
-      "MASTER_ART_NOT_FOUND",
-      404,
+    // 3. Arte mestre ausente: gera on-the-fly com IA usando os dados do snapshot congelado
+    log.info(
+      "Arte mestre ausente no pedido pago. Iniciando geração on-the-fly com IA...",
+      {
+        orderId: order.id,
+        pendingAiGeneration: isPendingAiGeneration,
+      },
     );
+
+    return this.generateAndStoreCleanMaster(order, snapshot);
+  }
+
+  private async resolveAssetDataUrl(
+    assetKey: unknown,
+    fallbackUrl?: string,
+  ): Promise<string | undefined> {
+    if (typeof assetKey === "string" && assetKey) {
+      const asset = await this.storageService.getAsset(assetKey);
+      if (asset) {
+        return `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`;
+      }
+    }
+    return fallbackUrl || undefined;
+  }
+
+  private async buildGenerateAdCardInput(
+    order: typeof orders.$inferSelect,
+    snapshot: Record<string, unknown>,
+  ): Promise<GenerateAdCardInput> {
+    const [productImageDataUrl, referenceImageDataUrl, logoImageDataUrl] =
+      await Promise.all([
+        this.resolveAssetDataUrl(
+          snapshot.productAssetKey,
+          snapshot.productImageDataUrl as string | undefined,
+        ),
+        this.resolveAssetDataUrl(
+          snapshot.referenceAssetKey,
+          snapshot.referenceImageDataUrl as string | undefined,
+        ),
+        this.resolveAssetDataUrl(
+          snapshot.logoAssetKey,
+          snapshot.logoImageDataUrl as string | undefined,
+        ),
+      ]);
+
+    return {
+      businessSegment:
+        (snapshot.businessSegment as BusinessSegment) || "supermarket",
+      targetAspectRatio:
+        (snapshot.targetAspectRatio as CardAspectRatio) || "feed",
+      businessName: String(snapshot.businessName || "Estabelecimento"),
+      offerTitle: String(snapshot.offerTitle || "Oferta Especial"),
+      promoPrice: (snapshot.promoPrice as string | undefined) || undefined,
+      originalPrice:
+        (snapshot.originalPrice as string | undefined) || undefined,
+      callToAction: (snapshot.callToAction as string | undefined) || undefined,
+      whatsapp:
+        order.customerWhatsapp ||
+        (snapshot.whatsapp as string | undefined) ||
+        undefined,
+      productImageDataUrl,
+      referenceImageDataUrl,
+      logoImageDataUrl,
+      stylePresetId:
+        (snapshot.stylePresetId as string | undefined) || undefined,
+      customStyleInstructions:
+        (snapshot.customStyleInstructions as string | undefined) || undefined,
+      cardIntent: (snapshot.cardIntent as CardIntent | undefined) || undefined,
+      customIntentText:
+        (snapshot.customIntentText as string | undefined) || undefined,
+    };
+  }
+
+  private async generateAndStoreCleanMaster(
+    order: typeof orders.$inferSelect,
+    snapshot: Record<string, unknown>,
+  ): Promise<Buffer> {
+    const generateInput = await this.buildGenerateAdCardInput(order, snapshot);
+
+    log.info("Disparando generateAdCard para criação on-the-fly na entrega", {
+      orderId: order.id,
+      offerTitle: generateInput.offerTitle,
+      businessSegment: generateInput.businessSegment,
+    });
+
+    const generationResult = await this.generateAdCard(generateInput);
+    const mimeType = generationResult.mimeType || "image/png";
+
+    const masterResult = await this.exportEngine.saveCleanMaster({
+      ownerId: order.id,
+      buffer: generationResult.rawImageBuffer,
+      contentType: mimeType,
+      prefix: "orders",
+    });
+
+    await this.database
+      .update(orders)
+      .set({
+        cleanMasterAssetKey: masterResult.key,
+        updatedAt: new Date(),
+      })
+      .where(eq(orders.id, order.id));
+
+    order.cleanMasterAssetKey = masterResult.key;
+
+    log.info("Arte mestre limpa gerada e persistida com sucesso na entrega", {
+      orderId: order.id,
+      cleanMasterAssetKey: masterResult.key,
+    });
+
+    return generationResult.rawImageBuffer;
   }
 
   private async deriveAndPersistFormats(

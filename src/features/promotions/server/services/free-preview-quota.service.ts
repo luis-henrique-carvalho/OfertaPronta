@@ -336,7 +336,8 @@ export async function findLastPreviewDraftId(
 }
 
 export interface ResetVisitorQuotaInput {
-  draftId: string;
+  draftId?: string;
+  visitorId?: string;
   now?: Date;
 }
 
@@ -357,22 +358,26 @@ export async function resetVisitorQuotaOnPayment(
 ): Promise<ResetVisitorQuotaResult> {
   const now = input.now ?? new Date();
 
-  const [ledgerRow] = await database
-    .select({ visitorId: freePreviewLedger.visitorId })
-    .from(freePreviewLedger)
-    .where(eq(freePreviewLedger.draftId, input.draftId))
-    .orderBy(desc(freePreviewLedger.reservedAt))
-    .limit(1);
+  let targetVisitorId: string | null = input.visitorId ?? null;
 
-  if (!ledgerRow || !ledgerRow.visitorId) {
+  if (!targetVisitorId && input.draftId) {
+    const [ledgerRow] = await database
+      .select({ visitorId: freePreviewLedger.visitorId })
+      .from(freePreviewLedger)
+      .where(eq(freePreviewLedger.draftId, input.draftId))
+      .orderBy(desc(freePreviewLedger.reservedAt))
+      .limit(1);
+
+    targetVisitorId = ledgerRow?.visitorId ?? null;
+  }
+
+  if (!targetVisitorId) {
     log.info(
-      "Reset de cota de prévia ignorado: draft não possui registro no ledger",
-      { draftId: input.draftId },
+      "Reset de cota de prévia ignorado: visitante não identificado por visitorId ou draftId no ledger",
+      { draftId: input.draftId, visitorId: input.visitorId },
     );
     return { resetCount: 0, visitorId: null };
   }
-
-  const { visitorId } = ledgerRow;
 
   const updatedRows = await database
     .update(freePreviewLedger)
@@ -382,7 +387,7 @@ export async function resetVisitorQuotaOnPayment(
     })
     .where(
       and(
-        eq(freePreviewLedger.visitorId, visitorId),
+        eq(freePreviewLedger.visitorId, targetVisitorId),
         or(
           eq(freePreviewLedger.status, "CONSUMED"),
           eq(freePreviewLedger.status, "RESERVED"),
@@ -394,10 +399,10 @@ export async function resetVisitorQuotaOnPayment(
   const resetCount = updatedRows.length;
 
   log.info("Cota de prévias do visitante resetada por pagamento", {
-    visitorId,
+    visitorId: targetVisitorId,
     draftId: input.draftId,
     resetCount,
   });
 
-  return { resetCount, visitorId };
+  return { resetCount, visitorId: targetVisitorId };
 }

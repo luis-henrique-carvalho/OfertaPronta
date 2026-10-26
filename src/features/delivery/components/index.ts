@@ -30,3 +30,8 @@ export type {
   AiRegenerationQuickPanelProps,
   QuickIntent,
 } from "./ai-regeneration-quick-panel";
+
+export {
+  DeliveryPendingComponent,
+  DeliveryPendingCard,
+} from "./delivery-pending-card";

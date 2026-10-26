@@ -499,5 +499,40 @@ describe("FreePreviewQuota Deep Domain Service", () => {
       expect(second.resetCount).toBe(0);
       expect(second.visitorId).toBe(visitorId);
     });
+
+    it("resets visitor quota directly by visitorId without prior draft in ledger", async () => {
+      const visitorId = `visitor-direct-${crypto.randomUUID()}`;
+      const ipHash = `ip-direct-${crypto.randomUUID()}`;
+      const draft1 = `draft-d1-${crypto.randomUUID()}`;
+      const draft2 = `draft-d2-${crypto.randomUUID()}`;
+
+      // Visitante consome 2 prévias no ledger
+      const r1 = await reservePreview({ visitorId, ipHash, draftId: draft1 });
+      if (r1.ok) await settlePreview(r1.reservationId, "CONSUMED");
+
+      const r2 = await reservePreview({ visitorId, ipHash, draftId: draft2 });
+      if (r2.ok) await settlePreview(r2.reservationId, "CONSUMED");
+
+      // Cota do visitante está esgotada
+      const quotaBefore = await getQuotaStatus({ visitorId, ipHash });
+      expect(quotaBefore.remaining).toBe(0);
+      expect(quotaBefore.blockedReason).toBe("visitor");
+
+      // Pagamento efetuado informando apenas visitorId (ex: compra direta sem prévia no Passo 4)
+      const resetResult = await resetVisitorQuotaOnPayment({ visitorId });
+      expect(resetResult.resetCount).toBe(2);
+      expect(resetResult.visitorId).toBe(visitorId);
+
+      // Cota do visitante foi integralmente restaurada
+      const quotaAfter = await getQuotaStatus({ visitorId, ipHash });
+      expect(quotaAfter.remaining).toBe(2);
+      expect(quotaAfter.blockedReason).toBeNull();
+    });
+
+    it("returns resetCount 0 and visitorId null when neither visitorId nor draftId is provided", async () => {
+      const resetResult = await resetVisitorQuotaOnPayment({});
+      expect(resetResult.resetCount).toBe(0);
+      expect(resetResult.visitorId).toBeNull();
+    });
   });
 });

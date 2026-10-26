@@ -86,7 +86,8 @@ describe("PixCheckoutService Deep Module", () => {
       ).rejects.toThrow("Rascunho não encontrado");
     });
 
-    it("should throw error when draft has no generated AI preview", async () => {
+    it("should allow checkout when draft has no generated AI preview (quota blocked) and freeze pendingAiGeneration: true and visitorId", async () => {
+      const visitorId = `visitor-test-${crypto.randomUUID()}`;
       const draft = await saveOfferDraft({
         businessSegment: "supermarket",
         businessName: "Mercado Central",
@@ -94,13 +95,29 @@ describe("PixCheckoutService Deep Module", () => {
         promoPrice: "R$ 21,90",
       });
 
-      await expect(
-        service.initiateCheckout({
-          draftId: draft.id,
-        }),
-      ).rejects.toThrow(
-        "Não é possível iniciar o checkout sem antes gerar a prévia do card com IA",
-      );
+      const result = await service.initiateCheckout({
+        draftId: draft.id,
+        visitorId,
+      });
+
+      expect(result.orderId).toBeDefined();
+
+      const [orderRow] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, result.orderId));
+
+      expect(orderRow).toBeDefined();
+      expect(orderRow.status).toBe("PENDING");
+      expect(orderRow.amountCents).toBe(990);
+      expect(orderRow.cleanMasterImageDataUrl).toBeNull();
+      expect(orderRow.cleanMasterAssetKey).toBeNull();
+
+      const snapshot = orderRow.frozenSnapshot as Record<string, unknown>;
+      expect(snapshot.pendingAiGeneration).toBe(true);
+      expect(snapshot.visitorId).toBe(visitorId);
+      expect(snapshot.offerTitle).toBe("Arroz 5kg Tipo 1");
+      expect(snapshot.promoPrice).toBe("R$ 21,90");
     });
 
     it("should freeze immutable snapshot, create order with 990 cents, issue Pix charge and return orderId", async () => {
@@ -409,6 +426,53 @@ describe("PixCheckoutService Deep Module", () => {
         .from(freePreviewLedger)
         .where(eq(freePreviewLedger.visitorId, visitorId));
       expect(rows.map((r) => r.status)).toEqual(["RESET_BY_PURCHASE"]);
+    });
+
+    it("should reset the paying visitor's free preview ledger rows via visitorId when draft was created without preview", async () => {
+      const visitorId = `visitor-no-prev-${crypto.randomUUID()}`;
+      await db.insert(freePreviewLedger).values([
+        {
+          id: crypto.randomUUID(),
+          visitorId,
+          ipHash: `ip-${crypto.randomUUID()}`,
+          draftId: `older-draft-1-${crypto.randomUUID()}`,
+          status: "CONSUMED",
+        },
+        {
+          id: crypto.randomUUID(),
+          visitorId,
+          ipHash: `ip-${crypto.randomUUID()}`,
+          draftId: `older-draft-2-${crypto.randomUUID()}`,
+          status: "CONSUMED",
+        },
+      ]);
+
+      const draft = await saveOfferDraft({
+        businessSegment: "beauty-salon",
+        businessName: "Salão Bella",
+        offerTitle: "Corte + Escova",
+        promoPrice: "R$ 60,00",
+      });
+
+      const { orderId } = await service.initiateCheckout({
+        draftId: draft.id,
+        visitorId,
+      });
+
+      const details = await service.getCheckoutDetails(orderId);
+      await service.handleWebhookPayment({
+        id: details.charge!.txId,
+        status: "paid",
+        value: 990,
+        paid_at: "2026-10-16T16:00:00.000Z",
+      });
+
+      const rows = await db
+        .select()
+        .from(freePreviewLedger)
+        .where(eq(freePreviewLedger.visitorId, visitorId));
+      expect(rows.length).toBe(2);
+      expect(rows.every((r) => r.status === "RESET_BY_PURCHASE")).toBe(true);
     });
 
     it("should be strictly idempotent: secondary identical webhook returns success without re-processing or failing", async () => {

@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Route } from "./pedido.$orderId";
+import { render, screen } from "@testing-library/react";
+import { Route, DeliveryPendingComponent } from "./pedido.$orderId";
 import * as deliveryFunctions from "../features/delivery/server/functions/delivery.functions";
 import type { DeliveryDetailsResult } from "../features/delivery/data/delivery.schemas";
 
@@ -96,5 +97,27 @@ describe("Pedido Route (/pedido/$orderId)", () => {
         isNotPaid: false,
       });
     }
+  });
+
+  it("Route defines pendingComponent with AI generation loader", () => {
+    expect(Route.options.pendingComponent).toBeDefined();
+    expect(Route.options.pendingComponent).toBe(DeliveryPendingComponent);
+  });
+
+  it("DeliveryPendingComponent renders welcoming AI creation message and loader (Critério 4)", () => {
+    render(<DeliveryPendingComponent />);
+
+    expect(screen.getByTestId("delivery-pending-loader")).toBeDefined();
+    expect(
+      screen.getByText("Gerando sua arte publicitária com IA..."),
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        "Estamos criando suas versões em alta resolução para Feed (1080×1350) e Story (1080×1920). Isso leva menos de 15 segundos.",
+      ),
+    ).toBeDefined();
+    expect(
+      screen.getByText("Processando composição visual e formatos..."),
+    ).toBeDefined();
   });
 });

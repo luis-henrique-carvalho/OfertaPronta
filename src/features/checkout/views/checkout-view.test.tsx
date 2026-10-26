@@ -511,4 +511,26 @@ describe("CheckoutView Component", () => {
     ).toBeNull();
     expect(screen.queryByText(/Economize R\$\s*2,97/)).toBeNull();
   });
+
+  it("renders guaranteed AI creation banner when previewCardImageUrl is missing", () => {
+    const withoutPreviewDetails: CheckoutDetailsResult = {
+      ...mockCheckoutDetails,
+      frozenSnapshot: {
+        ...mockCheckoutDetails.frozenSnapshot,
+        previewCardImageUrl: undefined,
+      },
+    };
+
+    render(<CheckoutView initialDetails={withoutPreviewDetails} />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(screen.getByTestId("ai-creation-guaranteed-banner")).toBeDefined();
+    expect(screen.getByText("Criação por IA Garantida")).toBeDefined();
+    expect(
+      screen.getByText(
+        "Seu card será gerado pela Inteligência Artificial assim que o pagamento Pix for confirmado.",
+      ),
+    ).toBeDefined();
+  });
 });
