@@ -58,7 +58,7 @@ export function AdCardCheckoutShowcase({
     <Card
       className={`w-full overflow-hidden border-border bg-card shadow-sm ${className ?? ""}`}
     >
-      <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-3">
+      <CardHeader className="p-3.5 pb-2.5 sm:p-5 sm:pb-3">
         <div className="flex items-center justify-between gap-2">
           <Badge
             variant="secondary"
@@ -75,7 +75,7 @@ export function AdCardCheckoutShowcase({
           </Badge>
         </div>
 
-        <CardTitle className="pt-1 text-xl font-black tracking-tight">
+        <CardTitle className="pt-0.5 text-base font-black tracking-tight sm:pt-1 sm:text-xl">
           {offerTitle || "Card Publicitário"}
         </CardTitle>
 
@@ -86,126 +86,135 @@ export function AdCardCheckoutShowcase({
         )}
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-3 p-4 pt-0 sm:p-5 sm:pt-0">
-        {/* Container visual da prévia com aspecto correto */}
-        {/* shadcn-ignore: layout do showcase */}
-        <div
-          className={`relative mx-auto w-full overflow-hidden rounded-2xl border border-border/80 bg-muted/40 shadow-sm ${
-            isStory ? "max-w-[260px]" : "max-w-[320px]"
-          }`}
-        >
-          {previewCardImageUrl ? (
-            <>
-              {/* shadcn-ignore: layout de moldura estrutural do aspect-ratio */}
-              <AspectRatio ratio={isStory ? 9 / 16 : 4 / 5}>
-                {/* shadcn-ignore: img element for preview rendering */}
-                <img
-                  src={previewCardImageUrl}
-                  alt={`Prévia do Card Publicitário: ${offerTitle}`}
-                  className="size-full object-cover"
-                  loading="eager"
-                />
-              </AspectRatio>
+      <CardContent className="flex flex-col gap-3 p-3.5 pt-0 sm:p-5 sm:pt-0">
+        {/* Layout do showcase: horizontal compacto no mobile e vertical no desktop */}
+        <div className="flex flex-row items-center gap-3 sm:gap-4 lg:flex-col lg:items-stretch">
+          {/* Container visual da prévia com aspecto correto */}
+          {/* shadcn-ignore: layout do showcase */}
+          <div
+            className={`relative shrink-0 overflow-hidden rounded-xl border border-border/80 bg-muted/40 shadow-sm w-20 sm:w-28 lg:w-full lg:mx-auto lg:rounded-2xl ${
+              isStory ? "lg:max-w-[260px]" : "lg:max-w-[320px]"
+            }`}
+          >
+            {previewCardImageUrl ? (
+              <>
+                {/* shadcn-ignore: layout de moldura estrutural do aspect-ratio */}
+                <AspectRatio ratio={isStory ? 9 / 16 : 4 / 5}>
+                  {/* shadcn-ignore: img element for preview rendering */}
+                  <img
+                    src={previewCardImageUrl}
+                    alt={`Prévia do Card Publicitário: ${offerTitle}`}
+                    className="size-full object-cover"
+                    loading="eager"
+                  />
+                </AspectRatio>
 
-              {/* Botão de Zoom para Tela Cheia */}
-              <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon"
-                    className="absolute bottom-2 right-2 z-10 size-8 rounded-full bg-background/85 shadow-md backdrop-blur-sm hover:bg-background"
-                    aria-label="Ver arte em tamanho ampliado"
-                  >
-                    <Maximize2 className="size-4 text-foreground" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md p-4 sm:max-w-lg">
-                  <DialogTitle className="text-sm font-bold">
-                    {offerTitle}
-                  </DialogTitle>
-                  {/* shadcn-ignore: layout do modal de zoom */}
-                  <div className="relative mx-auto w-full overflow-hidden rounded-xl border border-border bg-black/90">
-                    {/* shadcn-ignore: layout de moldura estrutural do aspect-ratio */}
-                    <AspectRatio ratio={isStory ? 9 / 16 : 4 / 5}>
-                      {/* shadcn-ignore: img element in zoom dialog */}
-                      <img
-                        src={previewCardImageUrl}
-                        alt={`Ampliação da arte: ${offerTitle}`}
-                        className="size-full object-contain"
-                      />
-                    </AspectRatio>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </>
-          ) : (
-            // shadcn-ignore: layout
-            <div className="flex h-64 w-full flex-col items-center justify-center gap-2 text-center text-muted-foreground">
-              <ImageIcon className="size-10 text-muted-foreground/60" />
-              <Typography variant="muted" className="text-xs font-medium">
-                Prévia do Card Publicitário
-              </Typography>
-            </div>
-          )}
+                {/* Botão de Zoom para Tela Cheia */}
+                <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      className="absolute bottom-1.5 right-1.5 z-10 size-6 rounded-full bg-background/85 shadow-md backdrop-blur-sm hover:bg-background lg:bottom-2 lg:right-2 lg:size-8"
+                      aria-label="Ver arte em tamanho ampliado"
+                    >
+                      <Maximize2 className="size-3 text-foreground lg:size-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md p-4 sm:max-w-lg">
+                    <DialogTitle className="text-sm font-bold">
+                      {offerTitle}
+                    </DialogTitle>
+                    {/* shadcn-ignore: layout do modal de zoom */}
+                    <div className="relative mx-auto w-full overflow-hidden rounded-xl border border-border bg-black/90">
+                      {/* shadcn-ignore: layout de moldura estrutural do aspect-ratio */}
+                      <AspectRatio ratio={isStory ? 9 / 16 : 4 / 5}>
+                        {/* shadcn-ignore: img element in zoom dialog */}
+                        <img
+                          src={previewCardImageUrl}
+                          alt={`Ampliação da arte: ${offerTitle}`}
+                          className="size-full object-contain"
+                        />
+                      </AspectRatio>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
+            ) : (
+              // shadcn-ignore: layout
+              <div className="flex h-24 w-full flex-col items-center justify-center gap-1 text-center text-muted-foreground lg:h-64">
+                <ImageIcon className="size-6 text-muted-foreground/60 lg:size-10" />
+                <Typography
+                  variant="muted"
+                  className="text-[10px] font-medium lg:text-xs"
+                >
+                  Prévia do Card Publicitário
+                </Typography>
+              </div>
+            )}
 
-          {/* Mockup sutil da marca d'água de co-branding no canto inferior direito da arte */}
-          {cobrandingAccepted && (
-            <div className="pointer-events-none absolute bottom-2 right-2.5 z-10 flex max-w-[85%] items-center justify-end">
+            {/* Mockup sutil da marca d'água de co-branding no canto inferior direito da arte */}
+            {cobrandingAccepted && (
+              <div className="pointer-events-none absolute bottom-1 right-1 z-10 flex max-w-[85%] items-center justify-end lg:bottom-2 lg:right-2.5">
+                <Typography
+                  variant="muted"
+                  as="span"
+                  className="truncate text-[8px] font-medium tracking-wide text-white/75 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] lg:text-[10px]"
+                >
+                  {cobrandingCreditText || "Design por @ofertapronta"}
+                </Typography>
+              </div>
+            )}
+          </div>
+
+          {/* Lado direito no mobile / Abaixo no desktop */}
+          <div className="flex flex-1 flex-col justify-center gap-2 lg:w-full">
+            {/* Aviso de liberação de alta resolução - posicionado limpo */}
+            <div className="flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-2 py-1 text-left sm:px-2.5 sm:py-1.5 lg:justify-center lg:text-center">
+              <Sparkles className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <Typography
                 variant="muted"
-                as="span"
-                className="truncate text-[10px] font-medium tracking-wide text-white/75 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+                className="text-[10px] font-semibold text-emerald-800 dark:text-emerald-300 sm:text-[11px]"
               >
-                {cobrandingCreditText || "Design por @ofertapronta"}
+                Alta Resolução (1080p) sem Marca d&apos;Água após Pix
               </Typography>
             </div>
-          )}
-        </div>
 
-        {/* Aviso de liberação de alta resolução - posicionado limpo fora da imagem do card */}
-        <div className="flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1.5 text-center">
-          <Sparkles className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-          <Typography
-            variant="muted"
-            className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300"
-          >
-            Alta Resolução (1080p) sem Marca d&apos;Água após Pix
-          </Typography>
-        </div>
-
-        {/* shadcn-ignore: layout da faixa de resumo de valor */}
-        <div className="mt-1 flex items-center justify-between rounded-xl border border-border/60 bg-muted/40 p-3">
-          <div className="flex flex-col">
-            <Typography
-              variant="muted"
-              className="text-xs font-semibold text-foreground"
-            >
-              {isStory
-                ? "Formato Principal: Story (9:16) + Feed"
-                : "Formato Principal: Feed (4:5) + Story"}
-            </Typography>
-            <Typography
-              variant="muted"
-              className="text-[11px] text-muted-foreground"
-            >
-              Direito a até {resolvedMaxRegenerations} ajustes ou regenerações
-              com IA pós-compra
-            </Typography>
-          </div>
-          <div className="flex flex-col items-end">
-            <Typography
-              variant="h3"
-              className="text-lg font-black tracking-tight text-foreground sm:text-xl"
-            >
-              {formattedPrice}
-            </Typography>
-            <Typography
-              variant="muted"
-              className="text-[10px] font-medium text-muted-foreground"
-            >
-              pagamento único
-            </Typography>
+            {/* shadcn-ignore: layout da faixa de resumo de valor */}
+            <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/40 p-2.5 sm:p-3">
+              <div className="flex flex-col">
+                <Typography
+                  variant="muted"
+                  className="text-xs font-semibold text-foreground"
+                >
+                  {isStory
+                    ? "Formato Principal: Story (9:16) + Feed"
+                    : "Formato Principal: Feed (4:5) + Story"}
+                </Typography>
+                <Typography
+                  variant="muted"
+                  className="text-[10px] text-muted-foreground sm:text-[11px]"
+                >
+                  Direito a até {resolvedMaxRegenerations} ajustes ou
+                  regenerações com IA pós-compra
+                </Typography>
+              </div>
+              <div className="flex flex-col items-end shrink-0 pl-2">
+                <Typography
+                  variant="h3"
+                  className="text-base font-black tracking-tight text-foreground sm:text-xl"
+                >
+                  {formattedPrice}
+                </Typography>
+                <Typography
+                  variant="muted"
+                  className="text-[10px] font-medium text-muted-foreground"
+                >
+                  pagamento único
+                </Typography>
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>

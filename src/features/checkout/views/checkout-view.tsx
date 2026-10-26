@@ -142,7 +142,7 @@ export function CheckoutView({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-5 sm:gap-6 sm:py-8">
       <CheckoutHeader onNavigateBack={onNavigateBack} />
 
       {/* Modo de Desenvolvimento: Simulação de Pagamento Pix */}
@@ -154,61 +154,79 @@ export function CheckoutView({
         />
       )}
 
-      {/* Showcase Visual do Card Gerado (Conversão Máxima) */}
-      <AdCardCheckoutShowcase
-        previewCardImageUrl={previewCardImageUrl}
-        offerTitle={offerTitle}
-        businessName={businessName}
-        targetAspectRatio={targetAspectRatio}
-        amountCents={details.amountCents}
-        planName={frozen.planName}
-        maxRegenerations={frozen.maxPostPaymentRegenerations}
-        cobrandingAccepted={details.cobrandingAccepted}
-        cobrandingCreditText={details.cobrandingCreditText}
-      />
+      {/* Layout Responsivo:
+          - Mobile (< lg): O resumo compacto fica no topo (order-1), o Pix vem LOGO ABAIXO (order-2, acima da dobra!), e o co-branding vem em seguida (order-3).
+          - Desktop (lg:): Grid de 2 colunas amplas com Showcase (linha 1) + Co-branding (linha 2) à esquerda e Painel Pix à direita (sticky, sem scroll).
+      */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-8 lg:items-start">
+        {/* Showcase Visual do Card Gerado (order-1 no mobile, colunas 1-5 linha 1 no desktop) */}
+        <div className="order-1 lg:col-start-1 lg:col-span-5 lg:row-start-1">
+          <AdCardCheckoutShowcase
+            previewCardImageUrl={previewCardImageUrl}
+            offerTitle={offerTitle}
+            businessName={businessName}
+            targetAspectRatio={targetAspectRatio}
+            amountCents={details.amountCents}
+            planName={frozen.planName}
+            maxRegenerations={frozen.maxPostPaymentRegenerations}
+            cobrandingAccepted={details.cobrandingAccepted}
+            cobrandingCreditText={details.cobrandingCreditText}
+          />
+        </div>
 
-      {/* Card de Desconto com Assinatura de Marca (Co-branding) */}
-      {details.cobrandingPromotionAvailable !== false && (
-        <CobrandingDiscountCard
-          orderId={details.orderId}
-          isAccepted={details.cobrandingAccepted ?? false}
-          discountPercent={details.cobrandingDiscountPercent ?? 30}
-          originalAmountCents={details.originalAmountCents ?? 990}
-          discountedAmountCents={
-            details.cobrandingAccepted ? details.amountCents : undefined
-          }
-          creditText={details.cobrandingCreditText}
-          isUpdating={isUpdatingCobranding}
-          onToggle={handleToggleCobranding}
-        />
-      )}
+        {/* Card de Desconto com Assinatura de Marca (Co-branding)
+            No mobile: order-3 (abaixo do Pix para não empurrar o pagamento)
+            No desktop: colunas 1-5 linha 2 (na coluna esquerda, logo abaixo do showcase)
+        */}
+        {details.cobrandingPromotionAvailable !== false && (
+          <div className="order-3 lg:col-start-1 lg:col-span-5 lg:row-start-2">
+            <CobrandingDiscountCard
+              orderId={details.orderId}
+              isAccepted={details.cobrandingAccepted ?? false}
+              discountPercent={details.cobrandingDiscountPercent ?? 30}
+              originalAmountCents={details.originalAmountCents ?? 990}
+              discountedAmountCents={
+                details.cobrandingAccepted ? details.amountCents : undefined
+              }
+              creditText={details.cobrandingCreditText}
+              isUpdating={isUpdatingCobranding}
+              onToggle={handleToggleCobranding}
+            />
+          </div>
+        )}
 
-      {/* Painel Unificado de Pagamento Pix */}
-      <UnifiedPixPaymentCard
-        copiaECola={details.charge?.copiaECola}
-        qrCodeBase64={details.charge?.qrCodeBase64}
-        amountCents={details.amountCents}
-        status={status}
-        expiresAt={details.charge?.expiresAt}
-        isCopied={isCopied}
-        onCopyPix={copyPixCode}
-        isChecking={isFetching}
-        onCheckNow={handleCheckNow}
-        onRegenerateCharge={handleRegenerate}
-        isRegenerating={isRegenerating}
-        initialWhatsapp={initialWhatsapp}
-        onSaveWhatsapp={updateWhatsapp}
-        isSavingWhatsapp={isUpdatingWhatsapp}
-      />
+        {/* Painel Unificado de Pagamento Pix
+            No mobile: order-2 (imediatamente após o resumo compacto, visível sem scroll!)
+            No desktop: colunas 6-12 linhas 1-2 (coluna direita completa, sticky no topo)
+        */}
+        <div className="order-2 flex flex-col gap-3 lg:col-start-6 lg:col-span-7 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-6">
+          <UnifiedPixPaymentCard
+            copiaECola={details.charge?.copiaECola}
+            qrCodeBase64={details.charge?.qrCodeBase64}
+            amountCents={details.amountCents}
+            status={status}
+            expiresAt={details.charge?.expiresAt}
+            isCopied={isCopied}
+            onCopyPix={copyPixCode}
+            isChecking={isFetching}
+            onCheckNow={handleCheckNow}
+            onRegenerateCharge={handleRegenerate}
+            isRegenerating={isRegenerating}
+            initialWhatsapp={initialWhatsapp}
+            onSaveWhatsapp={updateWhatsapp}
+            isSavingWhatsapp={isUpdatingWhatsapp}
+          />
 
-      {/* Segurança e Rodapé */}
-      <div className="flex flex-col items-center gap-1 py-3 text-center">
-        <Typography
-          variant="muted"
-          className="text-[11px] text-muted-foreground"
-        >
-          Pagamento processado com segurança via Pix Dinâmico Pushin Pay.
-        </Typography>
+          {/* Segurança e Rodapé */}
+          <div className="flex flex-col items-center gap-1 py-1 text-center">
+            <Typography
+              variant="muted"
+              className="text-[11px] text-muted-foreground"
+            >
+              Pagamento processado com segurança via Pix Dinâmico Pushin Pay.
+            </Typography>
+          </div>
+        </div>
       </div>
     </div>
   );
