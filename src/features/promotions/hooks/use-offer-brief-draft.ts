@@ -819,6 +819,107 @@ function usePreviewState(
   };
 }
 
+async function runAiPreviewGeneration(
+  params: ExecutePreviewStepParams,
+  setIsGenerating: (v: boolean) => void,
+  setGenerationStage: React.Dispatch<React.SetStateAction<GenerationStage>>,
+): Promise<GenerateAiPreviewResult> {
+  setIsGenerating(true);
+  params.setGenerationError(null);
+  setGenerationStage("briefing");
+  const clearTimers = startStageProgressTimers(setGenerationStage);
+  try {
+    return await executePreviewStep(params);
+  } finally {
+    clearTimers();
+    setIsGenerating(false);
+  }
+}
+
+async function executeDirectCheckout(params: {
+  saveDraft: () => Promise<string | null>;
+  saveError: string | null;
+  options: UseOfferBriefDraftOptions;
+  setGenerationError: (err: GenerationError | null) => void;
+  setIsInitiatingCheckout: (val: boolean) => void;
+  defaultCustomerWhatsapp?: string;
+  overrideWhatsapp?: string;
+}): Promise<GenerateCardAndCheckoutResult> {
+  params.setGenerationError(null);
+  const currentDraftId = await params.saveDraft();
+  if (!currentDraftId) {
+    const err: GenerationError = {
+      code: "SAVE_FAILED",
+      message:
+        params.saveError ||
+        "Não foi possível salvar os dados do rascunho antes do checkout.",
+    };
+    params.setGenerationError(err);
+    return {
+      success: false,
+      error: err,
+      code: err.code,
+      message: err.message,
+    };
+  }
+
+  const rawWhatsapp = params.overrideWhatsapp ?? params.defaultCustomerWhatsapp;
+  const customerWhatsapp =
+    rawWhatsapp && rawWhatsapp.trim().length > 0
+      ? rawWhatsapp.trim()
+      : undefined;
+
+  return performCheckoutFlow(
+    currentDraftId,
+    params.options,
+    params.setGenerationError,
+    params.setIsInitiatingCheckout,
+    customerWhatsapp,
+  );
+}
+
+function useDirectCheckoutActions(params: {
+  saveDraft: () => Promise<string | null>;
+  saveError: string | null;
+  options: UseOfferBriefDraftOptions;
+  setGenerationError: (err: GenerationError | null) => void;
+  setIsInitiatingCheckout: (val: boolean) => void;
+  defaultCustomerWhatsapp?: string;
+  lastDraftId?: string;
+  currentDraftId?: string;
+}) {
+  const checkoutWithoutPreview = useCallback(
+    (overrideParams?: { customerWhatsapp?: string }) => {
+      return executeDirectCheckout({
+        saveDraft: params.saveDraft,
+        saveError: params.saveError,
+        options: params.options,
+        setGenerationError: params.setGenerationError,
+        setIsInitiatingCheckout: params.setIsInitiatingCheckout,
+        defaultCustomerWhatsapp: params.defaultCustomerWhatsapp,
+        overrideWhatsapp: overrideParams?.customerWhatsapp,
+      });
+    },
+    [params],
+  );
+
+  const initiateLastDraftCheckout = useCallback(
+    (overrideWhatsapp?: string) => {
+      const targetDraftId = params.lastDraftId ?? params.currentDraftId;
+      return executeLastDraftCheckout(
+        targetDraftId,
+        params.options,
+        params.setGenerationError,
+        params.setIsInitiatingCheckout,
+        overrideWhatsapp ?? params.defaultCustomerWhatsapp,
+      );
+    },
+    [params],
+  );
+
+  return { checkoutWithoutPreview, initiateLastDraftCheckout };
+}
+
 function useAiPreviewGeneration(
   saveDraft: () => Promise<string | null>,
   saveError: string | null,
@@ -828,30 +929,24 @@ function useAiPreviewGeneration(
 ) {
   const state = usePreviewState(options.initialDraft);
 
-  const generateAiPreview =
-    useCallback(async (): Promise<GenerateAiPreviewResult> => {
-      state.setIsGenerating(true);
-      state.setGenerationError(null);
-      state.setGenerationStage("briefing");
-      const clearTimers = startStageProgressTimers(state.setGenerationStage);
-      try {
-        return await executePreviewStep({
-          saveDraft,
-          currentDraftId,
-          saveError,
-          options,
-          setPreviewCardImageUrl: state.setPreviewCardImageUrl,
-          setAiGenerationCount: state.setAiGenerationCount,
-          setGenerationError: state.setGenerationError,
-          setIsLimitReached: state.setIsLimitReached,
-          setLimitReason: state.setLimitReason,
-          setLastDraft: state.setLastDraft,
-        });
-      } finally {
-        clearTimers();
-        state.setIsGenerating(false);
-      }
-    }, [saveDraft, currentDraftId, options, saveError, state]);
+  const generateAiPreview = useCallback(() => {
+    return runAiPreviewGeneration(
+      {
+        saveDraft,
+        currentDraftId,
+        saveError,
+        options,
+        setPreviewCardImageUrl: state.setPreviewCardImageUrl,
+        setAiGenerationCount: state.setAiGenerationCount,
+        setGenerationError: state.setGenerationError,
+        setIsLimitReached: state.setIsLimitReached,
+        setLimitReason: state.setLimitReason,
+        setLastDraft: state.setLastDraft,
+      },
+      state.setIsGenerating,
+      state.setGenerationStage,
+    );
+  }, [saveDraft, currentDraftId, options, saveError, state]);
 
   const orchestration = useContinuousCheckoutOrchestration({
     saveDraft,
@@ -861,30 +956,20 @@ function useAiPreviewGeneration(
     ...state,
   });
 
+  const directCheckouts = useDirectCheckoutActions({
+    saveDraft,
+    saveError,
+    options,
+    setGenerationError: state.setGenerationError,
+    setIsInitiatingCheckout: orchestration.setIsInitiatingCheckout,
+    defaultCustomerWhatsapp,
+    lastDraftId: state.lastDraft?.id,
+    currentDraftId,
+  });
+
   const clearGenerationError = useCallback(() => {
     state.setGenerationError(null);
   }, [state]);
-
-  const initiateLastDraftCheckout = useCallback(
-    (overrideWhatsapp?: string) => {
-      const targetDraftId = state.lastDraft?.id ?? currentDraftId;
-      return executeLastDraftCheckout(
-        targetDraftId,
-        options,
-        state.setGenerationError,
-        orchestration.setIsInitiatingCheckout,
-        overrideWhatsapp ?? defaultCustomerWhatsapp,
-      );
-    },
-    [
-      state.lastDraft,
-      state.setGenerationError,
-      currentDraftId,
-      options,
-      orchestration.setIsInitiatingCheckout,
-      defaultCustomerWhatsapp,
-    ],
-  );
 
   return {
     isGenerating: state.isGenerating,
@@ -897,9 +982,9 @@ function useAiPreviewGeneration(
     limitReason: state.limitReason,
     lastDraft: state.lastDraft,
     generateAiPreview,
+    ...directCheckouts,
     setPreviewCardImageUrl: state.setPreviewCardImageUrl,
     clearGenerationError,
-    initiateLastDraftCheckout,
   };
 }
 

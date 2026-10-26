@@ -91,7 +91,16 @@ export function OfferCreationWizard({
     setStep((curr) => Math.max(1, curr - 1) as 1 | 2 | 3 | 4);
   };
 
+  const isQuotaBlocked = quota.isBlocked || draft.isLimitReached;
+
   const handleGenerate = async () => {
+    if (isQuotaBlocked) {
+      const result = await draft.checkoutWithoutPreview();
+      if (result.success) {
+        navigateToCheckout(result.orderId, onNavigateToCheckout, navigate);
+      }
+      return;
+    }
     const result = await draft.generateCardAndInitiateCheckout();
     if (result.success) {
       navigateToCheckout(result.orderId, onNavigateToCheckout, navigate);

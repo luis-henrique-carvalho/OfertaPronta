@@ -20,6 +20,7 @@ describe("DeliveryService Deep Module (TDD)", () => {
   let mockFormatFeed: ReturnType<typeof vi.fn>;
   let mockFormatStory: ReturnType<typeof vi.fn>;
   let mockApplySignature: ReturnType<typeof vi.fn>;
+  let mockGenerateAdCard: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     storageDriver = new InMemoryStorageDriver();
@@ -39,6 +40,12 @@ describe("DeliveryService Deep Module (TDD)", () => {
           Buffer.from("-with-cobranding-signature"),
         ]);
       });
+    mockGenerateAdCard = vi.fn().mockImplementation(async () => {
+      return {
+        rawImageBuffer: Buffer.from("fake-ai-master-png"),
+        mimeType: "image/png",
+      };
+    });
 
     service = new DeliveryService({
       database: db,
@@ -47,6 +54,7 @@ describe("DeliveryService Deep Module (TDD)", () => {
       formatStory: mockFormatStory,
       applySignature: mockApplySignature,
       storageService: storageDriver,
+      generateAdCard: mockGenerateAdCard,
     });
   });
 
@@ -199,6 +207,95 @@ describe("DeliveryService Deep Module (TDD)", () => {
       expect(result).toBeDefined();
       expect(mockFormatFeed).toHaveBeenCalledTimes(1);
       expect(mockFormatStory).toHaveBeenCalledTimes(1);
+    });
+
+    it("should generate ad card on-the-fly via AI when order has pendingAiGeneration: true and no clean master art", async () => {
+      const order = await createTestOrder("PAID", {
+        cleanMasterImageDataUrl: null,
+        cleanMasterAssetKey: null,
+        frozenSnapshot: {
+          offerTitle: "Arroz 5kg Tipo 1",
+          businessName: "Mercado Central",
+          businessSegment: "supermarket",
+          promoPrice: "R$ 21,90",
+          whatsapp: "11988887777",
+          pendingAiGeneration: true,
+          previewCardImageUrl: null,
+        },
+        aiRegenerationCount: 0,
+      });
+
+      const result = await service.ensureDeliveryExports(order.id);
+
+      // Verify AI generation was invoked with frozen snapshot data
+      expect(mockGenerateAdCard).toHaveBeenCalledTimes(1);
+      expect(mockGenerateAdCard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          businessSegment: "supermarket",
+          businessName: "Mercado Central",
+          offerTitle: "Arroz 5kg Tipo 1",
+          promoPrice: "R$ 21,90",
+        }),
+      );
+
+      // Verify delivery details returned
+      expect(result.orderId).toBe(order.id);
+      expect(result.status).toBe("PAID");
+      expect(result.feedCardUrl).toBeDefined();
+      expect(result.storyCardUrl).toBeDefined();
+      expect(result.remainingRegenerations).toBe(3);
+      expect(result.regenerationsUsed).toBe(0);
+
+      // Verify formats were derived from the AI generated buffer
+      expect(mockFormatFeed).toHaveBeenCalledWith(
+        Buffer.from("fake-ai-master-png"),
+      );
+      expect(mockFormatStory).toHaveBeenCalledWith(
+        Buffer.from("fake-ai-master-png"),
+      );
+
+      // Verify cleanMasterAssetKey was persisted on order in DB and aiRegenerationCount remains 0
+      const [updatedOrder] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, order.id));
+      expect(updatedOrder.cleanMasterAssetKey).toBeDefined();
+      expect(updatedOrder.cleanMasterAssetKey).toMatch(/^orders\//);
+      expect(updatedOrder.aiRegenerationCount).toBe(0);
+
+      // Verify stored asset in StorageService
+      const storedAsset = await storageDriver.getAsset(
+        updatedOrder.cleanMasterAssetKey!,
+      );
+      expect(storedAsset).not.toBeNull();
+      expect(storedAsset?.buffer.toString()).toBe("fake-ai-master-png");
+    });
+
+    it("should be idempotent and not invoke AI generation again on repeated calls", async () => {
+      const order = await createTestOrder("PAID", {
+        cleanMasterImageDataUrl: null,
+        cleanMasterAssetKey: null,
+        frozenSnapshot: {
+          offerTitle: "Arroz 5kg Tipo 1",
+          businessName: "Mercado Central",
+          businessSegment: "supermarket",
+          promoPrice: "R$ 21,90",
+          pendingAiGeneration: true,
+          previewCardImageUrl: null,
+        },
+        aiRegenerationCount: 0,
+      });
+
+      const firstCall = await service.ensureDeliveryExports(order.id);
+      expect(mockGenerateAdCard).toHaveBeenCalledTimes(1);
+
+      const secondCall = await service.ensureDeliveryExports(order.id);
+      // AI generation should NOT be called again
+      expect(mockGenerateAdCard).toHaveBeenCalledTimes(1);
+
+      expect(secondCall.orderId).toBe(firstCall.orderId);
+      expect(secondCall.feedCardUrl).toBe(firstCall.feedCardUrl);
+      expect(secondCall.storyCardUrl).toBe(firstCall.storyCardUrl);
     });
   });
 

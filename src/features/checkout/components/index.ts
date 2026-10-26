@@ -4,6 +4,11 @@ export {
 } from "./ad-card-checkout-showcase";
 
 export {
+  AdCardMockupPlaceholder,
+  type AdCardMockupPlaceholderProps,
+} from "./ad-card-mockup-placeholder";
+
+export {
   CobrandingDiscountCard,
   type CobrandingDiscountCardProps,
 } from "./cobranding-discount-card";

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Typography } from "@/components/ui/typography";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Sparkles } from "lucide-react";
 import type { CheckoutDetailsResult } from "../data/checkout.schemas";
 import { useOrderPolling } from "../hooks/use-order-polling";
 import { usePixCheckout } from "../hooks/use-pix-checkout";
@@ -124,6 +126,7 @@ export function CheckoutView({
   const frozen = details.frozenSnapshot as {
     offerTitle?: string;
     businessName?: string;
+    promoPrice?: string;
     previewCardImageUrl?: string;
     targetAspectRatio?: string;
     whatsapp?: string;
@@ -145,6 +148,23 @@ export function CheckoutView({
     <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-6">
       <CheckoutHeader onNavigateBack={onNavigateBack} />
 
+      {/* Banner Informativo quando a arte será gerada por IA pós-Pix */}
+      {!previewCardImageUrl && (
+        <Alert
+          data-testid="ai-creation-guaranteed-banner"
+          className="border-primary/30 bg-primary/5 text-primary"
+        >
+          <Sparkles className="size-4 text-primary shrink-0" />
+          <AlertTitle className="text-xs font-bold text-foreground">
+            Criação por IA Garantida
+          </AlertTitle>
+          <AlertDescription className="text-xs text-muted-foreground">
+            Seu card será gerado pela Inteligência Artificial assim que o
+            pagamento Pix for confirmado.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Modo de Desenvolvimento: Simulação de Pagamento Pix */}
       {details.isDevMode && !isPaid && !isSuccessPaid && (
         <DevPaymentSimulatorCard
@@ -159,6 +179,7 @@ export function CheckoutView({
         previewCardImageUrl={previewCardImageUrl}
         offerTitle={offerTitle}
         businessName={businessName}
+        promoPrice={frozen.promoPrice}
         targetAspectRatio={targetAspectRatio}
         amountCents={details.amountCents}
         planName={frozen.planName}

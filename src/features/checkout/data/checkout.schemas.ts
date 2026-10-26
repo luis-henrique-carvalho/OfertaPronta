@@ -6,6 +6,7 @@ export const initiateCheckoutSchema = z.object({
   planId: campaignPlanIdSchema.optional(),
   customerWhatsapp: z.string().optional(),
   customerEmail: z.string().email("E-mail inválido").optional(),
+  visitorId: z.string().optional(),
 });
 
 export type InitiateCheckoutInput = z.infer<typeof initiateCheckoutSchema>;

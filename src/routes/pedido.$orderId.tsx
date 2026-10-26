@@ -11,6 +11,9 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { AlertCircle, Store, ArrowLeft, CreditCard } from "lucide-react";
+import { DeliveryPendingComponent } from "@/features/delivery/components/delivery-pending-card";
+
+export { DeliveryPendingComponent };
 
 export const Route = createFileRoute("/pedido/$orderId")({
   loader: async ({ params }) => {
@@ -38,6 +41,7 @@ export const Route = createFileRoute("/pedido/$orderId")({
       return { details: null, error: message, isNotPaid };
     }
   },
+  pendingComponent: DeliveryPendingComponent,
   component: DeliveryPageComponent,
 });
 
