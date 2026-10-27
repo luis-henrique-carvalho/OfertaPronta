@@ -91,10 +91,7 @@ export function LandingFooter() {
     <footer className="w-full bg-[#000000] text-[#f4f4f4] py-16 lg:py-24 overflow-x-clip">
       <div className="mx-auto w-full max-w-[1360px] px-5 sm:px-8 lg:px-12 flex flex-col gap-10">
         {/* Marca construída a partir de formas geométricas */}
-        <div
-          aria-hidden="true"
-          className="grid grid-cols-6 sm:grid-cols-12 gap-[4px] items-end h-[18svh] sm:h-[24svh] w-full select-none overflow-hidden taste-enter"
-        >
+        <div className="grid grid-cols-6 sm:grid-cols-12 gap-[4px] items-end h-[16svh] sm:h-[20svh] w-full select-none overflow-hidden taste-enter">
           {FOOTER_MARK_BLOCKS.map((block) => (
             <div
               key={block.id}
@@ -103,7 +100,7 @@ export function LandingFooter() {
             >
               <Typography
                 as="span"
-                className="font-black text-[clamp(28px,4.5vw,64px)] leading-none select-none text-current"
+                className="font-black text-[clamp(28px,4.5vw,64px)] leading-none select-none text-[#000000]"
               >
                 {block.letter}
               </Typography>
@@ -131,7 +128,7 @@ export function LandingFooter() {
             </div>
             <Typography
               as="p"
-              className="text-base leading-relaxed text-[#f4f4f4]/80 max-w-sm"
+              className="text-base leading-relaxed text-[#f4f4f4] max-w-sm"
             >
               Anúncios profissionais gerados por IA para Instagram e WhatsApp em
               menos de 90 segundos. Gere a prévia grátis, sem cadastro e sem
@@ -159,24 +156,24 @@ export function LandingFooter() {
             <nav className="flex flex-col gap-2.5 text-base">
               <a
                 href="/termos"
-                className="group inline-flex items-center gap-2 text-[#f4f4f4]/80 transition-colors hover:text-[#f0ff1c]"
+                className="group inline-flex items-center gap-2 text-[#f4f4f4] transition-colors hover:text-[#f0ff1c]"
               >
-                <FileText className="size-4 text-[#f4f4f4]/60 group-hover:text-[#f0ff1c] transition-colors" />
+                <FileText className="size-4 text-[#f0ff1c] transition-colors" />
                 <Typography
                   as="span"
-                  className="hover:text-[#f0ff1c] text-base"
+                  className="text-[#f4f4f4] group-hover:text-[#f0ff1c] text-base font-medium"
                 >
                   Termos de Uso
                 </Typography>
               </a>
               <a
                 href="/privacidade"
-                className="group inline-flex items-center gap-2 text-[#f4f4f4]/80 transition-colors hover:text-[#f0ff1c]"
+                className="group inline-flex items-center gap-2 text-[#f4f4f4] transition-colors hover:text-[#f0ff1c]"
               >
-                <ShieldCheck className="size-4 text-[#f4f4f4]/60 group-hover:text-[#f0ff1c] transition-colors" />
+                <ShieldCheck className="size-4 text-[#f0ff1c] transition-colors" />
                 <Typography
                   as="span"
-                  className="hover:text-[#f0ff1c] text-base"
+                  className="text-[#f4f4f4] group-hover:text-[#f0ff1c] text-base font-medium"
                 >
                   Política de Privacidade
                 </Typography>
@@ -197,28 +194,28 @@ export function LandingFooter() {
                 href={profile.supportWhatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex items-center gap-2 text-[#f4f4f4]/80 transition-colors hover:text-[#f0ff1c]"
+                className="group inline-flex items-center gap-2 text-[#f4f4f4] transition-colors hover:text-[#f0ff1c]"
               >
                 <div className="flex size-6 items-center justify-center bg-[#f0ff1c] text-[#000000]">
                   <MessageCircle className="size-3.5" />
                 </div>
                 <Typography
                   as="span"
-                  className="hover:text-[#f0ff1c] text-base font-medium"
+                  className="text-[#f4f4f4] group-hover:text-[#f0ff1c] text-base font-medium"
                 >
                   Suporte WhatsApp
                 </Typography>
               </a>
               <a
                 href={`mailto:${profile.contactEmail}`}
-                className="group inline-flex items-center gap-2 text-[#f4f4f4]/80 transition-colors hover:text-[#f0ff1c]"
+                className="group inline-flex items-center gap-2 text-[#f4f4f4] transition-colors hover:text-[#f0ff1c]"
               >
                 <div className="flex size-6 items-center justify-center bg-[#fe7141] text-[#000000]">
                   <Mail className="size-3.5" />
                 </div>
                 <Typography
                   as="span"
-                  className="hover:text-[#f0ff1c] text-base"
+                  className="text-[#f4f4f4] group-hover:text-[#f0ff1c] text-base font-medium"
                 >
                   {profile.contactEmail}
                 </Typography>
@@ -228,14 +225,14 @@ export function LandingFooter() {
         </div>
 
         {/* Faixa Fiscal & Legal (CDC / Decreto 7.962/2013) */}
-        <div className="bg-[#141414] p-4 sm:p-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm text-[#f4f4f4]/80 text-left taste-enter taste-delay-2">
-          <Typography as="p" className="text-sm leading-relaxed">
+        <div className="bg-[#141414] p-4 sm:p-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm text-[#f4f4f4] text-left taste-enter taste-delay-2">
+          <Typography as="p" className="text-sm leading-relaxed text-[#f4f4f4]">
             <Typography as="span" className="font-bold text-[#ffffff]">
               {profile.legalName}
             </Typography>{" "}
             • CNPJ: {profile.cnpj} • {profile.addressCityState}
           </Typography>
-          <Typography as="p" className="text-sm shrink-0 text-[#f4f4f4]/70">
+          <Typography as="p" className="text-sm shrink-0 text-[#f4f4f4]">
             Compra avulsa sob demanda • Entrega imediata
           </Typography>
         </div>
