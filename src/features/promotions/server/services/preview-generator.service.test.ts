@@ -13,7 +13,7 @@ describe("PreviewGeneratorService - Security & Visual Inputs Resolution", () => 
     it("permite domínios autorizados da CDN Cloudflare R2 e Unsplash", () => {
       expect(
         isAllowedExternalImageUrl(
-          "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-discount-encarte.png",
+          "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png",
         ),
       ).toBe(true);
       expect(
@@ -103,7 +103,7 @@ describe("PreviewGeneratorService - Security & Visual Inputs Resolution", () => 
       });
 
       const result = await fetchExternalImageWithGuard(
-        "https://pub-ofertapronta.r2.dev/showcase/test.png",
+        "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/test.png",
         { fetchFn: mockFetch },
       );
 
@@ -132,7 +132,7 @@ describe("PreviewGeneratorService - Security & Visual Inputs Resolution", () => 
       });
 
       const result = await fetchExternalImageWithGuard(
-        "https://pub-ofertapronta.r2.dev/showcase/missing.png",
+        "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/missing.png",
         { fetchFn: mockFetch },
       );
 
@@ -148,7 +148,7 @@ describe("PreviewGeneratorService - Security & Visual Inputs Resolution", () => 
       });
 
       const result = await fetchExternalImageWithGuard(
-        "https://pub-ofertapronta.r2.dev/showcase/not-image.html",
+        "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/not-image.html",
         { fetchFn: mockFetch },
       );
 
@@ -165,7 +165,7 @@ describe("PreviewGeneratorService - Security & Visual Inputs Resolution", () => 
       });
 
       const result = await fetchExternalImageWithGuard(
-        "https://pub-ofertapronta.r2.dev/showcase/giant.png",
+        "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/giant.png",
         { fetchFn: mockFetch },
       );
 
@@ -178,7 +178,7 @@ describe("PreviewGeneratorService - Security & Visual Inputs Resolution", () => 
         .mockRejectedValue(new Error("Timeout após 5000ms"));
 
       const result = await fetchExternalImageWithGuard(
-        "https://pub-ofertapronta.r2.dev/showcase/timeout.png",
+        "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/timeout.png",
         { fetchFn: mockFetch },
       );
 
@@ -223,7 +223,7 @@ describe("PreviewGeneratorService - Security & Visual Inputs Resolution", () => 
       const storage = new InMemoryStorageDriver();
       const draft = createMockDraft({
         referenceImageDataUrl:
-          "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-discount-encarte.png",
+          "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png",
       });
 
       const result = await resolveDraftVisualInputs(draft, storage);
@@ -243,7 +243,7 @@ describe("PreviewGeneratorService - Security & Visual Inputs Resolution", () => 
 
       const draft = createMockDraft({
         referenceImageDataUrl:
-          "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-discount-encarte.png",
+          "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png",
       });
 
       const result = await resolveDraftVisualInputs(draft, storage, {
@@ -264,7 +264,7 @@ describe("PreviewGeneratorService - Security & Visual Inputs Resolution", () => 
 
       const draft = createMockDraft({
         referenceImageDataUrl:
-          "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-discount-encarte.png",
+          "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png",
       });
 
       const result = await resolveDraftVisualInputs(draft, storage, {
@@ -288,7 +288,7 @@ describe("PreviewGeneratorService - Security & Visual Inputs Resolution", () => 
         id: "123",
         productAssetKey: "drafts/123/product.png",
         referenceImageDataUrl:
-          "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-discount-encarte.png",
+          "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png",
       });
 
       const result = await resolveDraftVisualInputs(draft, storage);

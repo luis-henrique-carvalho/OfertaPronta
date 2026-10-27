@@ -79,7 +79,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Layout vibrante com selos explosivos e alto contraste de preço promocional.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-discount-encarte.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -99,7 +99,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Cenário verde e orgânico com frutas e legumes direto do produtor.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-fresh-hortifruti.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-fresh-hortifruti.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -119,7 +119,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Composição premium em fundo escuro ardósia com foco em cortes nobres de churrasco.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-premium-carnes.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-premium-carnes.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,
@@ -143,7 +143,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Atmosfera retrô de barbearia tradicional sobre madeira escura e navalha clássica.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/beauty-salon/barber-vintage-corte.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/beauty-salon/barber-vintage-corte.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -163,7 +163,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Elegância editorial em tons rose gold, brilho champanhe e acabamento sofisticado.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/beauty-salon/salon-glamour-noiva.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/beauty-salon/salon-glamour-noiva.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -183,7 +183,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Composição clean em azul serenity e branco cirúrgico transmitindo higiene e tecnologia.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/beauty-salon/beauty-clean-facial.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/beauty-salon/beauty-clean-facial.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,
@@ -207,7 +207,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Massa fumegante e queijo esticando sobre tábua rústica com brasas do forno a lenha.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/pizzeria/pizza-rustic-wood-terca.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/pizzeria/pizza-rustic-wood-terca.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -227,7 +227,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Visual aconchegante de cantina italiana com ingredientes selecionados e manjericão fresco.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/pizzeria/pizza-artisan-craft-familia.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/pizzeria/pizza-artisan-craft-familia.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -251,7 +251,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Contraste moderno de neon pulsante e alta energia para delivery na madrugada.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/pizzeria/pizza-neon-night-delivery.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/pizzeria/pizza-neon-night-delivery.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,
@@ -275,7 +275,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Close-up dramático com fumaça de grelha e cascata de queijo cheddar derretido.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/burger-shop/burger-dark-bold-smash.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/burger-shop/burger-dark-bold-smash.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -295,7 +295,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Cores pop vibrantes de mostarda e ketchup em estilo descontraído e urbano.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/burger-shop/burger-urban-pop-combo.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/burger-shop/burger-urban-pop-combo.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -319,7 +319,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Tons quentes de fogo e chapa quente destacando a crostinha perfeita do smash duplo.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/burger-shop/burger-smash-fire-chapa.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/burger-shop/burger-smash-fire-chapa.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,
@@ -343,7 +343,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Comida caseira apetitosa fumegante servida em travessa com tempero brasileiro de mãe.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/restaurant/restaurant-homestyle-almoco.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/restaurant/restaurant-homestyle-almoco.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -367,7 +367,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Prato farto servido em panela de barro com couve refogada, vinagrete e torresmo crocante.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/restaurant/restaurant-homestyle-feijoada.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/restaurant/restaurant-homestyle-feijoada.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -387,7 +387,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Empratamento de bistrô refinado com iluminação acolhedora e toque gourmet.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/restaurant/restaurant-gourmet-bistro.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/restaurant/restaurant-gourmet-bistro.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,
@@ -415,7 +415,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Faixas pretas e amarelas de alto impacto com porcentagens e contadores de urgência.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/local-retail/retail-dynamic-queima.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/local-retail/retail-dynamic-queima.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -435,7 +435,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Visual alegre e amigável em azul e amarelo convidando os vizinhos para aproveitar.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/local-retail/retail-vibrant-calcados.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/local-retail/retail-vibrant-calcados.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -459,7 +459,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Grid moderno de linhas limpas em ciano e grafite destacando produtos de utilidade e tecnologia.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/local-retail/retail-clean-modern-novidades.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/local-retail/retail-clean-modern-novidades.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,
@@ -483,7 +483,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Enquadramento editorial de revista de moda com paleta refinada e tipografia moderna.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/fashion/fashion-editorial-outono.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/fashion/fashion-editorial-outono.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -503,7 +503,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Cores contrastadas com destaque absoluto para preço promocional de moda.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/fashion/fashion-bold-jeans.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/fashion/fashion-bold-jeans.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -523,7 +523,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Respiro visual sofisticado e acabamento minimalista elegante.",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/fashion/fashion-minimal-vestidos.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/fashion/fashion-minimal-vestidos.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,

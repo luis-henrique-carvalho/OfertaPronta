@@ -260,7 +260,7 @@ describe("Step4StyleAndPalette", () => {
         selectedStyleId={mockSegmentData.styles[0].id}
         businessName="Boutique Flor"
         offerTitle="Vestido Elegance"
-        referenceImageDataUrl="https://pub-ofertapronta.r2.dev/showcase/fashion/fashion-elegance.png"
+        referenceImageDataUrl="https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/fashion/fashion-elegance.png"
         onSelectStyle={vi.fn()}
         onClearReference={handleClearReference}
         onCustomStyleNoteChange={vi.fn()}
@@ -285,7 +285,7 @@ describe("Step4StyleAndPalette", () => {
     const img = screen.getByAltText("Referência ativa") as HTMLImageElement;
     expect(img).toBeDefined();
     expect(img.src).toBe(
-      "https://pub-ofertapronta.r2.dev/showcase/fashion/fashion-elegance.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/fashion/fashion-elegance.png",
     );
 
     // Botões de ação
@@ -315,7 +315,7 @@ describe("Step4StyleAndPalette", () => {
         selectedStyleId={targetStyle.id}
         businessName="Boutique Flor"
         offerTitle="Vestido Elegance"
-        referenceImageDataUrl="https://pub-ofertapronta.r2.dev/showcase/fashion/fashion-elegance.png"
+        referenceImageDataUrl="https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/fashion/fashion-elegance.png"
         onSelectStyle={vi.fn()}
         onCustomStyleNoteChange={vi.fn()}
       />,

@@ -583,7 +583,7 @@ describe("Drafts Service (Deep Domain Module)", () => {
 
     it("persists public HTTPS showcase reference image URL directly in referenceImageDataUrl without creating fake storage keys", async () => {
       const showcaseUrl =
-        "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-discount-encarte.png";
+        "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png";
 
       const saved = await saveOfferDraft({
         businessSegment: "supermarket",

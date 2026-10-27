@@ -13,7 +13,7 @@ const mockCards: ShowcaseCardItem[] = [
     title: "Encarte Semanal",
     description: "Super promoção de carnes",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-discount-encarte.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -30,7 +30,7 @@ const mockCards: ShowcaseCardItem[] = [
     title: "Feira de Orgânicos",
     description: "Verduras e frutas frescas",
     imageUrl:
-      "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-fresh.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-fresh.png",
     aspectRatio: "feed",
     isFeatured: false,
     displayOrder: 2,
@@ -69,7 +69,7 @@ describe("ShowcaseGalleryDialog", () => {
         open={true}
         onOpenChange={vi.fn()}
         segment="supermarket"
-        activeReferenceUrl="https://pub-ofertapronta.r2.dev/showcase/supermarket/market-discount-encarte.png"
+        activeReferenceUrl="https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png"
         cards={mockCards}
       />,
     );

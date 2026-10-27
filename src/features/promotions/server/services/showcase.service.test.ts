@@ -165,7 +165,7 @@ describe("ShowcaseService - getShowcaseCards", () => {
 
       for (const card of cards) {
         expect(card.imageUrl).toContain(
-          "https://pub-ofertapronta.r2.dev/showcase/",
+          "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/",
         );
         expect(card.imageUrl).not.toContain("images.unsplash.com");
         expect(card.imageUrl.endsWith(".png")).toBe(true);

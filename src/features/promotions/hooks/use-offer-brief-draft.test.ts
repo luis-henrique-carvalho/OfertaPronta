@@ -1139,7 +1139,7 @@ describe("useOfferBriefDraft Hook - Showcase Reference Management", () => {
       result.current.setReferenceFromShowcase({
         stylePresetId: "market-fresh",
         imageUrl:
-          "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-fresh.png",
+          "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-fresh.png",
       });
     });
 
@@ -1149,7 +1149,7 @@ describe("useOfferBriefDraft Hook - Showcase Reference Management", () => {
     );
     // 2. Atualiza referenceImageDataUrl e stylePresetId
     expect(result.current.referenceImageDataUrl).toBe(
-      "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-fresh.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-fresh.png",
     );
     expect(result.current.stylePresetId).toBe("market-fresh");
     // 3. Dispara toast de sucesso amigável
@@ -1177,12 +1177,12 @@ describe("useOfferBriefDraft Hook - Showcase Reference Management", () => {
       result.current.setReferenceFromShowcase({
         stylePresetId: "market-discount",
         imageUrl:
-          "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-discount-encarte.png",
+          "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png",
       });
     });
 
     expect(result.current.referenceImageDataUrl).toBe(
-      "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-discount-encarte.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png",
     );
     expect(result.current.stylePresetId).toBe("market-discount");
     expect(toast.success).toHaveBeenCalledWith(
@@ -1197,13 +1197,13 @@ describe("useOfferBriefDraft Hook - Showcase Reference Management", () => {
           businessSegment: "supermarket",
           stylePresetId: "market-fresh",
           referenceImageDataUrl:
-            "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-fresh.png",
+            "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-fresh.png",
         },
       }),
     );
 
     expect(result.current.referenceImageDataUrl).toBe(
-      "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-fresh.png",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-fresh.png",
     );
     expect(result.current.stylePresetId).toBe("market-fresh");
 
