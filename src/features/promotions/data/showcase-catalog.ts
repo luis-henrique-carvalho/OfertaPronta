@@ -55,8 +55,16 @@ export function normalizeSegment(segment: string): string {
 }
 
 /**
+ * Buffer determinístico 1x1 PNG transparente codificado em Base64 para execução
+ * de testes unitários e de integração sem qualquer chamada de rede externa.
+ */
+export const MOCK_SHOWCASE_IMAGE_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+/**
  * Catálogo resiliente estático de semente contendo exemplos curados de altíssima qualidade visual
- * para os 6 principais ramos comerciais (e moda), 100% anonimizados em conformidade com a LGPD.
+ * para os 6 principais ramos comerciais (e moda), 100% anonimizados em conformidade com a LGPD
+ * e hospedados na CDN oficial Cloudflare R2 (zero ocorrências de Unsplash).
  */
 export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
   // ==========================================
@@ -71,7 +79,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Layout vibrante com selos explosivos e alto contraste de preço promocional.",
     imageUrl:
-      "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -91,7 +99,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Cenário verde e orgânico com frutas e legumes direto do produtor.",
     imageUrl:
-      "https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-fresh-hortifruti.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -111,7 +119,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Composição premium em fundo escuro ardósia com foco em cortes nobres de churrasco.",
     imageUrl:
-      "https://images.unsplash.com/photo-1603048588665-791ca8aea617?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-premium-carnes.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,
@@ -135,7 +143,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Atmosfera retrô de barbearia tradicional sobre madeira escura e navalha clássica.",
     imageUrl:
-      "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/beauty-salon/barber-vintage-corte.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -155,7 +163,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Elegância editorial em tons rose gold, brilho champanhe e acabamento sofisticado.",
     imageUrl:
-      "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/beauty-salon/salon-glamour-noiva.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -175,7 +183,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Composição clean em azul serenity e branco cirúrgico transmitindo higiene e tecnologia.",
     imageUrl:
-      "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/beauty-salon/beauty-clean-facial.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,
@@ -199,7 +207,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Massa fumegante e queijo esticando sobre tábua rústica com brasas do forno a lenha.",
     imageUrl:
-      "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/pizzeria/pizza-rustic-wood-terca.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -219,7 +227,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Visual aconchegante de cantina italiana com ingredientes selecionados e manjericão fresco.",
     imageUrl:
-      "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/pizzeria/pizza-artisan-craft-familia.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -243,7 +251,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Contraste moderno de neon pulsante e alta energia para delivery na madrugada.",
     imageUrl:
-      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/pizzeria/pizza-neon-night-delivery.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,
@@ -267,7 +275,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Close-up dramático com fumaça de grelha e cascata de queijo cheddar derretido.",
     imageUrl:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/burger-shop/burger-dark-bold-smash.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -287,7 +295,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Cores pop vibrantes de mostarda e ketchup em estilo descontraído e urbano.",
     imageUrl:
-      "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/burger-shop/burger-urban-pop-combo.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -311,7 +319,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Tons quentes de fogo e chapa quente destacando a crostinha perfeita do smash duplo.",
     imageUrl:
-      "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/burger-shop/burger-smash-fire-chapa.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,
@@ -335,7 +343,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Comida caseira apetitosa fumegante servida em travessa com tempero brasileiro de mãe.",
     imageUrl:
-      "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/restaurant/restaurant-homestyle-almoco.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -359,7 +367,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Prato farto servido em panela de barro com couve refogada, vinagrete e torresmo crocante.",
     imageUrl:
-      "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/restaurant/restaurant-homestyle-feijoada.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -379,7 +387,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Empratamento de bistrô refinado com iluminação acolhedora e toque gourmet.",
     imageUrl:
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/restaurant/restaurant-gourmet-bistro.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,
@@ -407,7 +415,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Faixas pretas e amarelas de alto impacto com porcentagens e contadores de urgência.",
     imageUrl:
-      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/local-retail/retail-dynamic-queima.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -427,7 +435,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Visual alegre e amigável em azul e amarelo convidando os vizinhos para aproveitar.",
     imageUrl:
-      "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/local-retail/retail-vibrant-calcados.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -451,7 +459,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Grid moderno de linhas limpas em ciano e grafite destacando produtos de utilidade e tecnologia.",
     imageUrl:
-      "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/local-retail/retail-clean-modern-novidades.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,
@@ -475,7 +483,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Enquadramento editorial de revista de moda com paleta refinada e tipografia moderna.",
     imageUrl:
-      "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/fashion/fashion-editorial-outono.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 1,
@@ -495,7 +503,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Cores contrastadas com destaque absoluto para preço promocional de moda.",
     imageUrl:
-      "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/fashion/fashion-bold-jeans.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 2,
@@ -515,7 +523,7 @@ export const SHOWCASE_SEED_CATALOG: readonly ShowcaseCardItem[] = [
     description:
       "Respiro visual sofisticado e acabamento minimalista elegante.",
     imageUrl:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1080&q=80",
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/fashion/fashion-minimal-vestidos.png",
     aspectRatio: "feed",
     isFeatured: true,
     displayOrder: 3,

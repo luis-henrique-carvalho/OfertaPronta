@@ -1,4 +1,5 @@
 import { useState, useCallback, useTransition, useMemo } from "react";
+import { toast } from "sonner";
 import type {
   BusinessSegment,
   CardAspectRatio,
@@ -1045,6 +1046,68 @@ function computeFormErrors(fields: FormFieldsState): Record<string, string> {
   return errors;
 }
 
+function useDraftValidation(fields: FormFieldsState) {
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
+
+  const validateStep2 = useCallback((): boolean => {
+    const errors = computeStep2Errors(fields);
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [fields]);
+
+  const validateForm = useCallback((): boolean => {
+    const errors = computeFormErrors(fields);
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [fields]);
+
+  const step2Valid = useMemo(() => isStep2Valid(fields), [fields]);
+
+  return {
+    validationErrors,
+    setValidationErrors,
+    validateStep2,
+    validateForm,
+    step2Valid,
+  };
+}
+
+function useDraftReferenceActions(
+  businessSegment: BusinessSegment,
+  setFields: React.Dispatch<React.SetStateAction<FormFieldsState>>,
+) {
+  const setReferenceFromShowcase = useCallback(
+    (card: { stylePresetId: string; imageUrl: string }) => {
+      setFields((prev) => ({
+        ...prev,
+        referenceImageDataUrl: card.imageUrl,
+        stylePresetId: card.stylePresetId,
+      }));
+      toast.success("Referência da vitrine aplicada ao seu card!");
+    },
+    [setFields],
+  );
+
+  const clearReferenceImage = useCallback(() => {
+    setFields((prev) => {
+      const fallbackStyle =
+        SEGMENT_CATALOG[businessSegment]?.stylePresets[0]?.id || "default";
+      return {
+        ...prev,
+        referenceImageDataUrl: undefined,
+        stylePresetId:
+          prev.stylePresetId === REFERENCE_STYLE_PRESET_ID
+            ? fallbackStyle
+            : prev.stylePresetId || fallbackStyle,
+      };
+    });
+  }, [businessSegment, setFields]);
+
+  return { setReferenceFromShowcase, clearReferenceImage };
+}
+
 export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
   const initialSegment: BusinessSegment =
     (options.initialDraft?.businessSegment as BusinessSegment) || "supermarket";
@@ -1057,9 +1120,13 @@ export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
   const { fields, setFields, applyExample, ...fieldSetters } =
     useDraftFormFields(initialSegment, options.initialDraft);
 
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
-  >({});
+  const {
+    validationErrors,
+    setValidationErrors,
+    validateStep2,
+    validateForm,
+    step2Valid,
+  } = useDraftValidation(fields);
 
   const { saveError, isSaving, saveDraft } = useSaveDraft(
     draftId,
@@ -1077,6 +1144,8 @@ export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
     draftId,
   );
 
+  const referenceActions = useDraftReferenceActions(businessSegment, setFields);
+
   const handleSegmentChange = useCallback(
     (newSegment: BusinessSegment) => {
       setBusinessSegment((curr) => {
@@ -1092,22 +1161,8 @@ export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
       applyExample(example);
       setValidationErrors(({ offerTitle: _, promoPrice: __, ...next }) => next);
     },
-    [applyExample],
+    [applyExample, setValidationErrors],
   );
-
-  const validateStep2 = useCallback((): boolean => {
-    const errors = computeStep2Errors(fields);
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  }, [fields]);
-
-  const validateForm = useCallback((): boolean => {
-    const errors = computeFormErrors(fields);
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  }, [fields]);
-
-  const step2Valid = useMemo(() => isStep2Valid(fields), [fields]);
 
   const visualInputMode = deriveVisualInputMode({
     hasProductImage: !!fields.productImageDataUrl,
@@ -1131,6 +1186,7 @@ export function useOfferBriefDraft(options: UseOfferBriefDraftOptions = {}) {
     applyExample: handleApplyExample,
     validateForm,
     saveDraft,
+    ...referenceActions,
     ...aiPreview,
   };
 }

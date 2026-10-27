@@ -204,6 +204,8 @@ export function OfferCreationWizard({
             referenceImageDataUrl={draft.referenceImageDataUrl}
             customStyleNote={draft.customStyleNote}
             onSelectStyle={draft.setStylePresetId}
+            onSelectReference={draft.setReferenceFromShowcase}
+            onClearReference={draft.clearReferenceImage}
             onCustomStyleNoteChange={draft.setCustomStyleNote}
           />
         )}

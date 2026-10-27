@@ -11,6 +11,15 @@ import {
   REFERENCE_STYLE_PRESET_ID,
   type SaveOfferDraftInput,
 } from "../data/offer-brief.schema";
+import { toast } from "sonner";
+
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+}));
 
 function createMockDraft(overrides: Partial<OfferDraft> = {}): OfferDraft {
   const { cardIntent, ...restOverrides } = overrides;
@@ -1102,5 +1111,129 @@ describe("useOfferBriefDraft Hook - Orquestração Contínua de Geração e Iní
       code: "CHECKOUT_INIT_FAILED",
       message: "Pushin Pay API indisponível",
     });
+  });
+});
+
+describe("useOfferBriefDraft Hook - Showcase Reference Management", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("deve aplicar referência da vitrine mantendo productImageDataUrl (multimodalidade dupla) e disparar toast", () => {
+    const { result } = renderHook(() =>
+      useOfferBriefDraft({
+        initialDraft: {
+          businessSegment: "supermarket",
+          productImageDataUrl: "data:image/png;base64,produtoReal",
+          stylePresetId: "market-discount",
+        },
+      }),
+    );
+
+    expect(result.current.productImageDataUrl).toBe(
+      "data:image/png;base64,produtoReal",
+    );
+    expect(result.current.referenceImageDataUrl).toBeUndefined();
+
+    act(() => {
+      result.current.setReferenceFromShowcase({
+        stylePresetId: "market-fresh",
+        imageUrl:
+          "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-fresh.png",
+      });
+    });
+
+    // 1. Preserva a foto do produto real intacta
+    expect(result.current.productImageDataUrl).toBe(
+      "data:image/png;base64,produtoReal",
+    );
+    // 2. Atualiza referenceImageDataUrl e stylePresetId
+    expect(result.current.referenceImageDataUrl).toBe(
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-fresh.png",
+    );
+    expect(result.current.stylePresetId).toBe("market-fresh");
+    // 3. Dispara toast de sucesso amigável
+    expect(toast.success).toHaveBeenCalledWith(
+      "Referência da vitrine aplicada ao seu card!",
+    );
+  });
+
+  it("deve substituir print de referência anterior por imagem da vitrine com toast de sucesso", () => {
+    const { result } = renderHook(() =>
+      useOfferBriefDraft({
+        initialDraft: {
+          businessSegment: "supermarket",
+          referenceImageDataUrl: "data:image/png;base64,printAnterior",
+          stylePresetId: REFERENCE_STYLE_PRESET_ID,
+        },
+      }),
+    );
+
+    expect(result.current.referenceImageDataUrl).toBe(
+      "data:image/png;base64,printAnterior",
+    );
+
+    act(() => {
+      result.current.setReferenceFromShowcase({
+        stylePresetId: "market-discount",
+        imageUrl:
+          "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png",
+      });
+    });
+
+    expect(result.current.referenceImageDataUrl).toBe(
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-discount-encarte.png",
+    );
+    expect(result.current.stylePresetId).toBe("market-discount");
+    expect(toast.success).toHaveBeenCalledWith(
+      "Referência da vitrine aplicada ao seu card!",
+    );
+  });
+
+  it("deve limpar referência e manter estilo pré-selecionado ao chamar clearReferenceImage", () => {
+    const { result } = renderHook(() =>
+      useOfferBriefDraft({
+        initialDraft: {
+          businessSegment: "supermarket",
+          stylePresetId: "market-fresh",
+          referenceImageDataUrl:
+            "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-fresh.png",
+        },
+      }),
+    );
+
+    expect(result.current.referenceImageDataUrl).toBe(
+      "https://pub-bb1f4a04aa2b49728b1eb1ac9ed6d7ff.r2.dev/showcase/supermarket/market-fresh.png",
+    );
+    expect(result.current.stylePresetId).toBe("market-fresh");
+
+    act(() => {
+      result.current.clearReferenceImage();
+    });
+
+    expect(result.current.referenceImageDataUrl).toBeUndefined();
+    // Mantém o estilo pré-selecionado
+    expect(result.current.stylePresetId).toBe("market-fresh");
+  });
+
+  it("deve redefinir para o primeiro estilo do segmento ao limpar referência com REFERENCE_STYLE_PRESET_ID", () => {
+    const { result } = renderHook(() =>
+      useOfferBriefDraft({
+        initialDraft: {
+          businessSegment: "supermarket",
+          stylePresetId: REFERENCE_STYLE_PRESET_ID,
+          referenceImageDataUrl: "data:image/png;base64,customRef",
+        },
+      }),
+    );
+
+    expect(result.current.stylePresetId).toBe(REFERENCE_STYLE_PRESET_ID);
+
+    act(() => {
+      result.current.clearReferenceImage();
+    });
+
+    expect(result.current.referenceImageDataUrl).toBeUndefined();
+    expect(result.current.stylePresetId).toBe("market-discount");
   });
 });

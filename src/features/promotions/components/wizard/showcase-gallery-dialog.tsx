@@ -12,7 +12,7 @@ import { Typography } from "@/components/ui/typography";
 import { Card, CardContent } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sparkles, Check, CheckCircle2 } from "lucide-react";
+import { Sparkles, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   SHOWCASE_SEED_CATALOG,
@@ -26,14 +26,17 @@ export interface ShowcaseGalleryDialogProps {
   segment: string;
   segmentLabel?: string;
   activeStyleId?: string | null;
-  onSelectStyle: (styleId: string) => void;
+  activeReferenceUrl?: string | null;
+  onSelectReference?: (card: ShowcaseCardItem) => void;
+  /** @deprecated Mantido para compatibilidade retroativa com chamadores legados */
+  onSelectStyle?: (styleId: string) => void;
   cards?: ShowcaseCardItem[];
 }
 
 /**
  * Componente acessível mobile-first construído com primitivos do shadcn/ui.
  * Apresenta uma galeria com cards publicitários reais criados por IA para inspirar
- * o comerciante e permitir a aplicação do estilo visual em 1 toque.
+ * o comerciante e permitir o uso do card como referência visual em 1 toque.
  */
 export function ShowcaseGalleryDialog({
   open,
@@ -41,6 +44,8 @@ export function ShowcaseGalleryDialog({
   segment,
   segmentLabel,
   activeStyleId,
+  activeReferenceUrl,
+  onSelectReference,
   onSelectStyle,
   cards,
 }: ShowcaseGalleryDialogProps) {
@@ -61,8 +66,12 @@ export function ShowcaseGalleryDialog({
   const finalCards =
     displayCards.length > 0 ? displayCards : SHOWCASE_SEED_CATALOG.slice(0, 3);
 
-  const handleSelectStyle = (stylePresetId: string) => {
-    onSelectStyle(stylePresetId);
+  const handleSelectCard = (card: ShowcaseCardItem) => {
+    if (onSelectReference) {
+      onSelectReference(card);
+    } else if (onSelectStyle) {
+      onSelectStyle(card.stylePresetId);
+    }
     onOpenChange(false);
   };
 
@@ -93,9 +102,9 @@ export function ShowcaseGalleryDialog({
           </DialogTitle>
 
           <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-            Cards publicitários reais criados pela IA. Toque em &ldquo;Usar este
-            Estilo&rdquo; para aplicar a direção de arte e paleta diretamente ao
-            seu card.
+            Cards publicitários reais criados pela IA. Toque em &ldquo;Usar como
+            Referência&rdquo; para aplicar a direção de arte e estilo
+            diretamente ao seu card.
           </DialogDescription>
         </DialogHeader>
 
@@ -105,7 +114,12 @@ export function ShowcaseGalleryDialog({
             className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3.5"
           >
             {finalCards.map((card) => {
-              const isSelected = activeStyleId === card.stylePresetId;
+              const isSelected = activeReferenceUrl
+                ? activeReferenceUrl === card.imageUrl ||
+                  activeReferenceUrl === card.id
+                : Boolean(
+                    activeStyleId && activeStyleId === card.stylePresetId,
+                  );
 
               return (
                 <Card
@@ -130,19 +144,13 @@ export function ShowcaseGalleryDialog({
                       />
                     </AspectRatio>
 
-                    {card.metadata?.promoPrice && (
-                      <Badge className="absolute top-2 right-2 bg-black/80 text-white backdrop-blur-xs font-bold text-xs shadow-sm">
-                        {card.metadata.promoPrice}
-                      </Badge>
-                    )}
-
                     {isSelected && (
                       <Badge
                         variant="default"
                         className="absolute top-2 left-2 gap-1 bg-primary text-primary-foreground font-semibold text-[11px] shadow-sm"
                       >
-                        <Check className="size-3" />
-                        <span>Estilo Atual</span>
+                        <CheckCircle2 className="size-3" />
+                        <span>Referência Ativa</span>
                       </Badge>
                     )}
                   </div>
@@ -185,19 +193,19 @@ export function ShowcaseGalleryDialog({
                       type="button"
                       variant={isSelected ? "secondary" : "default"}
                       size="sm"
-                      data-testid={`btn-use-style-${card.id}`}
-                      onClick={() => handleSelectStyle(card.stylePresetId)}
+                      data-testid={`btn-use-reference-${card.id}`}
+                      onClick={() => handleSelectCard(card)}
                       className="w-full min-h-[44px] text-xs font-bold gap-1.5 select-none"
                     >
                       {isSelected ? (
                         <>
                           <CheckCircle2 className="size-3.5 text-primary shrink-0" />
-                          <span>Estilo Selecionado</span>
+                          <span>Referência Ativa</span>
                         </>
                       ) : (
                         <>
                           <Sparkles className="size-3.5 shrink-0" />
-                          <span>Usar este Estilo</span>
+                          <span>Usar como Referência</span>
                         </>
                       )}
                     </Button>

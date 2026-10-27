@@ -85,10 +85,31 @@ async function processVisualAsset(
     return { assetKey: inputAssetKey, dataUrl: null };
   }
 
-  // 4. URL pública já persistida (não data:), mantém a chave sem re-upload
-  if (typeof inputDataUrl === "string" && !inputDataUrl.startsWith("data:")) {
-    const key = existingAssetKey ?? `drafts/${draftId}/${assetType}.png`;
-    return { assetKey: key, dataUrl: null };
+  // 4. URL pública HTTPS (ex: card da vitrine hospedado em R2/CDN)
+  // Grava diretamente na coluna dataUrl sem criar chaves fictícias vazias nem re-upload desnecessário
+  if (
+    typeof inputDataUrl === "string" &&
+    (inputDataUrl.startsWith("http://") || inputDataUrl.startsWith("https://"))
+  ) {
+    if (
+      existingAssetKey &&
+      (inputDataUrl === storageService.getPublicUrl(existingAssetKey) ||
+        inputDataUrl.includes(existingAssetKey))
+    ) {
+      return { assetKey: existingAssetKey, dataUrl: null };
+    }
+
+    if (existingAssetKey) {
+      try {
+        await storageService.deleteAsset(existingAssetKey);
+      } catch (err) {
+        log.warn("Erro ao deletar asset anterior no storage", {
+          key: existingAssetKey,
+          err,
+        });
+      }
+    }
+    return { assetKey: null, dataUrl: inputDataUrl };
   }
 
   // 5. Undefined: preserva chave existente ou dados legados em base64 se houver
