@@ -144,12 +144,6 @@ export function ShowcaseGalleryDialog({
                       />
                     </AspectRatio>
 
-                    {card.metadata?.promoPrice && (
-                      <Badge className="absolute top-2 right-2 bg-black/80 text-white backdrop-blur-xs font-bold text-xs shadow-sm">
-                        {card.metadata.promoPrice}
-                      </Badge>
-                    )}
-
                     {isSelected && (
                       <Badge
                         variant="default"
