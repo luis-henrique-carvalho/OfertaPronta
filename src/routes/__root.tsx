@@ -93,7 +93,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         },
         {
           rel: "stylesheet",
-          href: "https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;700;800;900&display=swap",
+          href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
         },
       ],
     };
@@ -117,7 +117,7 @@ function RootComponent() {
         <head>
           <HeadContent />
         </head>
-        <body className="min-h-screen bg-background text-foreground font-sans antialiased selection:bg-primary selection:text-primary-foreground">
+        <body className="min-h-screen bg-background text-foreground font-sans antialiased selection:bg-primary selection:text-white">
           <Outlet />
           <CookieConsentBanner />
           <FloatingWhatsappSupport />
