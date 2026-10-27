@@ -2,11 +2,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Typography } from "@/components/ui/typography";
 import { Sparkles, Bolt, CheckCircle2 } from "lucide-react";
-import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
 
 export function LandingHeroSection() {
-  const defaultPlan = getDefaultCampaignPlan();
-
   return (
     <section className="relative px-4 pt-10 pb-16 sm:px-6 sm:pt-16 sm:pb-20 text-center">
       <div className="mx-auto flex max-w-3xl flex-col items-center">
@@ -16,19 +13,19 @@ export function LandingHeroSection() {
           className="mb-5 gap-1.5 rounded-full border-border bg-card px-3.5 py-1 text-xs font-semibold text-muted-foreground shadow-sm"
         >
           <Sparkles className="size-3.5 text-primary" />
-          IA Multimodal para Microempresários & Comércio Local
+          Feito para Donos de Mercado, Pizzaria, Salão e Comércio Local
         </Badge>
 
         {/* Headline Principal */}
         <Typography variant="h1" className="mb-4">
-          Seu Card Publicitário gerado por IA e pronto para postar.
+          Anúncios que vendem o seu produto hoje, sem perder horas no Canva nem
+          pagar agência.
         </Typography>
 
         {/* Subtítulo */}
         <Typography variant="lead" className="mb-8 max-w-xl">
-          Crie artes profissionais para Supermercados, Salões, Barbearias,
-          Pizzarias, Hamburguerias, Restaurantes e Comércio Local em menos de 90
-          segundos.
+          Digite o nome da oferta e o preço. Em 90 segundos, a IA entrega seu
+          card profissional pronto para postar no WhatsApp e Instagram.
         </Typography>
 
         {/* Bloco de Ação / CTA */}
@@ -40,7 +37,7 @@ export function LandingHeroSection() {
           >
             <a href="/criar" className="gap-2">
               <Bolt className="size-5" data-icon="inline-start" />
-              Criar meu card agora ({defaultPlan.formattedPrice} via Pix)
+              Gerar meu card grátis em 90 segundos
             </a>
           </Button>
 
@@ -49,19 +46,19 @@ export function LandingHeroSection() {
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="size-4 text-secondary" />
               <Typography variant="muted" className="font-medium">
-                Sem mensalidade
+                Gere a prévia gratuitamente
               </Typography>
             </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="size-4 text-secondary" />
               <Typography variant="muted" className="font-medium">
-                Feed (4:5) & Story (9:16)
+                Sem cadastro demorado
               </Typography>
             </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="size-4 text-secondary" />
               <Typography variant="muted" className="font-medium">
-                Download HD sem marca d&apos;água
+                Pronto para Feed & Story
               </Typography>
             </div>
           </div>

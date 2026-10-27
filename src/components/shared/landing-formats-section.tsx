@@ -15,14 +15,15 @@ export function LandingFormatsSection() {
     <section className="px-4 py-16 sm:px-6 max-w-5xl mx-auto" id="formatos">
       <div className="text-center mb-12">
         <Badge variant="secondary" className="mb-3">
-          2 Formatos em 1 Compra
+          2 Formatos Prontos de Uma Vez
         </Badge>
         <Typography variant="h2" className="mb-3">
-          Pronto para Feed e Stories do Instagram e WhatsApp
+          Uma única criação entrega o post do Feed e a tela cheia do Story
         </Typography>
         <Typography variant="muted" className="max-w-lg mx-auto">
-          Cada geração cria automaticamente as 2 peças nas proporções
-          recomendadas para você postar sem cortes.
+          Nada de post cortado pela metade ou letra miúda que ninguém lê no
+          celular. Você recebe os dois tamanhos certos para divulgar em todas as
+          redes.
         </Typography>
       </div>
 
@@ -39,10 +40,10 @@ export function LandingFormatsSection() {
                 1080 × 1350 px (4:5)
               </Typography>
             </div>
-            <CardTitle className="pt-2">Post no Feed Principal</CardTitle>
+            <CardTitle className="pt-2">Post para Feed e Grupos</CardTitle>
             <CardDescription>
-              Ocupa o espaço vertical máximo na tela do cliente sem cortes feios
-              na grade.
+              Formato retrato que ocupa mais espaço na tela do celular e faz o
+              cliente parar de rolar o Instagram.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -59,7 +60,8 @@ export function LandingFormatsSection() {
           </CardContent>
           <CardFooter>
             <Typography variant="muted" className="text-xs">
-              Perfeito para carrosséis, promoções semanais e ofertas relâmpago.
+              Ideal para fixar no perfil da loja e disparar nas listas de
+              transmissão do WhatsApp.
             </Typography>
           </CardFooter>
         </Card>
@@ -76,10 +78,12 @@ export function LandingFormatsSection() {
                 1080 × 1920 px (9:16)
               </Typography>
             </div>
-            <CardTitle className="pt-2">Story com Área de Link</CardTitle>
+            <CardTitle className="pt-2">
+              Story e Status com Espaço para Link
+            </CardTitle>
             <CardDescription>
-              Formatado em tela cheia com respiro inferior seguro para adesivo
-              de link do WhatsApp.
+              Tela cheia vertical com espaço livre na parte de baixo para você
+              colar a figurinha do link do seu WhatsApp.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -95,8 +99,8 @@ export function LandingFormatsSection() {
           </CardContent>
           <CardFooter>
             <Typography variant="muted" className="text-xs">
-              Ideal para disparar no WhatsApp Status e Instagram Stories
-              diários.
+              Perfeito para postar todo dia no Status do WhatsApp e nos Stories
+              sem tampar o preço.
             </Typography>
           </CardFooter>
         </Card>

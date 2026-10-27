@@ -186,8 +186,10 @@
 *Decisions and tested lessons. Newest first. Keep it to about 20 active entries.*
 | Date | Learning | Evidence | Applies to | Status |
 |------|----------|----------|------------|--------|
+| 2026-10-26 | Remover menções prematuras a preço ("R$ 9,90 via Pix") do CTA da seção Hero e dos Passos elimina o atrito antes da experimentação; o preço deve aparecer apenas na seção de Oferta ancorado contra R$ 150 de agência / 2h no Canva e com reversão de risco ("só paga depois de ver a prévia"). | Diagnóstico de CRO e Value Equation (Hormozi) na reformulação da Landing Page (`docs/marketing/requests/landing-page-copy-revamp.md`). | Landing Page, Hero CTA e Seção de Oferta | active |
 | 2026-10-20 | Posicionamento estrito em "Sem cadastro e R$ 9,90 no Pix avulso" reduz atrito de topo de funil para microempresários avessos a assinaturas. | Análise de mercado local e requisitos do PRD v2.0. | Oferta, Landing Page e Ads | active |
 
 ## Changelog
 *Newest first. One line per revision: what changed and why.*
+- v1.1 (2026-10-26) — Adicionado aprendizado de CRO sobre remoção de atrito precoce de preço no Hero CTA e ancoragem de valor na seção de oferta.
 - v1 (2026-10-20) — Criação inicial do contexto de marketing do OfertaPronta semeado a partir de PRD.md, GLOSSARY.md, campaign-catalog.ts e landing page oficial.

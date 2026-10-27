@@ -35,9 +35,9 @@ export function LandingFooter() {
               variant="muted"
               className="text-xs leading-relaxed max-w-sm"
             >
-              Cards publicitários profissionais gerados por IA para Instagram e
-              WhatsApp em menos de 90 segundos. R$ 9,90 avulso via Pix, sem
-              mensalidade ou cadastro.
+              Anúncios profissionais gerados por IA para Instagram e WhatsApp em
+              menos de 90 segundos. Gere a prévia grátis, sem cadastro e sem
+              mensalidade.
             </Typography>
             <div className="flex items-center gap-1.5 pt-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
               <ShieldCheck className="size-3.5 shrink-0" />

@@ -17,14 +17,17 @@ export function LandingHeader() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <Badge variant="secondary" className="gap-1.5 px-2.5 py-1 text-xs">
+          <Badge
+            variant="secondary"
+            className="hidden sm:inline-flex gap-1.5 px-2.5 py-1 text-xs"
+          >
             {/* shadcn-ignore: live status indicator */}
             <span className="size-1.5 rounded-full bg-secondary animate-pulse" />
             Sem cadastro
           </Badge>
           <Button size="sm" asChild className="rounded-full font-semibold">
             <a href="/criar">
-              Criar Card com IA
+              Gerar prévia grátis
               <ArrowRight className="size-4" data-icon="inline-end" />
             </a>
           </Button>

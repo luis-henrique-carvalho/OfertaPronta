@@ -7,11 +7,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Typography } from "@/components/ui/typography";
-import { getDefaultCampaignPlan } from "@/lib/campaign-catalog";
 
 export function LandingStepsSection() {
-  const defaultPlan = getDefaultCampaignPlan();
-
   return (
     <section
       className="bg-card-subtle px-4 py-16 sm:px-6 border-y border-border"
@@ -20,14 +17,14 @@ export function LandingStepsSection() {
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12">
           <Badge variant="outline" className="mb-3 bg-card">
-            Simples e Direto
+            Simples do Início ao Fim
           </Badge>
           <Typography variant="h2" className="mb-3">
-            Como funciona em 3 passos
+            Da sua ideia para o WhatsApp dos clientes em 3 passos
           </Typography>
           <Typography variant="muted" className="max-w-md mx-auto">
-            Você não precisa de cadastro, cartão de crédito ou tutorial. Só
-            preencher e baixar.
+            Tudo direto pelo celular, sem criar conta e sem mexer em ferramentas
+            complicadas de edição.
           </Typography>
         </div>
 
@@ -38,16 +35,16 @@ export function LandingStepsSection() {
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold">
                 1
               </div>
-              <CardTitle className="pt-2">Escolha seu Ramo</CardTitle>
+              <CardTitle className="pt-2">Descreva sua promoção</CardTitle>
               <CardDescription>
-                Supermercado, Salão, Barbearia, Pizzaria, Hamburgueria,
-                Restaurante ou Comércio.
+                Escolha o ramo do seu negócio, digite a oferta e o preço que vai
+                anunciar.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Typography variant="muted">
-                A IA adapta o vocabulário, placeholders e clima publicitário com
-                base no seu nicho.
+                Tem foto do produto no celular? Pode enviar junto. Se não tiver,
+                a própria IA cria o cenário e a imagem para você.
               </Typography>
             </CardContent>
           </Card>
@@ -58,16 +55,16 @@ export function LandingStepsSection() {
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold">
                 2
               </div>
-              <CardTitle className="pt-2">Dados & Insumos Visuais</CardTitle>
+              <CardTitle className="pt-2">A IA monta o card na hora</CardTitle>
               <CardDescription>
-                Digite o produto, valor e anexe opcionalmente foto do produto ou
-                referência.
+                Em menos de 90 segundos, seu anúncio fica pronto com iluminação,
+                cores e preço em destaque.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Typography variant="muted">
-                Se não tiver foto, a IA cria a imagem do zero com iluminação e
-                composição profissional.
+                Você confere a prévia completa na tela gratuitamente antes de
+                tomar qualquer decisão.
               </Typography>
             </CardContent>
           </Card>
@@ -78,17 +75,18 @@ export function LandingStepsSection() {
               <div className="flex size-10 items-center justify-center rounded-xl bg-secondary text-secondary-foreground font-bold">
                 3
               </div>
-              <CardTitle className="pt-2">Pix e Download HD</CardTitle>
+              <CardTitle className="pt-2">
+                Baixe em alta definição e poste
+              </CardTitle>
               <CardDescription>
-                Pague {defaultPlan.formattedPrice} no Pix e receba os PNGs
-                nítidos sem marca d&apos;água em segundos.
+                Gostou do resultado? Libere os arquivos sem marca d&apos;água e
+                publique no WhatsApp e Instagram.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Typography variant="muted">
-                Confirmação instantânea com direito a até{" "}
-                {defaultPlan.maxPostPaymentRegenerations} regenerações por IA
-                pós-compra.
+                Você já recebe as duas versões prontas (Feed e Story) para
+                mandar nos grupos e atrair pedidos no mesmo minuto.
               </Typography>
             </CardContent>
           </Card>
