@@ -68,13 +68,22 @@ describe("LandingHeroSection", () => {
     // Clicar nos botões hero-live-format-story e hero-live-format-feed para testar a alternância de proporção ao vivo
     const storyBtn = screen.getByTestId("hero-live-format-story");
     fireEvent.click(storyBtn);
-    const storyImg = screen.getByAltText("Terça da Pizza em Dobro");
-    expect(storyImg.parentElement?.className).toContain("aspect-[9/16]");
+    const heroCanvas = screen.queryByTestId("hero-live-canvas");
+    if (heroCanvas) {
+      expect(heroCanvas.className).toContain("aspect-[9/16]");
+    } else {
+      const storyImg = screen.getByAltText("Terça da Pizza em Dobro");
+      expect(storyImg.parentElement?.className).toContain("aspect-[9/16]");
+    }
 
     const feedBtn = screen.getByTestId("hero-live-format-feed");
     fireEvent.click(feedBtn);
-    const feedImg = screen.getByAltText("Terça da Pizza em Dobro");
-    expect(feedImg.parentElement?.className).toContain("aspect-[4/5]");
+    if (heroCanvas) {
+      expect(heroCanvas.className).toContain("aspect-[4/5]");
+    } else {
+      const feedImg = screen.getByAltText("Terça da Pizza em Dobro");
+      expect(feedImg.parentElement?.className).toContain("aspect-[4/5]");
+    }
   });
 });
 
@@ -335,5 +344,21 @@ describe("LandingFooter institucional", () => {
         "Anúncios profissionais gerados por IA para Instagram e WhatsApp em menos de 90 segundos. Gere a prévia grátis, sem cadastro e sem mensalidade.",
       ),
     ).toBeDefined();
+  });
+});
+
+describe("Landing Page — Ausência total de imagens de cards criados (zero img tags)", () => {
+  it("garante zero tags img nas seções redesenhadas com blueprints e fragmentos UI", () => {
+    const { container: formats } = render(<LandingFormatsSection />);
+    expect(formats.querySelectorAll("img").length).toBe(0);
+
+    const { container: steps } = render(<LandingStepsSection />);
+    expect(steps.querySelectorAll("img").length).toBe(0);
+
+    const { container: pricing } = render(<LandingPricingSection />);
+    expect(pricing.querySelectorAll("img").length).toBe(0);
+
+    const { container: footer } = render(<LandingFooter />);
+    expect(footer.querySelectorAll("img").length).toBe(0);
   });
 });

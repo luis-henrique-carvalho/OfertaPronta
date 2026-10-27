@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
 
 function LandingPageComponent() {
   return (
-    <div className="flex min-h-svh flex-col bg-background text-foreground overflow-x-hidden">
+    <div className="flex min-h-svh flex-col bg-background text-foreground overflow-x-clip">
       <LandingHeader />
 
       <main className="flex-1">

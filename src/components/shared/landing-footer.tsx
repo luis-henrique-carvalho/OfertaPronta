@@ -10,41 +10,100 @@ import { Typography } from "@/components/ui/typography";
 import { getCompanyLegalProfile } from "@/lib/legal-company";
 
 const FOOTER_MARK_BLOCKS = [
-  { id: "footer-mark-01", letter: "O", height: "78%", bg: "bg-primary" },
-  { id: "footer-mark-02", letter: "F", height: "92%", bg: "bg-foreground" },
-  { id: "footer-mark-03", letter: "E", height: "65%", bg: "bg-secondary" },
-  { id: "footer-mark-04", letter: "R", height: "100%", bg: "bg-primary" },
-  { id: "footer-mark-05", letter: "T", height: "82%", bg: "bg-foreground" },
-  { id: "footer-mark-06", letter: "A", height: "95%", bg: "bg-secondary" },
-  { id: "footer-mark-07", letter: "P", height: "70%", bg: "bg-primary" },
-  { id: "footer-mark-08", letter: "R", height: "88%", bg: "bg-foreground" },
-  { id: "footer-mark-09", letter: "O", height: "100%", bg: "bg-primary" },
-  { id: "footer-mark-10", letter: "N", height: "64%", bg: "bg-secondary" },
-  { id: "footer-mark-11", letter: "T", height: "85%", bg: "bg-foreground" },
-  { id: "footer-mark-12", letter: "A", height: "90%", bg: "bg-primary" },
+  {
+    id: "footer-mark-01",
+    letter: "O",
+    height: "78%",
+    bg: "bg-[#fe7141] text-[#000000]",
+  },
+  {
+    id: "footer-mark-02",
+    letter: "F",
+    height: "92%",
+    bg: "bg-[#ffffff] text-[#000000]",
+  },
+  {
+    id: "footer-mark-03",
+    letter: "E",
+    height: "65%",
+    bg: "bg-[#f0ff1c] text-[#000000]",
+  },
+  {
+    id: "footer-mark-04",
+    letter: "R",
+    height: "100%",
+    bg: "bg-[#fe7141] text-[#000000]",
+  },
+  {
+    id: "footer-mark-05",
+    letter: "T",
+    height: "82%",
+    bg: "bg-[#ffffff] text-[#000000]",
+  },
+  {
+    id: "footer-mark-06",
+    letter: "A",
+    height: "95%",
+    bg: "bg-[#f0ff1c] text-[#000000]",
+  },
+  {
+    id: "footer-mark-07",
+    letter: "P",
+    height: "70%",
+    bg: "bg-[#fe7141] text-[#000000]",
+  },
+  {
+    id: "footer-mark-08",
+    letter: "R",
+    height: "88%",
+    bg: "bg-[#ffffff] text-[#000000]",
+  },
+  {
+    id: "footer-mark-09",
+    letter: "O",
+    height: "100%",
+    bg: "bg-[#fe7141] text-[#000000]",
+  },
+  {
+    id: "footer-mark-10",
+    letter: "N",
+    height: "64%",
+    bg: "bg-[#f0ff1c] text-[#000000]",
+  },
+  {
+    id: "footer-mark-11",
+    letter: "T",
+    height: "85%",
+    bg: "bg-[#ffffff] text-[#000000]",
+  },
+  {
+    id: "footer-mark-12",
+    letter: "A",
+    height: "90%",
+    bg: "bg-[#fe7141] text-[#000000]",
+  },
 ];
 
 export function LandingFooter() {
   const profile = getCompanyLegalProfile();
 
   return (
-    <footer className="bg-background pt-12 pb-8 px-4 sm:px-6">
-      <div className="mx-auto flex max-w-5xl flex-col gap-10">
+    <footer className="w-full bg-[#000000] text-[#f4f4f4] py-16 lg:py-24 overflow-x-clip">
+      <div className="mx-auto w-full max-w-[1360px] px-5 sm:px-8 lg:px-12 flex flex-col gap-10">
         {/* Marca construída a partir de formas geométricas */}
         <div
           aria-hidden="true"
-          className="grid grid-cols-6 sm:grid-cols-12 gap-[4px] items-end h-[22svh] sm:h-[30svh] w-full select-none overflow-hidden"
+          className="grid grid-cols-6 sm:grid-cols-12 gap-[4px] items-end h-[18svh] sm:h-[24svh] w-full select-none overflow-hidden taste-enter"
         >
           {FOOTER_MARK_BLOCKS.map((block) => (
             <div
               key={block.id}
-              className={`w-full flex items-center justify-center pb-2 [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,0_100%)] ${block.bg}`}
+              className={`w-full flex items-center justify-center pb-2 ${block.bg}`}
               style={{ height: block.height }}
             >
               <Typography
                 as="span"
-                variant="muted"
-                className="text-background font-black text-[clamp(28px,4.5vw,64px)] leading-none select-none"
+                className="font-black text-[clamp(28px,4.5vw,64px)] leading-none select-none text-current"
               >
                 {block.letter}
               </Typography>
@@ -53,41 +112,36 @@ export function LandingFooter() {
         </div>
 
         {/* Bloco Superior: Marca e Colunas de Navegação */}
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-12 sm:gap-6 pt-4">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-12 sm:gap-6 pt-4 taste-enter taste-delay-1">
           {/* Coluna 1: Identidade da Marca (5 cols desktop) */}
           <div className="flex flex-col gap-3 sm:col-span-2 lg:col-span-5 text-left">
             <div className="flex items-center gap-2">
-              <div className="flex size-7 items-center justify-center bg-primary text-primary-foreground [clip-path:polygon(4px_0,100%_0,100%_100%,0_100%,0_4px)]">
+              <div className="flex size-7 items-center justify-center bg-[#fe7141] text-[#000000]">
                 <Store className="size-4" />
               </div>
               <Typography
-                variant="h4"
-                className="text-base font-extrabold tracking-tight text-foreground"
+                as="div"
+                className="text-base font-black tracking-tight text-[#ffffff]"
               >
                 Oferta
-                <Typography
-                  as="span"
-                  variant="h4"
-                  className="text-primary font-extrabold"
-                >
+                <Typography as="span" className="text-[#f0ff1c] font-black">
                   Pronta
                 </Typography>
               </Typography>
             </div>
             <Typography
-              variant="muted"
-              className="text-xs leading-relaxed max-w-sm"
+              as="p"
+              className="text-base leading-relaxed text-[#f4f4f4]/80 max-w-sm"
             >
               Anúncios profissionais gerados por IA para Instagram e WhatsApp em
               menos de 90 segundos. Gere a prévia grátis, sem cadastro e sem
               mensalidade.
             </Typography>
-            <div className="flex items-center gap-1.5 pt-1 text-[11px] font-medium text-secondary">
-              <ShieldCheck className="size-3.5 shrink-0" />
+            <div className="flex items-center gap-1.5 pt-1 text-base font-bold text-[#f0ff1c]">
+              <ShieldCheck className="size-4 shrink-0" />
               <Typography
                 as="span"
-                variant="muted"
-                className="text-xs font-medium text-secondary"
+                className="text-base font-bold text-[#f0ff1c]"
               >
                 Ambiente Seguro • Pix Dinâmico
               </Typography>
@@ -95,36 +149,34 @@ export function LandingFooter() {
           </div>
 
           {/* Coluna 2: Navegação Institucional & Legal (4 cols desktop, 6 mobile) */}
-          <div className="flex flex-col gap-2.5 sm:col-span-1 lg:col-span-4 text-left">
+          <div className="flex flex-col gap-3 sm:col-span-1 lg:col-span-4 text-left">
             <Typography
-              variant="muted"
-              className="text-sm font-bold text-foreground mb-1"
+              as="h4"
+              className="text-base font-bold text-[#ffffff] mb-1"
             >
               Documentos Legais
             </Typography>
-            <nav className="flex flex-col gap-2 text-xs">
+            <nav className="flex flex-col gap-2.5 text-base">
               <a
                 href="/termos"
-                className="group inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                className="group inline-flex items-center gap-2 text-[#f4f4f4]/80 transition-colors hover:text-[#f0ff1c]"
               >
-                <FileText className="size-3.5 text-muted-foreground/70 group-hover:text-primary transition-colors" />
+                <FileText className="size-4 text-[#f4f4f4]/60 group-hover:text-[#f0ff1c] transition-colors" />
                 <Typography
                   as="span"
-                  variant="muted"
-                  className="hover:text-foreground text-xs"
+                  className="hover:text-[#f0ff1c] text-base"
                 >
                   Termos de Uso
                 </Typography>
               </a>
               <a
                 href="/privacidade"
-                className="group inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                className="group inline-flex items-center gap-2 text-[#f4f4f4]/80 transition-colors hover:text-[#f0ff1c]"
               >
-                <ShieldCheck className="size-3.5 text-muted-foreground/70 group-hover:text-primary transition-colors" />
+                <ShieldCheck className="size-4 text-[#f4f4f4]/60 group-hover:text-[#f0ff1c] transition-colors" />
                 <Typography
                   as="span"
-                  variant="muted"
-                  className="hover:text-foreground text-xs"
+                  className="hover:text-[#f0ff1c] text-base"
                 >
                   Política de Privacidade
                 </Typography>
@@ -133,42 +185,40 @@ export function LandingFooter() {
           </div>
 
           {/* Coluna 3: Atendimento & Suporte (3 cols desktop, 6 mobile) */}
-          <div className="flex flex-col gap-2.5 sm:col-span-1 lg:col-span-3 text-left">
+          <div className="flex flex-col gap-3 sm:col-span-1 lg:col-span-3 text-left">
             <Typography
-              variant="muted"
-              className="text-sm font-bold text-foreground mb-1"
+              as="h4"
+              className="text-base font-bold text-[#ffffff] mb-1"
             >
               Atendimento
             </Typography>
-            <nav className="flex flex-col gap-2 text-xs">
+            <nav className="flex flex-col gap-2.5 text-base">
               <a
                 href={profile.supportWhatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+                className="group inline-flex items-center gap-2 text-[#f4f4f4]/80 transition-colors hover:text-[#f0ff1c]"
               >
-                <div className="flex size-5 items-center justify-center rounded-full bg-secondary/15 text-secondary">
-                  <MessageCircle className="size-3" />
+                <div className="flex size-6 items-center justify-center bg-[#f0ff1c] text-[#000000]">
+                  <MessageCircle className="size-3.5" />
                 </div>
                 <Typography
                   as="span"
-                  variant="muted"
-                  className="hover:text-secondary text-xs font-medium"
+                  className="hover:text-[#f0ff1c] text-base font-medium"
                 >
                   Suporte WhatsApp
                 </Typography>
               </a>
               <a
                 href={`mailto:${profile.contactEmail}`}
-                className="group inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+                className="group inline-flex items-center gap-2 text-[#f4f4f4]/80 transition-colors hover:text-[#f0ff1c]"
               >
-                <div className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Mail className="size-3" />
+                <div className="flex size-6 items-center justify-center bg-[#fe7141] text-[#000000]">
+                  <Mail className="size-3.5" />
                 </div>
                 <Typography
                   as="span"
-                  variant="muted"
-                  className="hover:text-foreground text-xs"
+                  className="hover:text-[#f0ff1c] text-base"
                 >
                   {profile.contactEmail}
                 </Typography>
@@ -178,41 +228,31 @@ export function LandingFooter() {
         </div>
 
         {/* Faixa Fiscal & Legal (CDC / Decreto 7.962/2013) */}
-        <div className="bg-card-subtle p-3.5 sm:p-4 [clip-path:polygon(0_0,calc(100%-16px)_0,100%_16px,100%_100%,0_100%)] flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between text-xs text-muted-foreground text-left">
-          <Typography variant="muted" className="text-[11px] leading-relaxed">
-            <Typography
-              as="span"
-              variant="muted"
-              className="font-semibold text-foreground/80"
-            >
+        <div className="bg-[#141414] p-4 sm:p-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm text-[#f4f4f4]/80 text-left taste-enter taste-delay-2">
+          <Typography as="p" className="text-sm leading-relaxed">
+            <Typography as="span" className="font-bold text-[#ffffff]">
               {profile.legalName}
             </Typography>{" "}
             • CNPJ: {profile.cnpj} • {profile.addressCityState}
           </Typography>
-          <Typography
-            variant="muted"
-            className="text-[11px] shrink-0 text-muted-foreground/80"
-          >
+          <Typography as="p" className="text-sm shrink-0 text-[#f4f4f4]/70">
             Compra avulsa sob demanda • Entrega imediata
           </Typography>
         </div>
 
         {/* Linha Inferior: Direitos Autorais, Formatos e CTA */}
-        <div className="flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left pt-2">
-          <Typography variant="muted" className="text-xs text-muted-foreground">
+        <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left pt-2 taste-enter taste-delay-3">
+          <Typography as="p" className="text-sm text-[#f4f4f4]/70">
             © 2026 {profile.tradeName}. Todos os direitos reservados.
           </Typography>
-          <div className="flex items-center gap-4">
-            <Typography
-              variant="muted"
-              className="text-[11px] text-muted-foreground/70"
-            >
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Typography as="span" className="text-sm text-[#f4f4f4]/70">
               Formatos inclusos: Feed 1080×1350 e Story 1080×1920
             </Typography>
             <Button
               size="sm"
               asChild
-              className="rounded-none [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,0_100%)] bg-primary text-primary-foreground font-semibold hover:bg-primary-hover h-8 px-4 text-xs transition-[transform,background-color] duration-200 ease-out"
+              className="rounded-none bg-[#fe7141] text-[#000000] font-black hover:bg-[#f0ff1c] hover:text-[#000000] h-9 px-5 text-sm transition-colors"
             >
               <a href="/criar">Criar oferta</a>
             </Button>
