@@ -113,4 +113,5 @@ Persist all marketing artifacts locally inside `docs/marketing/`:
 ## 5. Operational Guardrails
 - **Unit Economics First**: Always calculate the Break-even CPA based on the project's actual pricing and COGS. Reject any media spend or scaling that breaches this threshold.
 - **Strict Separation of Concerns**: Marketing plans and copy live in `docs/marketing/` and `.agents/product-marketing.md`. If tracking changes or UI modifications require code edits, author a specification in `docs/marketing/requests/<slug>.md` and instruct the user to run it through the project's Feature Factory.
+- **No Premature Price Friction in Funnel Top**: Never place monetary price tags or payment methods in top-of-funnel action buttons (e.g., Hero CTA). Top-of-funnel CTAs must focus on zero-risk rapid action ("Gerar prévia grátis"), deferring commercial price presentation to the dedicated offer/pricing section with proper value anchoring and risk reversal.
 - **Real Metrics Only**: Base weekly optimization decisions solely on real performance data reported or pasted by the user from their ad platform.

@@ -192,6 +192,11 @@ src/
    - **Proibido executar comandos git destrutivos**: Jamais execute `git reset`, `git checkout -- <config>`, `git restore` em arquivos de configuração ou comandos com flags destrutivas (`--hard`, `--force`) para tentar contornar erros ou reverter configurações.
    - Qualquer ajuste nesses arquivos requer solicitação prévia e aprovação explícita do usuário. Violações de regras de lint e tipos devem ser resolvidas exclusivamente através de refatoração do código da aplicação (`src/`).
 
+10. **Diretrizes de CRO, Copywriting e Desacoplamento de Preço na Landing Page**:
+    - **Anti-Atrito de Preço no Topo de Funil**: Componentes de topo de funil (`Hero`, `Header` e `Steps`) NUNCA devem antecipar decisões de cobrança ou exibir preço nos botões de experimentação primária (`Criar meu card agora (R$ 9,90 via Pix)` é terminantemente proibido). O CTA primário deve sempre convidar à experimentação com risco zero (`Gerar meu card grátis em 90 segundos`) acompanhado de micro-copy de ausência de risco (`Gere a prévia gratuitamente`, `Sem cadastro demorado`).
+    - **Ancoragem de Valor e Reversão de Risco**: A apresentação de preço na Seção de Preço/Oferta DEVE ser ancorada contra custos reais de alternativas inferiores (ex.: R$ 150 de agência ou 2 horas no Canva) e acompanhada de reversão total de risco (`Você só paga depois de ver a prévia gerada com marca d'água` + `Até 3 regenerações por IA inclusas`).
+    - **Desacoplamento Arquitetural de Catálogo**: Componentes puramente conceituais ou institucionais de topo de funil (`landing-hero-section.tsx`, `landing-steps-section.tsx`) NÃO devem importar funções ou catálogos de precificação (`getDefaultCampaignPlan()`), mantendo a dependência de precificação estritamente isolada no componente canônico de oferta (`landing-pricing-section.tsx`).
+
 ---
 
 ## 5. Fluxo de Trabalho dos Agentes (Feature Factory)
