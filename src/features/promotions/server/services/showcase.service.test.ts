@@ -147,4 +147,55 @@ describe("ShowcaseService - getShowcaseCards", () => {
     expect(cards.length).toBeGreaterThanOrEqual(3);
     expect(cards[0].title).toBe("Almoço Executivo com Sabor Caseiro");
   });
+
+  it("garante que 100% dos cards do catálogo de semente apontam para o Cloudflare R2 com zero Unsplash", async () => {
+    const segments = [
+      "supermarket",
+      "beauty-salon",
+      "pizzeria",
+      "burger-shop",
+      "restaurant",
+      "local-retail",
+      "fashion",
+    ];
+
+    for (const segment of segments) {
+      const cards = await getShowcaseCards({ segment });
+      expect(cards.length).toBeGreaterThanOrEqual(3);
+
+      for (const card of cards) {
+        expect(card.imageUrl).toContain(
+          "https://pub-ofertapronta.r2.dev/showcase/",
+        );
+        expect(card.imageUrl).not.toContain("images.unsplash.com");
+        expect(card.imageUrl.endsWith(".png")).toBe(true);
+
+        // Metadados ricos
+        expect(card.title).toBeDefined();
+        expect(card.stylePresetId).toBeDefined();
+        expect(card.cardIntent).toBeDefined();
+        expect(card.metadata).toBeDefined();
+        expect(card.metadata?.businessName).toBeDefined();
+        expect(card.metadata?.promoPrice).toBeDefined();
+        expect(card.metadata?.highlights).toBeInstanceOf(Array);
+        expect(card.metadata?.highlights?.length).toBeGreaterThanOrEqual(2);
+      }
+    }
+  });
+
+  it("exporta MOCK_SHOWCASE_IMAGE_DATA_URL como data URL válida de PNG determinístico", async () => {
+    const { MOCK_SHOWCASE_IMAGE_DATA_URL } =
+      await import("../../data/showcase-catalog");
+
+    expect(MOCK_SHOWCASE_IMAGE_DATA_URL).toBeDefined();
+    expect(
+      MOCK_SHOWCASE_IMAGE_DATA_URL.startsWith("data:image/png;base64,"),
+    ).toBe(true);
+    const base64Data = MOCK_SHOWCASE_IMAGE_DATA_URL.replace(
+      "data:image/png;base64,",
+      "",
+    );
+    const buffer = Buffer.from(base64Data, "base64");
+    expect(buffer.length).toBeGreaterThan(0);
+  });
 });

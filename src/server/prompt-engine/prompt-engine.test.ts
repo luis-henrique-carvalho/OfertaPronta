@@ -585,5 +585,78 @@ describe("PromptEngine v2 Deep Module", () => {
         "[FOTO DO PRODUTO REAL: Manter fidelidade visual e integrar harmonicamente à cena]",
       );
     });
+
+    it("injeta [IMAGEM DE REFERÊNCIA ESTÉTICA] quando referenceImageDataUrl está presente", () => {
+      const input = createSampleInput({
+        referenceImageDataUrl: SAMPLE_BASE64_PNG,
+      });
+
+      const parts = buildMultimodalPromptParts(input);
+      expect(parts).toContain(
+        "[IMAGEM DE REFERÊNCIA ESTÉTICA: Absorver iluminação, paleta de cores e estilo visual]",
+      );
+    });
+
+    it("suporta Multimodalidade Dupla (Foto do Produto Real + Card da Vitrine de Referência)", async () => {
+      const input = createSampleInput({
+        productImageDataUrl: SAMPLE_BASE64_PNG,
+        referenceImageDataUrl: SAMPLE_LOGO_PNG,
+        stylePresetId: "market-discount",
+      });
+
+      // 1. isReferenceDrivenMode deve ser false (modo produto real + estilo de referência, não pura referência)
+      expect(isReferenceDrivenMode(input)).toBe(false);
+
+      // 2. buildMultimodalPromptParts inclui ambos os insumos como partes independentes
+      const parts = buildMultimodalPromptParts(input);
+      expect(parts).toContain(
+        "[FOTO DO PRODUTO REAL: Manter fidelidade visual e integrar harmonicamente à cena]",
+      );
+      expect(parts).toContain(
+        "[IMAGEM DE REFERÊNCIA ESTÉTICA: Absorver iluminação, paleta de cores e estilo visual]",
+      );
+
+      // 3. Fallback determinístico orienta a manter o produto real no centro e absorver a atmosfera da referência
+      const fallbackPrompt = buildFallbackMasterPrompt(input);
+      expect(fallbackPrompt).toContain(
+        "A identidade física e características do produto original são preservadas",
+      );
+      expect(fallbackPrompt).toContain(
+        "A atmosfera e paleta de iluminação absorvem a referência estética anexa",
+      );
+
+      // 4. compileAdCardPrompt passa ambos os insumos visuais ao Diretor de Arte (Estágio 1)
+      let capturedContents: unknown[] = [];
+      const mockClient: PromptPlannerClient = {
+        models: {
+          generateContent: vi.fn().mockImplementation(async (params) => {
+            capturedContents = params.contents;
+            return { text: GOLDEN_FEW_SHOT_MASTER_PROMPT };
+          }),
+        },
+      };
+
+      const result = await compileAdCardPrompt(input, { client: mockClient });
+
+      // Verificação no Estágio 1:
+      const contentsAsStrings = capturedContents.filter(
+        (c): c is string => typeof c === "string",
+      );
+      expect(contentsAsStrings).toContain("[FOTO DO PRODUTO REAL]");
+      expect(contentsAsStrings).toContain("[IMAGEM DE REFERÊNCIA ESTÉTICA]");
+
+      // Verificação nas parts finais para o Estágio 2:
+      expect(result.parts).toContain(
+        "[FOTO DO PRODUTO REAL: Manter fidelidade visual e integrar harmonicamente à cena]",
+      );
+      expect(result.parts).toContain(
+        "[IMAGEM DE REFERÊNCIA ESTÉTICA: Absorver iluminação, paleta de cores e estilo visual]",
+      );
+      expect(
+        result.parts.filter(
+          (p) => typeof p === "object" && p !== null && "inlineData" in p,
+        ).length,
+      ).toBe(2);
+    });
   });
 });

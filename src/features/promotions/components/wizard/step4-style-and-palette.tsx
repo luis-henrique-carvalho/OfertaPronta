@@ -1,20 +1,17 @@
 import { useState } from "react";
 import { Typography } from "@/components/ui/typography";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  QUICK_BRAND_PALETTES,
-  type CreationCatalogItem,
-} from "../../data/creation-catalog";
+import type { CreationCatalogItem } from "../../data/creation-catalog";
 import { REFERENCE_STYLE_PRESET_ID } from "../../data/offer-brief.schema";
+import type { ShowcaseCardItem } from "../../data/showcase-catalog";
 import { StyleMiniPostCard } from "./style-mini-post-card";
 import { ReferenceStyleCard } from "./reference-style-card";
 import { ShowcaseGalleryDialog } from "./showcase-gallery-dialog";
+import { Step4ActiveReferenceBanner } from "./step4-active-reference-banner";
+import { Step4CustomPaletteCard } from "./step4-custom-palette-card";
 
 export interface Step4StyleAndPaletteProps {
   segmentData: CreationCatalogItem;
@@ -26,6 +23,8 @@ export interface Step4StyleAndPaletteProps {
   referenceImageDataUrl?: string | null;
   customStyleNote?: string;
   onSelectStyle: (styleId: string) => void;
+  onSelectReference?: (card: ShowcaseCardItem) => void;
+  onClearReference?: () => void;
   onCustomStyleNoteChange: (val: string) => void;
   className?: string;
 }
@@ -40,6 +39,8 @@ export function Step4StyleAndPalette({
   referenceImageDataUrl,
   customStyleNote = "",
   onSelectStyle,
+  onSelectReference,
+  onClearReference,
   onCustomStyleNoteChange,
   className,
 }: Step4StyleAndPaletteProps) {
@@ -47,6 +48,11 @@ export function Step4StyleAndPalette({
   const styles = segmentData.styles;
   const hasReference = Boolean(
     referenceImageDataUrl && referenceImageDataUrl.trim().length > 0,
+  );
+  const isShowcaseReference = Boolean(
+    hasReference &&
+    (referenceImageDataUrl?.startsWith("http://") ||
+      referenceImageDataUrl?.startsWith("https://")),
   );
   const hasCustomNote = Boolean(
     customStyleNote && customStyleNote.trim().length > 0,
@@ -69,6 +75,14 @@ export function Step4StyleAndPalette({
     onSelectStyle(styleId);
     if (customStyleNote && customStyleNote.trim().length > 0) {
       onCustomStyleNoteChange("");
+    }
+  };
+
+  const handleSelectReference = (card: ShowcaseCardItem) => {
+    if (onSelectReference) {
+      onSelectReference(card);
+    } else {
+      handleSelectStyle(card.stylePresetId);
     }
   };
 
@@ -122,16 +136,55 @@ export function Step4StyleAndPalette({
         segment={segmentData.id}
         segmentLabel={segmentData.label}
         activeStyleId={activeCatalogStyleId}
+        activeReferenceUrl={referenceImageDataUrl}
+        onSelectReference={handleSelectReference}
         onSelectStyle={handleSelectStyle}
       />
 
-      {/* Card Especial de Referência quando o usuário enviou um Print no passo anterior */}
-      {hasReference && (
-        <ReferenceStyleCard
+      {/* Banner / Cartão de Referência Ativa da Vitrine */}
+      {hasReference && isShowcaseReference && (
+        <Step4ActiveReferenceBanner
           referenceImageDataUrl={referenceImageDataUrl!}
-          isRefSelected={isRefSelected}
-          onSelect={() => handleSelectStyle(REFERENCE_STYLE_PRESET_ID)}
+          onOpenShowcase={() => setIsShowcaseOpen(true)}
+          onClearReference={onClearReference}
         />
+      )}
+
+      {/* Card Especial de Referência quando o usuário enviou um Print no passo anterior */}
+      {hasReference && !isShowcaseReference && (
+        <div className="space-y-2">
+          <ReferenceStyleCard
+            referenceImageDataUrl={referenceImageDataUrl!}
+            isRefSelected={isRefSelected}
+            onSelect={() => handleSelectStyle(REFERENCE_STYLE_PRESET_ID)}
+          />
+          <div className="flex items-center justify-end gap-2 px-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="btn-change-showcase-reference"
+              onClick={() => setIsShowcaseOpen(true)}
+              className="min-h-[44px] text-xs font-semibold gap-1.5 border-primary/40 hover:bg-primary/10 select-none"
+            >
+              <Sparkles className="size-3.5 text-primary shrink-0" />
+              <span>Trocar na Vitrine</span>
+            </Button>
+            {onClearReference && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                data-testid="btn-remove-reference"
+                onClick={onClearReference}
+                className="min-h-[44px] text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 select-none"
+              >
+                <Trash2 className="size-3.5 shrink-0" />
+                <span>Remover Referência</span>
+              </Button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Grade 2x3 de Mini-Posts com os dados reais do usuário */}
@@ -152,139 +205,11 @@ export function Step4StyleAndPalette({
       </div>
 
       {/* Seção opcional de Personalização de Estilo e Paleta */}
-      <Card className="p-3.5 rounded-2xl border-border bg-card shadow-2xs mt-1 space-y-2.5">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Sparkles className="size-4 text-primary shrink-0" />
-            <Label
-              htmlFor="custom-palette-input"
-              className="text-xs font-bold text-foreground"
-            >
-              Quer personalizar o estilo ou fazer algum ajuste? (Opcional)
-            </Label>
-          </div>
-          <Typography variant="muted" className="text-xs">
-            Escolha uma paleta rápida ou escreva suas preferências de estilo
-            (fundo, clima, cores):
-          </Typography>
-        </div>
-
-        {/* Chips rápidos de combinação de cores */}
-        <div className="flex flex-wrap gap-1.5">
-          {QUICK_BRAND_PALETTES.map((palette) => {
-            const isSelectedPalette =
-              customStyleNote.includes(palette.value) ||
-              customStyleNote.includes(`Paleta: ${palette.label}`) ||
-              customStyleNote === palette.label;
-
-            return (
-              <Button
-                key={palette.label}
-                type="button"
-                variant="outline"
-                size="sm"
-                data-testid={`palette-chip-${palette.name}`}
-                aria-pressed={isSelectedPalette}
-                onClick={() => {
-                  const updated = applyPaletteToStyleNote(
-                    customStyleNote,
-                    palette.value,
-                  );
-                  onCustomStyleNoteChange(updated);
-                  if (updated.trim().length > 0) {
-                    onSelectStyle("");
-                  }
-                }}
-                className={cn(
-                  "h-8 min-h-[36px] rounded-full px-2.5 text-[11px] font-semibold gap-1.5 select-none",
-                  isSelectedPalette
-                    ? "border-primary bg-primary/10 text-primary ring-1 ring-primary"
-                    : "border-border text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {/* shadcn-ignore: decorative color swatches */}
-                <span
-                  className="flex items-center -space-x-1"
-                  aria-hidden="true"
-                >
-                  {palette.swatches.map((hex) => (
-                    <span
-                      key={`${palette.label}-${hex}`}
-                      className="size-3 rounded-full border border-black/20"
-                      style={{ backgroundColor: hex }}
-                    />
-                  ))}
-                </span>
-                <span>{palette.label}</span>
-              </Button>
-            );
-          })}
-        </div>
-
-        <Textarea
-          id="custom-palette-input"
-          data-testid="input-custom-palette"
-          placeholder="Ex: Paleta: Preto e Dourado. Quero um estilo rústico com madeira, fundo escuro e letras douradas..."
-          value={customStyleNote}
-          onChange={(e) => {
-            const val = e.target.value;
-            onCustomStyleNoteChange(val);
-            if (val.trim().length > 0) {
-              onSelectStyle("");
-            }
-          }}
-          className="min-h-[72px] resize-none rounded-xl text-xs sm:text-sm"
-          rows={2}
-        />
-      </Card>
+      <Step4CustomPaletteCard
+        customStyleNote={customStyleNote}
+        onCustomStyleNoteChange={onCustomStyleNoteChange}
+        onSelectStyle={onSelectStyle}
+      />
     </div>
   );
-}
-
-/**
- * Insere, substitui ou desmarca a paleta dentro do texto de instruções customizadas,
- * preservando as opiniões e ajustes adicionais que o usuário tiver digitado.
- */
-function applyPaletteToStyleNote(
-  currentNote: string,
-  paletteValue: string,
-): string {
-  // Encontra se já existe alguma paleta conhecida no texto
-  const existingPalette = QUICK_BRAND_PALETTES.find(
-    (p) =>
-      currentNote.includes(p.value) ||
-      currentNote.includes(`Paleta: ${p.label}`) ||
-      currentNote.includes(p.label),
-  );
-
-  if (existingPalette) {
-    // Se o usuário clicou na mesma paleta que já estava ativa, remove-a (toggle off)
-    const isSamePalette =
-      currentNote.includes(paletteValue) ||
-      (currentNote.includes(existingPalette.value) &&
-        existingPalette.value === paletteValue);
-
-    if (isSamePalette) {
-      return currentNote
-        .replace(paletteValue, "")
-        .replace(existingPalette.value, "")
-        .replace(/^[.\s,;-]+/, "")
-        .trim();
-    }
-
-    // Se é uma paleta diferente, substitui no texto
-    const targetToRemove = currentNote.includes(existingPalette.value)
-      ? existingPalette.value
-      : currentNote.includes(`Paleta: ${existingPalette.label}`)
-        ? `Paleta: ${existingPalette.label}`
-        : existingPalette.label;
-
-    return currentNote.replace(targetToRemove, paletteValue).trim();
-  }
-
-  // Se não tinha paleta prévia, insere no início preservando o restante do texto
-  if (!currentNote.trim()) {
-    return paletteValue;
-  }
-  return `${paletteValue}. ${currentNote.trim()}`;
 }

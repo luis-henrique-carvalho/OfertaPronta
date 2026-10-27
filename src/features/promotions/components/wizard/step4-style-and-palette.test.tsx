@@ -206,9 +206,9 @@ describe("Step4StyleAndPalette", () => {
       screen.getByText("Vitrine de Artes Prontas para Inspirar"),
     ).toBeDefined();
 
-    // 3. Clica em "Usar este Estilo" no primeiro card de exemplo da vitrine
+    // 3. Clica em "Usar como Referência" no primeiro card de exemplo da vitrine
     const useStyleButtons = screen.getAllByRole("button", {
-      name: /Usar este Estilo|Estilo Selecionado/i,
+      name: /Usar como Referência|Referência Ativa|Usar este Estilo|Estilo Selecionado/i,
     });
     expect(useStyleButtons.length).toBeGreaterThanOrEqual(1);
 
@@ -217,5 +217,116 @@ describe("Step4StyleAndPalette", () => {
     // 4. Verifica que onSelectStyle foi acionado com o preset ID do card
     expect(handleSelectStyle).toHaveBeenCalledTimes(1);
     expect(handleSelectStyle).toHaveBeenCalledWith(expect.any(String));
+  });
+
+  it("abre a vitrine e aciona onSelectReference com o card selecionado ao clicar em 'Usar como Referência'", () => {
+    const handleSelectReference = vi.fn();
+    render(
+      <Step4StyleAndPalette
+        segmentData={mockSegmentData}
+        businessName="Boutique Flor"
+        offerTitle="Vestido Elegance"
+        onSelectStyle={vi.fn()}
+        onSelectReference={handleSelectReference}
+        onCustomStyleNoteChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("btn-open-showcase-gallery"));
+
+    const useRefButtons = screen.getAllByRole("button", {
+      name: /Usar como Referência/i,
+    });
+    expect(useRefButtons.length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.click(useRefButtons[0]);
+
+    expect(handleSelectReference).toHaveBeenCalledTimes(1);
+    expect(handleSelectReference).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: expect.any(String),
+        stylePresetId: expect.any(String),
+        imageUrl: expect.stringMatching(/^https?:\/\//),
+      }),
+    );
+  });
+
+  it("renderiza o banner 'Referência da Vitrine Ativa' com miniatura, badges e texto orientativo quando referenceImageDataUrl for da vitrine", () => {
+    const handleClearReference = vi.fn();
+
+    render(
+      <Step4StyleAndPalette
+        segmentData={mockSegmentData}
+        selectedStyleId={mockSegmentData.styles[0].id}
+        businessName="Boutique Flor"
+        offerTitle="Vestido Elegance"
+        referenceImageDataUrl="https://pub-ofertapronta.r2.dev/showcase/fashion/fashion-elegance.png"
+        onSelectStyle={vi.fn()}
+        onClearReference={handleClearReference}
+        onCustomStyleNoteChange={vi.fn()}
+      />,
+    );
+
+    // Banner presente
+    const banner = screen.getByTestId("active-reference-banner");
+    expect(banner).toBeDefined();
+
+    // Badges e textos orientativos
+    expect(screen.getByText("Referência Ativa")).toBeDefined();
+    expect(screen.getByText("Inspiração da Vitrine")).toBeDefined();
+    expect(screen.getByText("Referência da Vitrine Ativa")).toBeDefined();
+    expect(
+      screen.getByText(
+        /A IA usará esta arte para guiar a iluminação, composição e paleta de cores do seu card/i,
+      ),
+    ).toBeDefined();
+
+    // Miniatura da imagem
+    const img = screen.getByAltText("Referência ativa") as HTMLImageElement;
+    expect(img).toBeDefined();
+    expect(img.src).toBe(
+      "https://pub-ofertapronta.r2.dev/showcase/fashion/fashion-elegance.png",
+    );
+
+    // Botões de ação
+    const changeBtn = screen.getByTestId("btn-change-showcase-reference");
+    expect(changeBtn).toBeDefined();
+    expect(changeBtn.textContent).toContain("Trocar na Vitrine");
+
+    const removeBtn = screen.getByTestId("btn-remove-reference");
+    expect(removeBtn).toBeDefined();
+    expect(removeBtn.textContent).toContain("Remover Referência");
+
+    // Acionar remoção de referência
+    fireEvent.click(removeBtn);
+    expect(handleClearReference).toHaveBeenCalledTimes(1);
+
+    // Acionar troca na vitrine abre o diálogo
+    fireEvent.click(changeBtn);
+    expect(screen.getByTestId("showcase-cards-grid")).toBeDefined();
+  });
+
+  it("sincroniza o grid de estilos destacando o estilo correspondente quando uma referência da vitrine estiver ativa", () => {
+    const targetStyle = mockSegmentData.styles[1];
+
+    render(
+      <Step4StyleAndPalette
+        segmentData={mockSegmentData}
+        selectedStyleId={targetStyle.id}
+        businessName="Boutique Flor"
+        offerTitle="Vestido Elegance"
+        referenceImageDataUrl="https://pub-ofertapronta.r2.dev/showcase/fashion/fashion-elegance.png"
+        onSelectStyle={vi.fn()}
+        onCustomStyleNoteChange={vi.fn()}
+      />,
+    );
+
+    // O estilo correspondente do catálogo deve estar destacado/selecionado no grid
+    const styleCards = screen.getAllByTestId("style-mini-post-card");
+    const targetCard = styleCards[1];
+    expect(targetCard.getAttribute("aria-pressed")).toBe("true");
+
+    // O primeiro estilo deve estar desmarcado
+    expect(styleCards[0].getAttribute("aria-pressed")).toBe("false");
   });
 });

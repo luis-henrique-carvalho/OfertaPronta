@@ -32,7 +32,13 @@ import {
   type WatermarkResult,
 } from "@/server/export-engine";
 import type { AppDatabase } from "@/server/db";
-import { getStorageService, type StorageService } from "@/server/storage";
+import {
+  getStorageService,
+  InMemoryStorageDriver,
+  type StorageService,
+} from "@/server/storage";
+import { serverEnv } from "@/config/server-env";
+import { MOCK_SHOWCASE_IMAGE_DATA_URL } from "../../data/showcase-catalog";
 import {
   reservePreview,
   settlePreview,
@@ -78,6 +84,7 @@ export interface GeneratePreviewDependencies {
   ) => Promise<
     { dataUrl: string; watermarkedBuffer?: Buffer } | WatermarkResult
   >;
+  fetchImageOptions?: FetchImageGuardOptions;
 }
 
 function resolveWatermarkedBuffer(
@@ -201,7 +208,131 @@ function resolveDependencies(deps: GeneratePreviewDependencies) {
     storageService,
     quota,
     identity,
+    fetchImageOptions: deps.fetchImageOptions,
   };
+}
+
+export interface FetchImageGuardOptions {
+  timeoutMs?: number;
+  maxSizeBytes?: number;
+  fetchFn?: typeof fetch;
+}
+
+/**
+ * Validador estrito de segurança contra SSRF (Server-Side Request Forgery).
+ */
+export function isAllowedExternalImageUrl(urlString: string): boolean {
+  try {
+    const parsed = new URL(urlString);
+    if (parsed.protocol !== "https:") {
+      return false;
+    }
+
+    const host = parsed.hostname.toLowerCase();
+
+    // Bloqueio rigoroso de redes privadas, loopback e metadados de nuvem
+    if (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host === "[::1]" ||
+      host === "169.254.169.254" ||
+      host.endsWith(".local") ||
+      host.endsWith(".internal") ||
+      /^127\./.test(host) ||
+      /^0\./.test(host) ||
+      /^10\./.test(host) ||
+      /^192\.168\./.test(host) ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host) ||
+      /^169\.254\./.test(host)
+    ) {
+      return false;
+    }
+
+    // Allowlist de domínios confiáveis (R2 CDN da aplicação e imagens legadas de semente)
+    const isR2Dev = host.endsWith(".r2.dev") || host === "r2.dev";
+    const isUnsplash = host === "images.unsplash.com";
+    let isAppCdn = false;
+    if (serverEnv.R2_PUBLIC_URL) {
+      try {
+        isAppCdn =
+          host === new URL(serverEnv.R2_PUBLIC_URL).hostname.toLowerCase();
+      } catch {
+        isAppCdn = false;
+      }
+    }
+
+    return isR2Dev || isUnsplash || isAppCdn;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Baixa uma imagem externa com timeout estrito de 5s, proteção contra SSRF e limites de payload.
+ * Em caso de falha de rede ou formato inválido, devolve null para degradação graciosa.
+ */
+export async function fetchExternalImageWithGuard(
+  url: string,
+  options: FetchImageGuardOptions = {},
+): Promise<{ buffer: Buffer; contentType: string } | null> {
+  const timeoutMs = options.timeoutMs ?? 5000;
+  const maxSizeBytes = options.maxSizeBytes ?? 5 * 1024 * 1024; // 5MB
+  const customFetch = options.fetchFn ?? fetch;
+
+  if (!isAllowedExternalImageUrl(url)) {
+    log.warn(
+      "Tentativa de download de imagem bloqueada por política de segurança SSRF",
+      { url },
+    );
+    return null;
+  }
+
+  try {
+    const response = await customFetch(url, {
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: {
+        Accept: "image/png,image/jpeg,image/webp",
+      },
+    });
+
+    if (!response.ok) {
+      log.warn("Falha HTTP ao baixar asset de imagem externa", {
+        url,
+        status: response.status,
+      });
+      return null;
+    }
+
+    const contentType = response.headers.get("content-type") || "image/png";
+    if (!/^image\/(png|jpeg|webp)/i.test(contentType)) {
+      log.warn("Tipo de conteúdo de imagem inválido retornado na URL externa", {
+        url,
+        contentType,
+      });
+      return null;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    if (arrayBuffer.byteLength > maxSizeBytes) {
+      log.warn("Asset externo excede tamanho máximo permitido de 5MB", {
+        url,
+        sizeBytes: arrayBuffer.byteLength,
+      });
+      return null;
+    }
+
+    return {
+      buffer: Buffer.from(arrayBuffer),
+      contentType,
+    };
+  } catch (error) {
+    log.warn("Exceção ou timeout ao baixar asset externo com timeout de 5s", {
+      url,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 }
 
 /**
@@ -211,6 +342,7 @@ function resolveDependencies(deps: GeneratePreviewDependencies) {
 export async function resolveDraftVisualInputs(
   draft: DraftRow | OfferDraft,
   storageService: StorageService,
+  fetchOptions?: FetchImageGuardOptions,
 ): Promise<{
   productImageDataUrl?: string;
   referenceImageDataUrl?: string;
@@ -240,6 +372,40 @@ export async function resolveDraftVisualInputs(
     const asset = await storageService.getAsset(rawDraft.logoAssetKey);
     if (asset) {
       logoImageDataUrl = `data:${asset.contentType};base64,${asset.buffer.toString("base64")}`;
+    }
+  }
+
+  // 2. Resolução de URLs públicas HTTPS (Vitrine R2 / CDN)
+  if (
+    referenceImageDataUrl &&
+    (referenceImageDataUrl.startsWith("http://") ||
+      referenceImageDataUrl.startsWith("https://"))
+  ) {
+    if (fetchOptions?.fetchFn) {
+      const downloaded = await fetchExternalImageWithGuard(
+        referenceImageDataUrl,
+        fetchOptions,
+      );
+      if (downloaded) {
+        referenceImageDataUrl = `data:${downloaded.contentType};base64,${downloaded.buffer.toString("base64")}`;
+      } else {
+        referenceImageDataUrl = undefined;
+      }
+    } else if (
+      storageService instanceof InMemoryStorageDriver ||
+      serverEnv.NODE_ENV === "test"
+    ) {
+      referenceImageDataUrl = MOCK_SHOWCASE_IMAGE_DATA_URL;
+    } else {
+      const downloaded = await fetchExternalImageWithGuard(
+        referenceImageDataUrl,
+        fetchOptions,
+      );
+      if (downloaded) {
+        referenceImageDataUrl = `data:${downloaded.contentType};base64,${downloaded.buffer.toString("base64")}`;
+      } else {
+        referenceImageDataUrl = undefined;
+      }
     }
   }
 
@@ -301,6 +467,7 @@ async function generateAndWatermarkAdCard(
   generateAdCard: (input: GenerateAdCardInput) => Promise<GenerateAdCardResult>,
   exportEngine: ExportEngine,
   storageService: StorageService,
+  fetchOptions?: FetchImageGuardOptions,
 ): Promise<
   | {
       success: true;
@@ -316,7 +483,11 @@ async function generateAndWatermarkAdCard(
       draftId: draft.id,
       segment: draft.businessSegment,
     });
-    const visualInputs = await resolveDraftVisualInputs(draft, storageService);
+    const visualInputs = await resolveDraftVisualInputs(
+      draft,
+      storageService,
+      fetchOptions,
+    );
     const aiResult = await generateAdCard(
       buildAdCardInput(draft, visualInputs),
     );
@@ -451,6 +622,7 @@ interface GenerateAndPersistContext {
   };
   now: Date;
   database?: AppDatabase;
+  fetchImageOptions?: FetchImageGuardOptions;
 }
 
 async function generateAndPersistPreview(
@@ -466,6 +638,7 @@ async function generateAndPersistPreview(
     quota,
     now,
     database,
+    fetchImageOptions,
   } = ctx;
 
   try {
@@ -474,6 +647,7 @@ async function generateAndPersistPreview(
       generateAdCard,
       exportEngine,
       storageService,
+      fetchImageOptions,
     );
 
     if (!generated.success) {
@@ -628,5 +802,6 @@ export async function executeGeneratePreview(
     quota,
     now,
     database: deps.database,
+    fetchImageOptions: deps.fetchImageOptions,
   });
 }

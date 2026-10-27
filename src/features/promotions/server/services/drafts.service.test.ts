@@ -580,5 +580,44 @@ describe("Drafts Service (Deep Domain Module)", () => {
         .where(eq(drafts.id, legacyId));
       expect(legacyRow.productAssetKey).toBeNull();
     });
+
+    it("persists public HTTPS showcase reference image URL directly in referenceImageDataUrl without creating fake storage keys", async () => {
+      const showcaseUrl =
+        "https://pub-ofertapronta.r2.dev/showcase/supermarket/market-discount-encarte.png";
+
+      const saved = await saveOfferDraft({
+        businessSegment: "supermarket",
+        businessName: "Supermercado Compre Bem",
+        offerTitle: "Encarte Semanal",
+        promoPrice: "R$ 19,90",
+        referenceImageDataUrl: showcaseUrl,
+        stylePresetId: "market-discount",
+      });
+
+      // 1. DTO de retorno contém a URL pública intacta
+      expect(saved.referenceImageDataUrl).toBe(showcaseUrl);
+      expect(
+        (saved as Record<string, unknown>).referenceAssetKey,
+      ).toBeUndefined();
+
+      // 2. Coluna no banco PostgreSQL gravada diretamente com a URL pública e referenceAssetKey é NULL
+      const [dbRow] = await db
+        .select()
+        .from(drafts)
+        .where(eq(drafts.id, saved.id));
+
+      expect(dbRow.referenceImageDataUrl).toBe(showcaseUrl);
+      expect(dbRow.referenceAssetKey).toBeNull();
+
+      // 3. Nenhuma chave fictícia foi gravada no storage
+      const fakeAsset = await storageDriver.getAsset(
+        `drafts/${saved.id}/reference.png`,
+      );
+      expect(fakeAsset).toBeNull();
+
+      // 4. getOfferDraft preserva a URL pública exata
+      const fetched = await getOfferDraft(saved.id);
+      expect(fetched?.referenceImageDataUrl).toBe(showcaseUrl);
+    });
   });
 });
