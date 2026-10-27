@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Separator } from "@/components/ui/separator";
 import { LandingHeader } from "@/components/shared/landing-header";
 import { LandingHeroSection } from "@/components/shared/landing-hero-section";
 import { LandingSegmentsSection } from "@/components/shared/landing-segments-section";
@@ -14,14 +13,12 @@ export const Route = createFileRoute("/")({
 
 function LandingPageComponent() {
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="flex min-h-svh flex-col bg-background text-foreground overflow-x-hidden">
       <LandingHeader />
 
       <main className="flex-1">
         <LandingHeroSection />
-        <Separator className="mx-auto max-w-5xl" />
         <LandingSegmentsSection />
-        <Separator className="mx-auto max-w-5xl" />
         <LandingFormatsSection />
         <LandingStepsSection />
         <LandingPricingSection />

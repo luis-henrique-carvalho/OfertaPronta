@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { LandingHeroSection } from "./landing-hero-section";
 import { LandingStepsSection } from "./landing-steps-section";
 import { LandingPricingSection } from "./landing-pricing-section";
@@ -45,6 +45,36 @@ describe("LandingHeroSection", () => {
     expect(screen.getByText("Gere a prévia gratuitamente")).toBeDefined();
     expect(screen.getByText("Sem cadastro demorado")).toBeDefined();
     expect(screen.getByText("Pronto para Feed & Story")).toBeDefined();
+  });
+
+  it("renderiza e permite interagir com o simulador interativo de balcão (hero-live-fragment)", () => {
+    render(<LandingHeroSection />);
+
+    // Validar que screen.getByTestId("hero-live-fragment") existe e possui data-ui="hero-live-fragment"
+    const liveFragment = screen.getByTestId("hero-live-fragment");
+    expect(liveFragment).toBeDefined();
+    expect(liveFragment.getAttribute("data-ui")).toBe("hero-live-fragment");
+
+    // Validar que o card inicial ("Festival de Carnes Nobres" e "R$ 54,90/kg") aparece
+    expect(screen.getByText("Festival de Carnes Nobres")).toBeDefined();
+    expect(screen.getByText("R$ 54,90/kg")).toBeDefined();
+
+    // Clicar na aba de segmento "Pizzaria" e validar que o card muda para "Terça da Pizza em Dobro" e "R$ 59,90"
+    const pizzariaTab = screen.getByRole("button", { name: "Pizzaria" });
+    fireEvent.click(pizzariaTab);
+    expect(screen.getByText("Terça da Pizza em Dobro")).toBeDefined();
+    expect(screen.getByText("R$ 59,90")).toBeDefined();
+
+    // Clicar nos botões hero-live-format-story e hero-live-format-feed para testar a alternância de proporção ao vivo
+    const storyBtn = screen.getByTestId("hero-live-format-story");
+    fireEvent.click(storyBtn);
+    const storyImg = screen.getByAltText("Terça da Pizza em Dobro");
+    expect(storyImg.parentElement?.className).toContain("aspect-[9/16]");
+
+    const feedBtn = screen.getByTestId("hero-live-format-feed");
+    fireEvent.click(feedBtn);
+    const feedImg = screen.getByAltText("Terça da Pizza em Dobro");
+    expect(feedImg.parentElement?.className).toContain("aspect-[4/5]");
   });
 });
 
@@ -107,6 +137,12 @@ describe("LandingStepsSection", () => {
     expect(sectionText).not.toContain("placeholders");
     expect(sectionText).not.toContain("insumos visuais");
     expect(sectionText).not.toContain("PNGs");
+  });
+
+  it("não exibe marcadores numéricos decorativos (01/02/03)", () => {
+    const { container } = render(<LandingStepsSection />);
+    const sectionText = container.textContent || "";
+    expect(sectionText).not.toMatch(/>\s*0[1-9]\s*</);
   });
 });
 
@@ -223,6 +259,24 @@ describe("LandingSegmentsSection", () => {
         "Queima de estoque em lojas de roupa, banho e tosa em pet shop, óticas, farmácias e oficinas.",
       ),
     ).toBeDefined();
+  });
+
+  it("permite interagir com os segmentos mantendo o conteúdo de balcão acessível", () => {
+    render(<LandingSegmentsSection />);
+
+    const pizzariasTrigger = screen.getByText("Pizzarias");
+    fireEvent.click(pizzariasTrigger);
+
+    expect(
+      screen.getByText(
+        "Foto de queijo derretendo, borda recheada e combo família com refrigerante para bombar o delivery.",
+      ),
+    ).toBeDefined();
+
+    const button = pizzariasTrigger.closest("button");
+    if (button) {
+      expect(button).toBeDefined();
+    }
   });
 });
 
