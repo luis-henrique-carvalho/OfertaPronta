@@ -13,7 +13,6 @@ tools:
   - read_url_content
   - search_web
   - invoke_subagent
-  - browser_subagent
   - send_message
 subagent: true
 mainAgent: true
